@@ -93,12 +93,54 @@ def main(argv=None) -> int:
     evidence.add_argument("--session-id", default="local-cli")
     evidence.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
     evidence.add_argument("--config", type=Path, default=Path("configs/governance/default.json"))
-    evidence.add_argument("--mode", choices=("metadata", "summary", "sample"), default="metadata")
+    evidence.add_argument("--mode", choices=("metadata", "summary", "sample", "examples"), default="metadata")
     evidence.add_argument("--file-name")
+    evidence.add_argument("--reason")
     evidence.add_argument("--limit", type=int, default=3)
     evidence.add_argument("--offset", type=int, default=0)
+    serve = commands.add_parser("serve", help="Serve the local conversation UI and API")
+    serve.add_argument("--host", choices=("127.0.0.1", "localhost", "::1"), default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
+    serve.add_argument("--env-file", type=Path, default=Path(".env"))
+    serve.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
+    serve.add_argument("--config", type=Path, default=Path("configs/governance/default.json"))
+    probe = commands.add_parser("model-probe", help="Check model discovery or native tool calling, without printing secrets")
+    probe.add_argument("--env-file", type=Path, default=Path(".env"))
+    probe.add_argument("--provider", choices=("auto", "primary", "backup"), default="auto")
+    probe.add_argument("--list-models", action="store_true")
+    session = commands.add_parser("session", help="Create a local conversation, optionally for an existing CLI session ID")
+    session.add_argument("--session-id")
+    session.add_argument("--title", default="本地实验")
+    session.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
     args = parser.parse_args(argv)
+    # Configuration validation can include sensitive input in third-party errors;
+    # these commands report only the exception type, never raw exception text.
+    if args.command in ("serve", "model-probe"):
+        try:
+            from .agent.settings import Settings
+            if args.command == "serve":
+                import uvicorn
+                from .api.app import create_app
+                settings = Settings.load(args.env_file, catalog=args.catalog, governance_config=args.config)
+                uvicorn.run(create_app(settings), host=args.host, port=args.port, access_log=False)
+                return 0
+            from .agent.probe import list_models, tool_probe
+            settings = Settings.load(args.env_file, model_provider=args.provider)
+            result = list_models(settings) if args.list_models else tool_probe(settings)
+            print(json.dumps(settings.redact(result), ensure_ascii=False, indent=2))
+            if args.list_models:
+                return 0 if any(p.get("http_status") == 200 for p in result["providers"]) else 1
+            return 0 if result["status"] == "completed" else 1
+        except Exception as error:
+            print(f"Application setup failed ({type(error).__name__}); inspect configuration locally.", file=sys.stderr)
+            return 1
     try:
+        if args.command == "session":
+            from .storage.conversations import ConversationStore
+            store = ConversationStore(args.catalog)
+            store.initialize()
+            print(json.dumps(store.create_session(args.title, args.session_id), ensure_ascii=False, indent=2))
+            return 0
         if args.command == "profile":
             output = args.output_dir or Path("var/profiles") / (
                 datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid4().hex[:8])
@@ -135,7 +177,7 @@ def main(argv=None) -> int:
                 result = registry.call("artifacts.get", {"artifact_ref": {
                     "artifact_id": args.artifact_id, "version": args.version},
                     "mode": args.mode, "file_name": args.file_name, "limit": args.limit,
-                    "offset": args.offset}, context)
+                    "offset": args.offset, "reason": args.reason}, context)
             print(result.model_dump_json(indent=2))
             return 0 if result.status in ("completed", "accepted") else 1
         result = registry.call("datasets.describe", {"dataset_ref": {

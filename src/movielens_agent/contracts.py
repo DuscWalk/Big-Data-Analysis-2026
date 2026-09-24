@@ -36,6 +36,7 @@ class DatasetManifest(Contract):
 class ToolContext(Contract):
     session_id: str = Field(min_length=1)
     call_id: str = Field(min_length=1)
+    message_id: str | None = Field(default=None, min_length=1)
     request_id: str | None = Field(default=None, min_length=1)
 
 

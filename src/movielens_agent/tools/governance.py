@@ -1,4 +1,5 @@
 """Job submission and scoped evidence queries use the same tool registry."""
+import base64
 from itertools import islice
 import json
 from pathlib import Path
@@ -39,8 +40,11 @@ class ListInput(TaskInput):
 
 class ArtifactInput(Contract):
     artifact_ref: ArtifactRef
-    mode: Literal["metadata", "summary", "sample"] = "metadata"
-    file_name: str | None = None
+    mode: Literal["metadata", "summary", "sample", "examples"] = Field(default="metadata",
+        description="metadata: file manifest; summary: metrics/report; sample: clean JSONL rows; examples: bounded source issues.")
+    file_name: str | None = Field(default=None, description="Exact registered filename; required for multi-file artifacts.")
+    reason: str | None = Field(default=None, max_length=120,
+        description="Only for examples: a table/rule key such as ratings/R14_VALID_KEY_CONFLICT, not a call rationale.")
     offset: int = Field(default=0, ge=0, le=10000)
     limit: int = Field(default=3, ge=1, le=20)
 
@@ -75,7 +79,8 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
         view = {key: value[key] for key in ("task_id", "status", "stage", "error", "created_at", "updated_at")}
         view["attempts"] = [{key: attempt[key] for key in ("stage", "status", "external_ids", "error")}
                             for attempt in value["attempts"]]
-        view["artifacts"] = [{"ref": item["ref"], "kind": item["kind"]} for item in value["artifacts"]]
+        view["artifacts"] = [{"ref": item["ref"], "kind": item["kind"],
+                              "file_names": [file["name"] for file in item["files"]]} for item in value["artifacts"]]
         return ObjectResult(value=view), [ArtifactRef.model_validate(item["ref"]) for item in value["artifacts"]]
 
     def artifact_list(arguments, context):
@@ -96,7 +101,28 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
             path = Path(file["path"])
             if not path.is_file() or file_digest(path) != file["sha256"]:
                 raise ToolRejected("ARTIFACT_INVALID", "Published file is missing or its checksum changed.")
-            if arguments.mode == "sample":
+            if arguments.mode == "examples":
+                if artifact["kind"] != "quality_report":
+                    raise ToolRejected("UNSUPPORTED_VIEW", "Examples require a quality report.")
+                report = json.loads(path.read_text(encoding="utf-8"))
+                groups = report["after"]["samples"]
+                selected = groups.get(arguments.reason, []) if arguments.reason else [
+                    item for entries in groups.values() for item in entries]
+                examples, seen = [], set()
+                for item in selected:
+                    source = item["source_ref"]
+                    key = source["file_name"], source["byte_offset"]
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    preview = base64.b64decode(item["raw_b64"] or "").decode("iso-8859-1").rstrip("\r\n")
+                    examples.append({key: item[key] for key in (
+                        "table", "source_ref", "disposition", "reasons", "warnings", "changes")} | {
+                        "raw_preview": preview[:500], "preview_truncated": len(preview) > 500})
+                value = {"items": examples[arguments.offset:arguments.offset + arguments.limit],
+                         "available_examples": len(examples), "reason": arguments.reason,
+                         "note": "Bounded representative examples, not all affected records."}
+            elif arguments.mode == "sample":
                 if path.suffix != ".jsonl":
                     raise ToolRejected("UNSUPPORTED_VIEW", "Sample mode requires a registered JSONL file.")
                 with path.open(encoding="utf-8") as stream:

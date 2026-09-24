@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MovieLens · 数据治理实验</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header><a href="/" class="brand"><span class="mark">M</span><span>MovieLens<small>大数据分析 · 迭代一</small></span></a>
+    <div class="header-actions"><span id="model-state" class="badge">读取配置…</span><button id="new-session" class="secondary">新建会话</button></div></header>
+  <main>
+    <section class="intro"><span class="eyebrow">DATA GOVERNANCE</span><h1>让每一个分析结果，都有据可查。</h1><p>用自然语言发起清洗，查看五维质量变化，并围绕同一次实验继续追问。</p></section>
+    <div id="notice" role="alert" class="notice hidden"></div>
+    <div class="workspace">
+      <section class="card conversation">
+        <div class="card-head"><div><h2>实验助手</h2><p id="session-caption">正在准备会话</p></div><span class="dot"></span></div>
+        <div id="messages" class="messages" aria-live="polite"><p class="empty">输入需求，开始这次实验。</p></div>
+        <div class="suggestions"><button id="suggest-run">清洗并评估数据</button><button id="suggest-explain">解释当前结果</button></div>
+        <form id="chat-form"><label class="sr-only" for="prompt">输入实验需求</label>
+          <textarea id="prompt" rows="3" maxlength="6000" placeholder="例如：请使用默认规则清洗 MovieLens 1M，并比较前后五维质量。"></textarea>
+          <div class="compose-footer"><span id="send-state">Ctrl / ⌘ + Enter 发送</span><button id="send" type="submit">发送请求 <span aria-hidden="true">↗</span></button></div>
+        </form>
+      </section>
+      <section class="results">
+        <div class="card task-card"><div class="card-head"><div><h2>运行与结果</h2><p>指标来自已发布的实际产物</p></div><button id="refresh" class="secondary">刷新</button></div>
+          <label for="task-select" class="small-label">当前任务</label><select id="task-select"><option value="">尚无任务</option></select>
+          <div id="task-status" class="task-status"><span class="badge">等待请求</span><span>任务受理后会自动刷新进展</span></div>
+          <div id="task-error" class="notice hidden"></div><details id="attempts-panel" class="hidden"><summary>查看执行阶段</summary><ol id="attempts"></ol></details>
+        </div>
+        <div id="quality-empty" class="card empty-result"><div class="chart-symbol" aria-hidden="true">▂ ▅ ▃ ▇ ▄</div><h3>结果尚未生成</h3><p>完成评分与清洗后，这里将显示真实分数、数据去向和时间划分。</p></div>
+        <div id="quality" class="hidden">
+          <div class="card"><div class="card-head"><div><h2>五维质量</h2><p>0—100 分 · 同一口径对比</p></div><div class="legend"><span class="before-dot"></span>清洗前 <span class="after-dot"></span>清洗后</div></div>
+            <div id="metrics" class="metrics"></div><p class="footnote">准确性是可验证约束代理；高分不证明真实性，隔离也不等于修复。</p>
+          </div>
+          <div class="card"><div class="card-head"><div><h2>数据去了哪里</h2><p>每条输入只有一个最终去向</p></div></div>
+            <div class="table-scroll"><table><thead><tr><th>数据表</th><th>输入</th><th>输出</th><th>修复</th><th>去重</th><th>隔离</th></tr></thead><tbody id="dispositions"></tbody></table></div>
+            <p id="splits" class="footnote"></p><details><summary>查看评分依据和处理原因</summary><div id="method"></div></details>
+          </div>
+          <div class="card"><div class="card-head"><div><h2>产物与证据</h2><p>精确版本 · 可下载 · 保留来源</p></div></div>
+            <div id="downloads" class="downloads"></div><div class="sample-toolbar"><label for="sample-table">清洗样例</label><select id="sample-table"><option value="ratings">评分</option><option value="movies">电影</option><option value="users">用户</option></select><button id="load-sample" class="secondary">查看 3 条</button></div><pre id="sample" class="hidden"></pre>
+            <div class="sample-toolbar"><label for="issue-rule">异常样例</label><select id="issue-rule"></select><button id="load-example" class="secondary">查看依据</button></div><pre id="examples" class="hidden"></pre><details><summary>数据与配置版本</summary><pre id="versions"></pre></details>
+          </div>
+        </div>
+      </section>
+    </div>
+    <footer>原始数据保持只读。任务状态、质量评分与模型解释分别记录，结果可以追溯。</footer>
+  </main>
+</body>
+</html>

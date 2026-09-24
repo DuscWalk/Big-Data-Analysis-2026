@@ -45,6 +45,9 @@ class ToolRegistry:
             for tool in self._tools.values()
         ]
 
+    def normalize(self, name: str, arguments: dict) -> dict:
+        return self._tools[name].input_model.model_validate(arguments).model_dump(mode="json")
+
     def call(self, name: str, arguments: dict, context: ToolContext) -> QueryResult:
         def error(status, code, message):
             return QueryResult(call_id=context.call_id, status=status,

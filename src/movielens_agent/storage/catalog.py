@@ -62,3 +62,18 @@ class DatasetCatalog:
         if row is None:
             raise KeyError("The exact dataset version is not registered.")
         return DatasetManifest.model_validate_json(row[0])
+
+    def versions(self, artifact_id: str) -> list[ArtifactRef]:
+        """Return exact registered versions without creating a missing catalog."""
+        if not self.path.is_file():
+            raise KeyError("Dataset catalog does not exist.")
+        uri = self.path.resolve().as_uri() + "?mode=ro"
+        connection = sqlite3.connect(uri, uri=True, timeout=5)
+        try:
+            rows = connection.execute(
+                "SELECT artifact_id, version FROM datasets WHERE artifact_id = ? ORDER BY version",
+                (artifact_id,),
+            ).fetchall()
+        finally:
+            connection.close()
+        return [ArtifactRef(artifact_id=row[0], version=row[1]) for row in rows]
