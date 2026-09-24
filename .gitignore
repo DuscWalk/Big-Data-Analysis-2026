@@ -1,2 +1,23 @@
-ml-1m/
-slides/
+# Local course material and datasets
+/ml-1m/
+/ml-1m.zip
+/slides/
+__MACOSX/
+.DS_Store
+._*
+
+# Runtime artifacts and local configuration
+/var/
+.env
+.env.*
+!.env.example
+
+# Python environments, caches and packaging
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+/build/
+/dist/
