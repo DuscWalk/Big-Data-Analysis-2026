@@ -4,7 +4,7 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：已完成文档分层、AgentDev Python 环境和首次只读数据核查。** 原始数据清单、SQLite 版本登记与 `datasets.describe` 工具查询已跑通。Hadoop 清洗与评分、长任务、模型服务和前端仍待实现；第一轮继续以共用 Agent 框架和实际数据治理为交付目标。
+**当前进度：Hadoop 治理链路与共用任务底座已实现，小数据、失败分支和课程全量实验均已验证。** 已有版本化规则、七个 HDFS/YARN 作业、SQLite 持久任务、独立 worker、原子产物发布和证据查询。模型、HTTP 会话与前端仍待接入；迭代一尚未整体验收。
 
 ## 实验文档
 
@@ -15,7 +15,7 @@
 - [迭代一：需求拆解与验收清单](docs/iterations/01-governance/需求拆解与验收清单.md)：交付范围、需求追踪、验收场景、开发顺序与待确定事项。
 - [Agent 整体架构与迭代边界](docs/architecture/Agent整体架构与迭代边界.md)：共用模块、工具与任务协议、版本化产物、后续接入方式及课件参考。
 - [迭代一：技术方案与接口约定](docs/iterations/01-governance/技术方案与接口约定.md)：首版选型建议、模块边界、工具与 HTTP 接口、任务状态及结果发布。
-- [迭代一：数据与评分约定](docs/iterations/01-governance/数据与评分约定.md)：三表输出格式、来源追踪、候选清洗规则、五维评分方法与时间划分。
+- [迭代一：数据与评分约定](docs/iterations/01-governance/数据与评分约定.md)：三表输出格式、来源追踪、已实现的清洗规则、五维评分方法与时间划分。
 - [迭代一：开发与交接计划](docs/iterations/01-governance/开发与交接计划.md)：W00—W09 工作项、依赖关系、运行验证和交接清单。
 
 README 提供项目入口与准备说明。课程要求以总体与各轮实验文档为准；需求清单和架构草案另记录小组确定的交付目标与实现建议。
@@ -24,7 +24,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 | 迭代 | 目标与主要任务 | 主要产物 | 状态 |
 | --- | --- | --- | --- |
-| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | 已完成数据核查与查询基础，治理流程待实现 |
+| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | Hadoop 治理和任务底座已实现，Agent 与页面待接入 |
 | 二：机器学习分析 | 预测评分是否不低于 4 分；按历史观影偏好聚类用户；降维并比较聚类效果、信息保留与资源开销 | 分类模型、用户画像与群体、降维模型与坐标、参数及评价结果 | 待实现 |
 | 三：知识图谱与图分析 | 构建并校验电影领域知识图谱，在同一图谱版本或其图投影上完成推荐、电影社区挖掘与链接分析 | 带来源与版本的知识图谱、推荐结果、社区结构与节点排序结果 | 待实现 |
 
@@ -54,7 +54,9 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── environment.yml                # AgentDev 环境声明
 ├── requirements.lock              # 已验证的 Python 库版本
 ├── environments/                  # 平台环境锁文件
-├── src/movielens_agent/            # 核查、登记、协议和工具查询
+├── src/movielens_agent/            # 任务、工具、Hadoop 与治理工作流
+├── configs/governance/            # 规则、评分与时间配置
+├── scripts/hadoop/                # 用户级安装与集群生命周期
 ├── tests/                         # 小型数据与框架行为验证
 ├── docs/
 │   ├── README.md                  # 文档导航
@@ -89,7 +91,7 @@ wc -l ml-1m/movies.dat ml-1m/ratings.dat ml-1m/users.dat
 
 `ml-1m/` 与 `slides/` 不随 Git 同步。开展实验前，小组成员应确认使用的数据来源与版本一致，并保留原始数据，另行存放清洗产物。
 
-以上步骤仅完成仓库与数据准备。技术文档已给出首版选型与接口建议；依赖版本和启动命令将在实现并实际验证后补充。
+以上步骤完成仓库与数据准备；实际执行见下文及开发指南。
 
 ## 本地开发与已实现命令
 
@@ -105,6 +107,16 @@ python -m unittest discover -s tests -v
 ```
 
 核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
+
+继续运行治理任务：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
+
+```bash
+python -m movielens_agent submit --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578 --request-id governance-001
+python -m movielens_agent worker --once
+python -m movielens_agent task --task-id TASK_ID
+```
+
+版本使用 profile 的实际输出，TASK_ID 使用 submit 返回值。去重、失败核查、报告及样例查询见 [任务与工具指南](docs/development/tasks-and-tools.md)。全量运行保留 935,354 条评分，前后分数、处置损失与作业记录见 [2026-09-24 Hadoop 治理实测](docs/iterations/01-governance/reports/2026-09-24-Hadoop治理实测.md)。
 
 ## 数据集说明
 

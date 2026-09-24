@@ -1,0 +1,710 @@
+{
+  "schema_version": "1",
+  "task_id": "c5bc7f559abe432aab5ce04060cd6c90",
+  "input_ref": {
+    "artifact_id": "ml-1m.raw",
+    "version": "sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578"
+  },
+  "cleaned_ref": {
+    "artifact_id": "c5bc7f559abe432aab5ce04060cd6c90.cleaned",
+    "version": "sha256-7d5ca23f15b3a60a3bf0d1f57b97f3c8975d11554547bb9bb29639d95e2ae171"
+  },
+  "config_refs": {
+    "rules": {
+      "artifact_id": "governance.rules",
+      "version": "sha256-baa20fca75eeeecb71e3da7bfd1ef026b615f534fc606000aadb87c48cb8426d"
+    },
+    "metrics": {
+      "artifact_id": "governance.metrics",
+      "version": "sha256-ef4c58f6f1c8f71794b65611d136a65352ec515be2576ed87ad060ad0c48c182"
+    },
+    "split": {
+      "artifact_id": "governance.split",
+      "version": "sha256-661860047c14ae2cb19fe2cdda6bc1d40cba8177a079b4a72d84f317749357ea"
+    }
+  },
+  "configuration": {
+    "schema_version": "1",
+    "rules": {
+      "version": "rules-v1",
+      "policy": "valid-first-isolate-conflicts",
+      "timestamp_min": 946684800,
+      "timestamp_max": 1046476799
+    },
+    "metrics": {
+      "version": "metrics-v1",
+      "formula": "constraint-ratios-equal-tables",
+      "reference_time": 1046476799,
+      "window_seconds": 31536000
+    },
+    "split": {
+      "version": "split-v1",
+      "train_end": 975628799,
+      "validation_end": 978307199
+    }
+  },
+  "implementation_sha256": "sha256-831423758fed4126e6ee394b74b94d31570be5365d48d915c5190e0064c831d5",
+  "limitations": [
+    "Accurate 是值约束代理，不能核验用户人口属性或电影事实的真实性。",
+    "前后使用相同公式；分母随隔离和去重而变化，得分改善不等于信息已恢复。",
+    "历史参照固定于 2003-02-28 23:59:59 UTC，时效性不代表相对于今天的新鲜程度。",
+    "保留合法的不同时间评分；冲突组中无可靠依据判断的记录全部隔离。",
+    "异常邮编、未附年份的标题和疑似混合编码只记录警告，未猜测补全或改写。",
+    "时间分区仅登记过滤条件，尚未物化；训练工具必须按 T1 过滤，不能使用全量评分拟合。"
+  ],
+  "source_commit": "eed99c29e52cfe7a6e9c81ccf0054c67f093b2f9",
+  "status": "succeeded",
+  "created_at": "2026-09-24T14:59:53.984358+00:00",
+  "completed_at": "2026-09-24T15:11:52.562043+00:00",
+  "elapsed_seconds": 718.577685,
+  "before": {
+    "tables": {
+      "movies": {
+        "counts": {
+          "accurate_passed": 4221,
+          "accurate_population": 4465,
+          "complete_passed": 13127,
+          "complete_population": 13395,
+          "conflict_groups": 337,
+          "conflict_rows": 674,
+          "consistent_passed": 3721,
+          "consistent_population": 4465,
+          "repeated_key_extra_rows": 454,
+          "rows": 4465,
+          "unique_passed": 3941,
+          "unique_population": 4465
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 4221,
+            "population": 4465,
+            "score": 94.53527435610302,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 13127,
+            "population": 13395,
+            "score": 97.99925345278089,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 3721,
+            "population": 4465,
+            "score": 83.33706606942889,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 3941,
+            "population": 4465,
+            "score": 88.26427771556551,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "reason": "No event timestamp in this table.",
+            "score": null,
+            "status": "not_applicable"
+          }
+        },
+        "rows": 4465
+      },
+      "ratings": {
+        "counts": {
+          "accurate_passed": 1092853,
+          "accurate_population": 1150241,
+          "complete_passed": 4533449,
+          "complete_population": 4600964,
+          "conflict_groups": 4096,
+          "conflict_rows": 83988,
+          "consistent_passed": 812633,
+          "consistent_population": 1150241,
+          "repeated_key_extra_rows": 83845,
+          "rows": 1150241,
+          "unique_passed": 1023261,
+          "unique_population": 1150241,
+          "uptodate_passed": 21682
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 1092853,
+            "population": 1150241,
+            "score": 95.0107846964245,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 4533449,
+            "population": 4600964,
+            "score": 98.53259012676475,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 812633,
+            "population": 1150241,
+            "score": 70.64893357131244,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 1023261,
+            "population": 1150241,
+            "score": 88.96057434920161,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "passed": 21682,
+            "population": 1150241,
+            "score": 1.884996274693738,
+            "status": "computed"
+          }
+        },
+        "rows": 1150241
+      },
+      "users": {
+        "counts": {
+          "accurate_passed": 20145,
+          "accurate_population": 20838,
+          "complete_passed": 34099,
+          "complete_population": 34730,
+          "conflict_groups": 608,
+          "conflict_rows": 1216,
+          "consistent_passed": 5622,
+          "consistent_population": 6946,
+          "repeated_key_extra_rows": 726,
+          "rows": 6946,
+          "unique_passed": 6112,
+          "unique_population": 6946
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 20145,
+            "population": 20838,
+            "score": 96.67434494673194,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 34099,
+            "population": 34730,
+            "score": 98.18312697955658,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 5622,
+            "population": 6946,
+            "score": 80.9386697379787,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 6112,
+            "population": 6946,
+            "score": 87.99308954794127,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "reason": "No event timestamp in this table.",
+            "score": null,
+            "status": "not_applicable"
+          }
+        },
+        "rows": 6946
+      }
+    },
+    "overall": {
+      "Accurate": {
+        "reason": null,
+        "score": 95.40680133308648,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Complete": {
+        "reason": null,
+        "score": 98.23832351970073,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Consistent": {
+        "reason": null,
+        "score": 78.30822312624001,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Unique": {
+        "reason": null,
+        "score": 88.40598053756946,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Up-to-date": {
+        "reason": null,
+        "score": 1.884996274693738,
+        "status": "computed",
+        "weights": {
+          "ratings": 1.0
+        }
+      }
+    }
+  },
+  "after": {
+    "tables": {
+      "movies": {
+        "counts": {
+          "accurate_passed": 3836,
+          "accurate_population": 3836,
+          "complete_passed": 11508,
+          "complete_population": 11508,
+          "conflict_groups": 0,
+          "conflict_rows": 0,
+          "consistent_passed": 3836,
+          "consistent_population": 3836,
+          "repeated_key_extra_rows": 0,
+          "rows": 3836,
+          "unique_passed": 3836,
+          "unique_population": 3836
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 3836,
+            "population": 3836,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 11508,
+            "population": 11508,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 3836,
+            "population": 3836,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 3836,
+            "population": 3836,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "reason": "No event timestamp in this table.",
+            "score": null,
+            "status": "not_applicable"
+          }
+        },
+        "rows": 3836
+      },
+      "ratings": {
+        "counts": {
+          "accurate_passed": 935354,
+          "accurate_population": 935354,
+          "complete_passed": 3741416,
+          "complete_population": 3741416,
+          "conflict_groups": 0,
+          "conflict_rows": 0,
+          "consistent_passed": 935354,
+          "consistent_population": 935354,
+          "repeated_key_extra_rows": 0,
+          "rows": 935354,
+          "unique_passed": 935354,
+          "unique_population": 935354,
+          "uptodate_passed": 20208
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 935354,
+            "population": 935354,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 3741416,
+            "population": 3741416,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 935354,
+            "population": 935354,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 935354,
+            "population": 935354,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "passed": 20208,
+            "population": 935354,
+            "score": 2.1604654494448092,
+            "status": "computed"
+          }
+        },
+        "rows": 935354
+      },
+      "users": {
+        "counts": {
+          "accurate_passed": 17685,
+          "accurate_population": 17685,
+          "complete_passed": 29475,
+          "complete_population": 29475,
+          "conflict_groups": 0,
+          "conflict_rows": 0,
+          "consistent_passed": 5895,
+          "consistent_population": 5895,
+          "repeated_key_extra_rows": 0,
+          "rows": 5895,
+          "unique_passed": 5895,
+          "unique_population": 5895
+        },
+        "metrics": {
+          "Accurate": {
+            "passed": 17685,
+            "population": 17685,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Complete": {
+            "passed": 29475,
+            "population": 29475,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Consistent": {
+            "passed": 5895,
+            "population": 5895,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Unique": {
+            "passed": 5895,
+            "population": 5895,
+            "score": 100.0,
+            "status": "computed"
+          },
+          "Up-to-date": {
+            "reason": "No event timestamp in this table.",
+            "score": null,
+            "status": "not_applicable"
+          }
+        },
+        "rows": 5895
+      }
+    },
+    "overall": {
+      "Accurate": {
+        "reason": null,
+        "score": 100.0,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Complete": {
+        "reason": null,
+        "score": 100.0,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Consistent": {
+        "reason": null,
+        "score": 100.0,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Unique": {
+        "reason": null,
+        "score": 100.0,
+        "status": "computed",
+        "weights": {
+          "movies": 0.3333333333333333,
+          "ratings": 0.3333333333333333,
+          "users": 0.3333333333333333
+        }
+      },
+      "Up-to-date": {
+        "reason": null,
+        "score": 2.1604654494448092,
+        "status": "computed",
+        "weights": {
+          "ratings": 1.0
+        }
+      }
+    },
+    "dispositions": {
+      "movies": {
+        "deduplicated": 117,
+        "kept": 3818,
+        "quarantined": 512,
+        "repaired": 18
+      },
+      "ratings": {
+        "kept": 935354,
+        "quarantined": 214887
+      },
+      "users": {
+        "deduplicated": 118,
+        "kept": 5895,
+        "quarantined": 933
+      }
+    },
+    "reasons": {
+      "movies": {
+        "R01_FIELD_COUNT": 70,
+        "R02_MISSING_REQUIRED": 58,
+        "R06_MOVIE_GENRE": 174,
+        "R14_VALID_KEY_CONFLICT": 210,
+        "R15_DUPLICATE": 117
+      },
+      "ratings": {
+        "R01_FIELD_COUNT": 13503,
+        "R02_MISSING_REQUIRED": 13503,
+        "R04_IDENTIFIER": 3376,
+        "R04_MOVIE_IDENTIFIER": 3376,
+        "R08_RATING_DOMAIN": 43885,
+        "R09_TIMESTAMP_TYPE": 22880,
+        "R10_HISTORICAL_RANGE": 6001,
+        "R12_PARENT_MISSING_MOVIES": 10502,
+        "R12_PARENT_MISSING_USERS": 10502,
+        "R12_PARENT_REMOVED_MOVIES": 27286,
+        "R12_PARENT_REMOVED_USERS": 41649,
+        "R14_VALID_KEY_CONFLICT": 37850
+      },
+      "users": {
+        "R01_FIELD_COUNT": 108,
+        "R02_MISSING_REQUIRED": 91,
+        "R05_USER_DOMAIN": 369,
+        "R14_VALID_KEY_CONFLICT": 434,
+        "R15_DUPLICATE": 118
+      }
+    },
+    "warnings": {
+      "movies": {
+        "AMBIGUOUS_TEXT_ENCODING": 47,
+        "UNVERIFIED_TITLE_YEAR": 116
+      },
+      "ratings": {},
+      "users": {
+        "UNVERIFIED_ZIP_FORMAT": 107
+      }
+    },
+    "changes": {
+      "movies": {
+        "R03_TRIM": 47
+      },
+      "ratings": {},
+      "users": {}
+    },
+    "splits": {
+      "test": 88401,
+      "train": 746139,
+      "validation": 100814
+    }
+  },
+  "jobs": [
+    {
+      "stage": "before-parents",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0008",
+        "application_1790261646343_0008"
+      ],
+      "elapsed_seconds": 30.003194,
+      "peak_task_physical_memory_bytes": {
+        "map": 223174656,
+        "reduce": 198950912
+      }
+    },
+    {
+      "stage": "before-ratings",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0009",
+        "application_1790261646343_0009"
+      ],
+      "elapsed_seconds": 181.71534,
+      "peak_task_physical_memory_bytes": {
+        "map": 292741120,
+        "reduce": 240320512
+      }
+    },
+    {
+      "stage": "before-metrics",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0011",
+        "application_1790261646343_0011"
+      ],
+      "elapsed_seconds": 54.757165,
+      "peak_task_physical_memory_bytes": {
+        "map": 287682560,
+        "reduce": 203972608
+      }
+    },
+    {
+      "stage": "clean-parents",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0012",
+        "application_1790261646343_0012"
+      ],
+      "elapsed_seconds": 30.257407,
+      "peak_task_physical_memory_bytes": {
+        "map": 236695552,
+        "reduce": 215351296
+      }
+    },
+    {
+      "stage": "clean-ratings",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0013",
+        "application_1790261646343_0013"
+      ],
+      "elapsed_seconds": 139.021021,
+      "peak_task_physical_memory_bytes": {
+        "map": 317784064,
+        "reduce": 238788608
+      }
+    },
+    {
+      "stage": "after-groups",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0014",
+        "application_1790261646343_0014"
+      ],
+      "elapsed_seconds": 146.452182,
+      "peak_task_physical_memory_bytes": {
+        "map": 315207680,
+        "reduce": 245997568
+      }
+    },
+    {
+      "stage": "after-metrics",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790261646343_0015",
+        "application_1790261646343_0015"
+      ],
+      "elapsed_seconds": 66.373248,
+      "peak_task_physical_memory_bytes": {
+        "map": 275099648,
+        "reduce": 201850880
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": {
+        "artifact_id": "c5bc7f559abe432aab5ce04060cd6c90.cleaned",
+        "version": "sha256-7d5ca23f15b3a60a3bf0d1f57b97f3c8975d11554547bb9bb29639d95e2ae171"
+      },
+      "kind": "cleaned_dataset",
+      "files": [
+        {
+          "name": "users.jsonl",
+          "sha256": "75ffd68716e6a04c0d1204434a3e0fd6753254e2378a8ac73f0ef66a3b00de64",
+          "size_bytes": 1652960
+        },
+        {
+          "name": "movies.jsonl",
+          "sha256": "448076296a22bf9a1e9f79a4ff7e7fffc830c96517627738e154a562cdf87099",
+          "size_bytes": 1065359
+        },
+        {
+          "name": "ratings.jsonl",
+          "sha256": "c48f79e61b3cb9bc86e5000c9095856e737e9788480586ed06a87d2e7c9dde0b",
+          "size_bytes": 251834151
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "c5bc7f559abe432aab5ce04060cd6c90.dispositions",
+        "version": "sha256-8e4144d658cd05c99c6adae47ec53b3cf36692fea5f738e2832b9e3d12649ab2"
+      },
+      "kind": "disposition_log",
+      "files": [
+        {
+          "name": "dispositions.jsonl",
+          "sha256": "3ae3be85e9606a96985a1937c972357499c87efd017d644ac50b4165cd89a3df",
+          "size_bytes": 448365933
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "c5bc7f559abe432aab5ce04060cd6c90.quality",
+        "version": "sha256-38c8855e5a862effdd1ac9e6ac8e74c63aa66b42724d695dab751346e906235b"
+      },
+      "kind": "quality_report",
+      "files": [
+        {
+          "name": "quality.json",
+          "sha256": "870f135f56142987798463d3ac760a646278ef0740547809ab84c914efe866d7",
+          "size_bytes": 75556
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "c5bc7f559abe432aab5ce04060cd6c90.report",
+        "version": "sha256-69137ad8d7c594f04a873bbea100d9de44c581fe5476ca8410199c18d1f0bdcb"
+      },
+      "kind": "report",
+      "files": [
+        {
+          "name": "report.md",
+          "sha256": "493e5d30ca7ae84a3afab1f679f40c7b5e363864dc112f8d7a1db7af321d8198",
+          "size_bytes": 4668
+        },
+        {
+          "name": "dataset-manifest.json",
+          "sha256": "3f7d3afb374deb17f83d3782f70aae252785c00d60660f03b74d31d7aa0e72b5",
+          "size_bytes": 2853
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "unit_tests_passed": 32,
+    "real_hadoop_success_test": "a6cb6d8af28441b384dd10e081c846c8",
+    "real_hadoop_failure_test": "c9afd2b297b344f5b0ed3976050399c1",
+    "failure_application": "application_1790261646343_0010",
+    "source_sha256_unchanged": true
+  },
+  "supplementary_duplicate_audit": {
+    "scope": "read-only cross-check, not formal quality scoring",
+    "rows_passing_local_rules_and_clean_parent_membership": 973204,
+    "nonconflicting_rows_and_keys": 935354,
+    "conflicting_rows": 37850,
+    "conflicting_keys": 3866,
+    "dedup_eligible_rows": 0
+  }
+}
