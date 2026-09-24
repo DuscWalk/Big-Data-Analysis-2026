@@ -114,6 +114,24 @@ def configure(runtime, installation, java, python):
     return os.environ | settings
 
 
+def wait_for_hdfs(installation, env, timeout=90):
+    """Daemon start returns before RPC and block reports are ready on a cold start."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            result = subprocess.run(
+                [installation / "bin/hdfs", "dfsadmin", "-safemode", "get"],
+                env=env, capture_output=True, text=True,
+                timeout=max(0.1, min(10, deadline - time.monotonic())))
+            if result.returncode == 0 and "Safe mode is OFF" in result.stdout:
+                print("HDFS RPC ready; safe mode is OFF.", flush=True)
+                return
+        except subprocess.TimeoutExpired:
+            pass
+        time.sleep(max(0, min(2, deadline - time.monotonic())))
+    raise RuntimeError("HDFS did not become ready; inspect the local NameNode and DataNode logs.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("init", "start", "serve", "stop", "status"))
@@ -156,8 +174,7 @@ def main():
             subprocess.run([installation / "bin" / binary, "--daemon", action, daemon],
                            env=env, check=True)
         if action == "start":
-            subprocess.run([installation / "bin/hdfs", "dfsadmin", "-safemode", "wait"],
-                           env=env, check=True, timeout=90)
+            wait_for_hdfs(installation, env)
             subprocess.run([installation / "bin/hdfs", "dfs", "-mkdir", "-p",
                             "/movielens", "/user/" + os.environ["USER"]],
                            env=env, check=True)

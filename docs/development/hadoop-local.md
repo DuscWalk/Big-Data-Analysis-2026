@@ -46,6 +46,8 @@ python -m movielens_agent worker
 
 前台终端 Ctrl-C 会停止该项目的四个 Hadoop 服务。也可在普通持久终端使用 `start` / `stop` 子命令；某些工具执行器会清理命令结束后的子进程，这类环境使用 `serve`。关闭终端或 WSL 后，要重新启动集群。
 
+冷启动会在最多 90 秒内等待 NameNode RPC 可访问及 Safe mode 退出，连接暂未就绪时不会立即判定启动失败；超过期限仍会明确报错并保留日志。
+
 健康检查应显示一个 Live DataNode 和一个 RUNNING YARN 节点；“Safe mode is OFF”本身不能证明 YARN 可用。
 
 - NameNode 页面：http://127.0.0.1:9870
