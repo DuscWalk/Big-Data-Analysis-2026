@@ -119,7 +119,6 @@ NODE_PATH="$PWD/var/browser-check/node_modules" MOVIELENS_SESSION_ID=local-cli n
 
 可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。页面打开已完成任务时可能调用真实模型解释，因此检查前配置好服务。
 
-返回[文档导航](../README.md)。
 
 需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
 
@@ -128,3 +127,5 @@ NODE_PATH="$PWD/var/browser-check/node_modules" node scripts/checks/natural_lang
 ```
 
 该命令会使用真实模型、创建一个新会话、提交一次课程全量 Hadoop 任务，并等待自动解释与追问，可能运行十余分钟；结果保存在 `var/verification/natural-language/`。这是显式的集成验收入口，普通单元测试不会调用模型或启动 Hadoop。
+
+返回[文档导航](../README.md)。

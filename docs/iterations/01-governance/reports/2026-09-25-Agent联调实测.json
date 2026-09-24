@@ -1,0 +1,370 @@
+{
+  "date": "2026-09-25",
+  "timezone": "Asia/Shanghai",
+  "producer_git_commit": "f996feabf7d5a8c89248587dbb4f3e2ddf64434c",
+  "application_git_commit": "43e4c2203b6ba448285706ddeeafb1fee83cecc3",
+  "producer_implementation_sha256": "sha256-b03d839925516a8b79001bdea2aee2648b21812d8919167b5e3e1a079e2c7bce",
+  "application_implementation_sha256": "sha256-af3904a92e4f7ce7cf7ee62336a9d4d4bee9bbd1d63aaa4f6d7e08dca798913f",
+  "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+  "session_id": "0db6090d62ba443595980aad6b2d0eab",
+  "status": "succeeded",
+  "task_duration_seconds": 602.01,
+  "browser_flow_seconds": 663.146,
+  "input_ref": {
+    "artifact_id": "ml-1m.raw",
+    "version": "sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578"
+  },
+  "config_refs": {
+    "rules": {
+      "artifact_id": "governance.rules",
+      "version": "sha256-baa20fca75eeeecb71e3da7bfd1ef026b615f534fc606000aadb87c48cb8426d"
+    },
+    "metrics": {
+      "artifact_id": "governance.metrics",
+      "version": "sha256-ef4c58f6f1c8f71794b65611d136a65352ec515be2576ed87ad060ad0c48c182"
+    },
+    "split": {
+      "artifact_id": "governance.split",
+      "version": "sha256-661860047c14ae2cb19fe2cdda6bc1d40cba8177a079b4a72d84f317749357ea"
+    }
+  },
+  "quality_ref": {
+    "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+    "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+  },
+  "cleaned_ref": {
+    "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.cleaned",
+    "version": "sha256-b64d8d8e78e93a796ac86342e19a3a3b2d9316a6c89f3e930defe190375f1213"
+  },
+  "data_counts": {
+    "users": {
+      "input": 6946,
+      "output": 5895,
+      "kept": 5895,
+      "repaired": 0,
+      "deduplicated": 118,
+      "quarantined": 933
+    },
+    "movies": {
+      "input": 4465,
+      "output": 3836,
+      "kept": 3818,
+      "repaired": 18,
+      "deduplicated": 117,
+      "quarantined": 512
+    },
+    "ratings": {
+      "input": 1150241,
+      "output": 935354,
+      "kept": 935354,
+      "repaired": 0,
+      "deduplicated": 0,
+      "quarantined": 214887
+    }
+  },
+  "metrics": {
+    "Accurate": {
+      "before": 95.40680133308648,
+      "after": 100.0
+    },
+    "Complete": {
+      "before": 98.23832351970073,
+      "after": 100.0
+    },
+    "Consistent": {
+      "before": 78.30822312624001,
+      "after": 100.0
+    },
+    "Unique": {
+      "before": 88.40598053756946,
+      "after": 100.0
+    },
+    "Up-to-date": {
+      "before": 1.884996274693738,
+      "after": 2.1604654494448092
+    }
+  },
+  "splits": {
+    "configuration": {
+      "version": "split-v1",
+      "train_end": 975628799,
+      "validation_end": 978307199
+    },
+    "counts": {
+      "test": 88401,
+      "train": 746139,
+      "validation": 100814
+    },
+    "materialized": false
+  },
+  "interpretation_facts": {
+    "rating_parent_reference_reason_hits": 89939,
+    "rating_parent_reference_reasons": {
+      "R12_PARENT_MISSING_MOVIES": 10502,
+      "R12_PARENT_MISSING_USERS": 10502,
+      "R12_PARENT_REMOVED_MOVIES": 27286,
+      "R12_PARENT_REMOVED_USERS": 41649
+    },
+    "reason_hits_may_overlap": true,
+    "reason_count_note": "命中次数之和，不是去重后的受影响行数；不能与隔离行数相加。",
+    "ratings_deduplicated": 0,
+    "time_split_storage_statement": "时间分区仅登记过滤条件，尚未物化；训练工具必须按 T1 过滤，不能使用全量评分拟合。"
+  },
+  "cleaned_file_checksums_match_previous_run": true,
+  "jobs": [
+    {
+      "stage": "before-parents",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0001",
+        "application_1790268267118_0001"
+      ],
+      "started_at": "2026-09-24T16:49:00.285615+00:00",
+      "ended_at": "2026-09-24T16:49:36.964370+00:00"
+    },
+    {
+      "stage": "before-ratings",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0002",
+        "application_1790268267118_0002"
+      ],
+      "started_at": "2026-09-24T16:49:37.055620+00:00",
+      "ended_at": "2026-09-24T16:51:36.017683+00:00"
+    },
+    {
+      "stage": "before-metrics",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0003",
+        "application_1790268267118_0003"
+      ],
+      "started_at": "2026-09-24T16:51:36.030618+00:00",
+      "ended_at": "2026-09-24T16:52:11.381135+00:00"
+    },
+    {
+      "stage": "clean-parents",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0004",
+        "application_1790268267118_0004"
+      ],
+      "started_at": "2026-09-24T16:52:11.394592+00:00",
+      "ended_at": "2026-09-24T16:52:37.783512+00:00"
+    },
+    {
+      "stage": "clean-ratings",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0005",
+        "application_1790268267118_0005"
+      ],
+      "started_at": "2026-09-24T16:52:37.958889+00:00",
+      "ended_at": "2026-09-24T16:54:55.317368+00:00"
+    },
+    {
+      "stage": "after-groups",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0006",
+        "application_1790268267118_0006"
+      ],
+      "started_at": "2026-09-24T16:54:55.335390+00:00",
+      "ended_at": "2026-09-24T16:56:53.391376+00:00"
+    },
+    {
+      "stage": "after-metrics",
+      "status": "succeeded",
+      "external_ids": [
+        "job_1790268267118_0007",
+        "application_1790268267118_0007"
+      ],
+      "started_at": "2026-09-24T16:56:53.417077+00:00",
+      "ended_at": "2026-09-24T16:57:41.165241+00:00"
+    }
+  ],
+  "artifacts": [
+    {
+      "ref": {
+        "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.cleaned",
+        "version": "sha256-b64d8d8e78e93a796ac86342e19a3a3b2d9316a6c89f3e930defe190375f1213"
+      },
+      "kind": "cleaned_dataset",
+      "state": "ready",
+      "files": [
+        {
+          "name": "users.jsonl",
+          "sha256": "75ffd68716e6a04c0d1204434a3e0fd6753254e2378a8ac73f0ef66a3b00de64",
+          "size_bytes": 1652960
+        },
+        {
+          "name": "movies.jsonl",
+          "sha256": "448076296a22bf9a1e9f79a4ff7e7fffc830c96517627738e154a562cdf87099",
+          "size_bytes": 1065359
+        },
+        {
+          "name": "ratings.jsonl",
+          "sha256": "c48f79e61b3cb9bc86e5000c9095856e737e9788480586ed06a87d2e7c9dde0b",
+          "size_bytes": 251834151
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.dispositions",
+        "version": "sha256-8e4144d658cd05c99c6adae47ec53b3cf36692fea5f738e2832b9e3d12649ab2"
+      },
+      "kind": "disposition_log",
+      "state": "ready",
+      "files": [
+        {
+          "name": "dispositions.jsonl",
+          "sha256": "3ae3be85e9606a96985a1937c972357499c87efd017d644ac50b4165cd89a3df",
+          "size_bytes": 448365933
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+        "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+      },
+      "kind": "quality_report",
+      "state": "ready",
+      "files": [
+        {
+          "name": "quality.json",
+          "sha256": "7bc50d47076a67579197f2747c63755a366fb98e065ec79c75c19d57be87f6ed",
+          "size_bytes": 75556
+        }
+      ]
+    },
+    {
+      "ref": {
+        "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.report",
+        "version": "sha256-efa6ccc017b33bcd8cf5fe23937cce6a92b68b4ccb30ecf8c197c5da85ae4049"
+      },
+      "kind": "report",
+      "state": "ready",
+      "files": [
+        {
+          "name": "report.md",
+          "sha256": "7b154e4982fee777fc3e63f1825a565f8bed6a8f653dff711798799426599966",
+          "size_bytes": 4668
+        },
+        {
+          "name": "dataset-manifest.json",
+          "sha256": "96f9736f29b22863d14595f55eb528eb02d8fb42b83154b48cecf64b1275a12b",
+          "size_bytes": 2853
+        }
+      ]
+    }
+  ],
+  "model": {
+    "primary": "qwen-local",
+    "primary_status": "HTTP 502",
+    "backup": "deepseek-v4-flash",
+    "max_tokens": 4096,
+    "timeout_seconds": 90
+  },
+  "model_steps": {
+    "submission": {
+      "message_id": "9e6d7ebac111464bb95e692d5904860a",
+      "status": "completed",
+      "model_rounds": 6,
+      "tools": [
+        "governance.run",
+        "tasks.get",
+        "tasks.get",
+        "tasks.get",
+        "tasks.get"
+      ]
+    },
+    "explanation": {
+      "message_id": "9863f76c213d4f1e993496b280852c8b",
+      "status": "completed",
+      "model_rounds": 3,
+      "tools": [
+        "tasks.get",
+        "artifacts.list",
+        "artifacts.get"
+      ]
+    },
+    "followup": {
+      "message_id": "1613fe585288487f8221fb609636132a",
+      "status": "completed",
+      "model_rounds": 3,
+      "tools": [
+        "tasks.get",
+        "artifacts.get"
+      ]
+    }
+  },
+  "post_run_verification": {
+    "receipt": {
+      "scope": "receipt_only_no_worker",
+      "status": "completed",
+      "response_origin": "application_receipt",
+      "model_rounds": 1,
+      "elapsed_seconds": 77.013,
+      "task_state": "queued"
+    },
+    "corrective_explanation": {
+      "status": "completed",
+      "message_id": "33f87ce759274e4f90788a3cf1b55b46",
+      "model_rounds": 3,
+      "elapsed_seconds": 22.331,
+      "verified_facts": [
+        "R12 reason hits 89939; labels overlap",
+        "rating deduplication 0",
+        "time partitions not materialized"
+      ]
+    },
+    "extension": {
+      "passed": true,
+      "session_id": "ea7453a4ecb94cc2b9732124fd1f957f",
+      "tool": "datasets.versions",
+      "browser": {
+        "session_id": "ea7453a4ecb94cc2b9732124fd1f957f",
+        "tool": "datasets.versions",
+        "real_version_visible": true,
+        "shared_trace_ui": true,
+        "browser_errors": []
+      }
+    }
+  },
+  "browser": {
+    "session": "0db6090d62ba443595980aad6b2d0eab",
+    "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+    "ratings_output": 935354,
+    "metrics": 5,
+    "samples": true,
+    "examples": true,
+    "download_sha256": "7bc50d47076a67579197f2747c63755a366fb98e065ec79c75c19d57be87f6ed",
+    "desktop": "1440x1000",
+    "mobile": "390x844",
+    "session_reset": true,
+    "browser_errors": []
+  },
+  "tests": {
+    "discovered": 62,
+    "passed": 60,
+    "skipped_hadoop_opt_in": 2
+  },
+  "versions": {
+    "python": "3.11.16",
+    "pydantic": "2.13.5",
+    "fastapi": "0.141.1",
+    "uvicorn": "0.53.0",
+    "httpx": "0.28.1",
+    "python-dotenv": "1.2.3",
+    "playwright": "1.61.1",
+    "hadoop": "3.5.0"
+  },
+  "known_limitations": [
+    "The initial generated explanation mis-added R12 counts and contradicted itself about materialization; original and correction remain in the conversation.",
+    "Free-form model text, including percentage units, still requires review; tool use is not proof of every sentence.",
+    "The final receipt change was verified with a real-model queue-only check; the seven-job full run used the recorded producer commit.",
+    "Single trusted localhost API and worker; no multiuser authentication or automatic continuation of unknown tasks."
+  ]
+}

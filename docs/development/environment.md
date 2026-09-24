@@ -1,10 +1,10 @@
 # 开发环境与本地运行
 
-**已验证范围：** Python 包、原始核查与版本登记、工具注册、持久任务与独立 worker、HDFS/YARN 七作业治理、产物发布与证据查询。小数据通过手算断言；全量结果由迭代报告记录。模型、HTTP 会话与前端尚未接入。
+**已验证范围：** Python 包、原始核查与版本登记、工具注册、持久任务与独立 worker、HDFS/YARN 七作业治理、产物发布与证据查询。小数据通过手算断言；全量结果由迭代报告记录。模型主备适配、SQLite 会话与调用记录、HTTP API 和页面已接入，实际证据见[Agent 联调报告](../iterations/01-governance/reports/2026-09-25-Agent联调实测.md)。
 
 ## 环境与依赖
 
-本机以 `duscwalk` 执行，Conda 环境为 `AgentDev`。当前 Python 3.11.16、Pydantic 2.13.5，实际依赖集合记录在 [requirements.lock](../../requirements.lock)；Conda 环境声明见 [environment.yml](../../environment.yml)。
+本机以 `duscwalk` 执行，Conda 环境为 `AgentDev`。当前 Python 3.11.16、Pydantic 2.13.5、FastAPI 0.141.1、httpx 0.28.1，实际依赖集合记录在 [requirements.lock](../../requirements.lock)；Conda 环境声明见 [environment.yml](../../environment.yml)。
 
 ```bash
 source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
@@ -52,7 +52,7 @@ python -m movielens_agent describe --catalog var/catalog.sqlite3 --artifact-id m
 
 查询返回 `completed` 与清单、证据引用，或结构化的拒绝/失败原因；缺失版本不会回退到最新版本。它读取登记信息，不复查源文件是否在查询后改变；真正处理任务在消费原始文件前必须重新核对校验值。
 
-Hadoop 安装与启动见 [Hadoop 指南](hadoop-local.md)。任务提交、后台执行、证据读取和扩展步骤见 [任务与工具指南](tasks-and-tools.md)。已实现 governance.run 长任务工具，但还没有 HTTP 会话、模型调用记录或前端，CLI 运行不等同于完整 Agent 验收。
+Hadoop 安装与启动见 [Hadoop 指南](hadoop-local.md)。任务提交、后台执行、证据读取和扩展步骤见 [任务与工具指南](tasks-and-tools.md)。自然语言入口、主备模型配置、页面及会话 API 见 [Agent 与页面指南](app-and-model.md)。CLI、测试替身与真实 Agent 联调的证据分别记录。
 
 ## 验证
 

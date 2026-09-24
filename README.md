@@ -4,7 +4,7 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：Hadoop 治理链路与共用任务底座已实现，小数据、失败分支和课程全量实验均已验证。** 已有版本化规则、七个 HDFS/YARN 作业、SQLite 持久任务、独立 worker、原子产物发布和证据查询。模型、HTTP 会话与前端仍待接入；迭代一尚未整体验收。
+**当前进度：Agent、持久会话、HTTP API、页面和 Hadoop 治理已接通。** 模型支持主备切换，页面读取真实任务和版本化产物。验证结果见[2026-09-25 Agent 联调](docs/iterations/01-governance/reports/2026-09-25-Agent联调实测.md)；额外查询工具已验证，成员交接与汇报演练仍需继续。
 
 ## 实验文档
 
@@ -24,7 +24,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 | 迭代 | 目标与主要任务 | 主要产物 | 状态 |
 | --- | --- | --- | --- |
-| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | Hadoop 治理和任务底座已实现，Agent 与页面待接入 |
+| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | Agent、页面和 Hadoop 已实现；验证与交接见本轮报告 |
 | 二：机器学习分析 | 预测评分是否不低于 4 分；按历史观影偏好聚类用户；降维并比较聚类效果、信息保留与资源开销 | 分类模型、用户画像与群体、降维模型与坐标、参数及评价结果 | 待实现 |
 | 三：知识图谱与图分析 | 构建并校验电影领域知识图谱，在同一图谱版本或其图投影上完成推荐、电影社区挖掘与链接分析 | 带来源与版本的知识图谱、推荐结果、社区结构与节点排序结果 | 待实现 |
 
@@ -54,9 +54,9 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── environment.yml                # AgentDev 环境声明
 ├── requirements.lock              # 已验证的 Python 库版本
 ├── environments/                  # 平台环境锁文件
-├── src/movielens_agent/            # 任务、工具、Hadoop 与治理工作流
+├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
 ├── configs/governance/            # 规则、评分与时间配置
-├── scripts/hadoop/                # 用户级安装与集群生命周期
+├── scripts/                       # Hadoop 生命周期与实际浏览器验收
 ├── tests/                         # 小型数据与框架行为验证
 ├── docs/
 │   ├── README.md                  # 文档导航
@@ -117,6 +117,15 @@ python -m movielens_agent task --task-id TASK_ID
 ```
 
 版本使用 profile 的实际输出，TASK_ID 使用 submit 返回值。去重、失败核查、报告及样例查询见 [任务与工具指南](docs/development/tasks-and-tools.md)。全量运行保留 935,354 条评分，前后分数、处置损失与作业记录见 [2026-09-24 Hadoop 治理实测](docs/iterations/01-governance/reports/2026-09-24-Hadoop治理实测.md)。
+
+应用入口与模型配置见 [Agent、模型与页面指南](docs/development/app-and-model.md)。准备好 `.env` 后，在 worker 和 Hadoop 运行期间启动：
+
+```bash
+python -m movielens_agent model-probe
+python -m movielens_agent serve --port 8765
+```
+
+打开 <http://127.0.0.1:8765>，用自然语言发起清洗，再查看自动更新的任务、五维对比、异常样例与报告。模型解释失败时仍可读取实际产物；“受理”与“计算完成”是不同状态。应用仅面向可信本机使用。
 
 ## 数据集说明
 
