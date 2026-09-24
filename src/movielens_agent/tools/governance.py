@@ -49,6 +49,21 @@ class ArtifactInput(Contract):
     limit: int = Field(default=3, ge=1, le=20)
 
 
+def interpretation_facts(report):
+    """Derive small reading aids from published facts, without substituting scores."""
+    reasons = report["after"]["reasons"]["ratings"]
+    parents = {name: count for name, count in reasons.items() if name.startswith("R12_")}
+    split_notes = [text for text in report["limitations"] if "时间分区" in text]
+    return {
+        "rating_parent_reference_reason_hits": sum(parents.values()),
+        "rating_parent_reference_reasons": parents,
+        "reason_hits_may_overlap": True,
+        "reason_count_note": "命中次数之和，不是去重后的受影响行数；不能与隔离行数相加。",
+        "ratings_deduplicated": report["after"]["dispositions"]["ratings"].get("deduplicated", 0),
+        "time_split_storage_statement": "；".join(split_notes) if split_notes else "报告未声明分区文件状态。",
+    }
+
+
 def register_governance_tools(registry, catalog, store, config: GovernanceConfig):
     refs = config.refs()
 
@@ -137,6 +152,7 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
                 value["before"] = {key: report["before"][key] for key in ("overall", "tables")}
                 value["after"] = {key: report["after"][key] for key in
                                   ("overall", "tables", "dispositions", "reasons", "warnings", "splits")}
+                value["interpretation_facts"] = interpretation_facts(report)
             elif path.suffix == ".md":
                 if path.stat().st_size > 65536:
                     raise ToolRejected("CONTENT_TOO_LARGE", "Report exceeds the tool context limit.")

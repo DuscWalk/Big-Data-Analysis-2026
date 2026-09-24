@@ -51,6 +51,18 @@ class ModelTests(unittest.TestCase):
         self.assertTrue(all("secret" not in json.dumps(x[2]) for x in seen))
         self.assertTrue(all("TOOL_CALL_PARSER" not in x[2] for x in seen))
 
+    def test_unconfigured_backup_does_not_mask_primary_service_error(self):
+        self.settings.backup_url = ""
+        seen = []
+        def handler(request):
+            seen.append(request.url.host)
+            return httpx.Response(502)
+        with self.assertRaises(ModelError) as caught:
+            RoutedModel(self.settings, httpx.MockTransport(handler)).complete({})
+        self.assertEqual(caught.exception.code, "MODEL_HTTP_ERROR")
+        self.assertEqual(seen, ["primary.invalid"])
+        self.assertEqual(len(caught.exception.attempts), 1)
+
     def test_success_never_tries_another_provider(self):
         seen = []
         def handler(request):
@@ -102,13 +114,15 @@ class AgentTests(unittest.TestCase):
 
     def test_tool_loop_normalizes_duplicate_job_calls_and_request_retries(self):
         f = self.f
-        agent = f.agent([call("governance_run", {"dataset_ref": f.ref}, "one"),
-                         call("governance_run", {"dataset_ref": f.ref, "rule_ref": None, "metric_ref": None}, "two"),
-                         answer("已受理，尚未运行。")])
+        first_call = call("governance_run", {"dataset_ref": f.ref}, "one")
+        duplicate = call("governance_run", {"dataset_ref": f.ref, "rule_ref": None, "metric_ref": None}, "two")
+        first_call["message"]["tool_calls"].extend(duplicate["message"]["tool_calls"])
+        agent = f.agent([first_call])
         first = agent.respond(f.session, "request", "清洗")
         second = agent.respond(f.session, "request", "清洗")
         self.assertEqual(first, second)
-        self.assertEqual(len(f.model.requests), 3)
+        self.assertEqual(len(f.model.requests), 1)
+        self.assertEqual(first["response_origin"], "application_receipt")
         self.assertEqual(len(first["task_ids"]), 1)
         self.assertEqual(f.tasks.get(first["task_ids"][0], f.session)["status"], "queued")
         self.assertEqual(len(f.chats.messages(f.session)), 2)
@@ -117,10 +131,13 @@ class AgentTests(unittest.TestCase):
         with self.assertRaises(ConversationConflict):
             agent.respond(f.session, "request", "不同消息")
 
-    def test_model_failure_preserves_accepted_task_and_redacts_all_persistence(self):
+    def test_receipt_does_not_wait_for_model_and_later_outage_preserves_task(self):
         f = self.f
         agent = f.agent([call("governance_run", {"dataset_ref": f.ref}), ModelError("MODEL_TIMEOUT", "模型超时")])
-        result = agent.respond(f.session, "outage", "清洗 test-primary-secret test-backup-secret")
+        receipt = agent.respond(f.session, "submit", "清洗 test-primary-secret test-backup-secret")
+        self.assertEqual(receipt["status"], "completed")
+        self.assertEqual(len(f.model.requests), 1)
+        result = agent.respond(f.session, "outage", "查看任务", receipt["task_ids"][0])
         self.assertEqual(result["status"], "failed")
         self.assertEqual(f.tasks.get(result["task_ids"][0], f.session)["status"], "queued")
         with f.tasks.connect() as conn:

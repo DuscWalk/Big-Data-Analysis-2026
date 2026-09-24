@@ -21,6 +21,9 @@ INSTRUCTIONS = """你是 MovieLens 大数据分析实验助手，用中文回答
 再用 artifacts_get 的 summary 模式读取实际指标；不得仅凭聊天记录中的旧数字。
 quality_report 的 summary 已含五维指标、三表行数/处置、时间边界与局限，
 一般足够解释结果；证据足够后直接回答，不必额外重复读取报告和处置日志。
+interpretation_facts 提供已计算的父表引用原因总命中数、评分去重数、分区文件说明，
+必须据此解释，不自行合并重叠原因当作受影响行数；评分去重为 0 时不能声称去重了评分行。
+分区计数不代表文件已物化，严格遵守 time_split_storage_statement；历史回答可能算错，须以本轮工具为准。
 reason 参数仅筛选异常样例的规则键，不是填写工具调用理由的字段。
 完整率/准确性等是约束代理：四项满分不证明真实性，隔离和去重不等于修复。
 时效性是固定历史场景，不得为提高分数改规则；说明分子、分母与数据损失。
@@ -118,6 +121,7 @@ class AgentService:
                 if call_count + len(calls) > self.settings.max_calls:
                     raise ModelError("TOOL_CALL_LIMIT", "已达到本轮工具调用上限；已受理任务仍可查询。")
                 messages.append(assistant)
+                accepted_tasks = []
                 for call in calls:
                     call_count += 1
                     alias = call["function"]["name"]
@@ -147,6 +151,8 @@ class AgentService:
                             request_id=request_key))
                     value = self.settings.redact(result.model_dump(mode="json"))
                     self.conversations.finish_tool(internal_id, value)
+                    if result.status == "accepted":
+                        accepted_tasks.append(result.task_ref["task_id"])
                     if result.status == "completed" and request["task_id"]:
                         selected_evidence |= (
                             name == "tasks.get" and arguments.get("task_id") == request["task_id"]
@@ -160,6 +166,14 @@ class AgentService:
                                 for item in self.tasks.get(request["task_id"], session_id)["artifacts"]))
                     messages.append({"role": "tool", "tool_call_id": call["id"],
                                      "content": canonical(value)})
+                if accepted_tasks:
+                    # The durable receipt already contains the authoritative job
+                    # IDs. Acknowledgement does not need another model request,
+                    # and polling a long workflow belongs to the UI, not the LLM.
+                    return self.conversations.finish(uid,
+                        "已受理任务：" + "、".join(dict.fromkeys(accepted_tasks)) +
+                        "。后台将按工作流执行，受理不代表计算完成。请在运行与结果面板查看进度；产物发布后会自动请求结果解释。",
+                        origin="application_receipt")
             raise ModelError("MODEL_ROUND_LIMIT", "模型未在轮数限制内完成回答；已受理任务仍可查询。")
         except ModelError as error:
             return self.conversations.finish(uid, str(error),

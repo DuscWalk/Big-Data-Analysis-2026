@@ -53,6 +53,8 @@ class DatasetCatalog:
         uri = self.path.resolve().as_uri() + "?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=5)
         try:
+            if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='datasets'").fetchone():
+                raise KeyError("No datasets are registered yet.")
             row = connection.execute(
                 "SELECT manifest FROM datasets WHERE artifact_id = ? AND version = ?",
                 (ref.artifact_id, ref.version),
@@ -70,6 +72,8 @@ class DatasetCatalog:
         uri = self.path.resolve().as_uri() + "?mode=ro"
         connection = sqlite3.connect(uri, uri=True, timeout=5)
         try:
+            if not connection.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='datasets'").fetchone():
+                return []
             rows = connection.execute(
                 "SELECT artifact_id, version FROM datasets WHERE artifact_id = ? ORDER BY version",
                 (artifact_id,),

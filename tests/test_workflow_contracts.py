@@ -10,7 +10,7 @@ from movielens_agent.governance.config import GovernanceConfig
 from movielens_agent.jobs.worker import Worker
 from movielens_agent.storage.catalog import DatasetCatalog
 from movielens_agent.storage.tasks import TaskStore
-from movielens_agent.tools.governance import register_governance_tools
+from movielens_agent.tools.governance import interpretation_facts, register_governance_tools
 from movielens_agent.tools.registry import ToolRegistry
 from movielens_agent.workflows.governance import GovernanceWorkflow, package_input
 
@@ -37,6 +37,18 @@ class WorkflowContractTests(unittest.TestCase):
         register_governance_tools(self.registry, self.catalog, self.store, self.config)
         self.context = ToolContext(session_id="session", call_id="call", request_id="request")
         self.arguments = {"dataset_ref": self.ref.model_dump()}
+
+    def test_interpretation_guide_preserves_overlapping_reason_semantics(self):
+        report = {"after": {"reasons": {"ratings": {"R12_MISSING_USER": 2,
+                    "R12_MISSING_MOVIE": 2, "R08_RATING_DOMAIN": 3}},
+                    "dispositions": {"ratings": {"quarantined": 5}}},
+                  "limitations": ["时间分区仅登记过滤条件，尚未物化。"]}
+        facts = interpretation_facts(report)
+        self.assertEqual(facts["rating_parent_reference_reason_hits"], 4)
+        self.assertTrue(facts["reason_hits_may_overlap"])
+        self.assertEqual(facts["ratings_deduplicated"], 0)
+        self.assertEqual(facts["time_split_storage_statement"], report["limitations"][0])
+        self.assertNotIn("affected_rows", facts)
 
     def test_registered_job_is_idempotent_and_returns_no_final_scores(self):
         first = self.registry.call("governance.run", self.arguments, self.context)

@@ -46,6 +46,13 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/static/app.js").status_code, 200)
         self.assertIn("frame-ancestors 'none'", response.headers["content-security-policy"])
 
+    def test_fresh_catalog_without_profile_is_a_valid_empty_state(self):
+        settings = self.f.settings.model_copy(update={"catalog": self.f.root / "empty.sqlite3"})
+        with TestClient(create_app(settings, self.model)) as client:
+            result = client.get("/api/v1/status")
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.json()["datasets"], {"registered": [], "default": None})
+
     def test_post_retry_conflict_trace_and_session_isolation(self):
         self.model.responses = [answer("真实测试替身，不是模型验收")]
         body = {"request_id": "a", "content": "hello"}

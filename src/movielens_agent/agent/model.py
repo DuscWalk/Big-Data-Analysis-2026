@@ -115,7 +115,10 @@ class RoutedModel:
     def complete(self, payload):
         attempts = []
         last = None
-        for name in self.settings.providers():
+        providers = [name for name in self.settings.providers() if self.settings.provider_configured(name)]
+        if not providers:
+            raise ModelError("MODEL_NOT_CONFIGURED", "尚未配置模型服务；任务和报告查询仍可使用。")
+        for name in providers:
             configuration = self.settings.for_provider(name)
             client = CompatibleModel(configuration, self.transport)
             actual = dict(payload, model=configuration.model_name)

@@ -44,7 +44,7 @@ python -m movielens_agent worker
 python -m movielens_agent serve --port 8765
 ```
 
-浏览器打开 <http://127.0.0.1:8765>。输入“请用默认规则清洗 MovieLens 1M 并评估前后质量”。回复中的“受理”表示任务已入队，页面随后查询真实阶段；任务完成后展示五维指标、三表处置量、分母、时间划分、精确版本、报告下载和来源样例，并自动请求一次结果解释。API 请求不等待 Hadoop 完成。
+浏览器打开 <http://127.0.0.1:8765>。输入“请用默认规则清洗 MovieLens 1M 并评估前后质量”。模型返回的 job 工具成功受理后，应用直接用真实任务引用生成回执（`response_origin=application_receipt`），不再请求模型轮询。回复中的“受理”表示任务已入队，页面随后查询真实阶段；任务完成后展示五维指标、三表处置量、分母、时间划分、精确版本、报告下载和来源样例，并自动请求一次结果解释。API 请求不等待 Hadoop 完成。
 
 模型回答未完成时，页面仍可查询任务与下载产物。点击“解释当前结果”并发送新消息可重新提问；重复旧 `request_id` 只返回旧结果，包括旧失败，不重新调用模型。任务状态 `unknown` 表示需要核查，不能直接当作失败重跑。
 
@@ -89,7 +89,17 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 - `api/app.py` 管理 HTTP、同源检查、会话范围、产物下载与静态页面；`web/` 位于 Python 包内，随包安装。
 - 新算法通过 `tools/` 注册参数与结果协议，通过 `workflows/`、`adapters/` 接入实际执行。模型自动获得工具 schema；专用结果视图按需要添加，公共会话与任务机制继续复用。
 
-绑定任务的回答至少要求本轮读取该任务的证据；自动结果解释还要求读取该任务精确质量版本的 summary。该检查不等于验证模型每一句话：正式分数以质量产物为准，人工汇报应核对模型总结。
+绑定任务的回答至少要求本轮读取该任务的证据；自动结果解释还要求读取该任务精确质量版本的 summary。summary 附带 `interpretation_facts`：直接计算父表引用原因的命中总和、明确计数可重叠、给出评分去重数，并引用报告的分区存储说明。这些辅助事实不改变已发布的分数或报告。
+
+该检查不等于验证模型每一句话。本次联调确实出现过原因合计错误与分区描述矛盾，已保留原回答和重新取证后的更正；文字中的公式单位仍需审校。正式分数、原始分子/分母和文件状态以产物为准，人工汇报应核对模型总结。
+
+注册扩展示例位于 [catalog_versions.py](../../scripts/examples/catalog_versions.py)。它新增读取真实 catalog 的 `datasets.versions`，更新工具 schema 快照，复用原分发器、会话记录和页面调用依据，无需修改核心分发逻辑：
+
+```bash
+python scripts/examples/catalog_versions.py
+```
+
+该命令真实调用配置的模型，返回新会话 ID；打开页面并使用该 ID 可查看结果和调用依据。示例只在自身进程注册新工具，普通 API 启动不会自动加载它；团队正式新增算法时，应在应用初始化阶段注册对应工具，并在注册完毕后生成 schema。
 
 ## 验证
 
@@ -110,3 +120,11 @@ NODE_PATH="$PWD/var/browser-check/node_modules" MOVIELENS_SESSION_ID=local-cli n
 可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。页面打开已完成任务时可能调用真实模型解释，因此检查前配置好服务。
 
 返回[文档导航](../README.md)。
+
+需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
+
+```bash
+NODE_PATH="$PWD/var/browser-check/node_modules" node scripts/checks/natural_language_e2e.cjs
+```
+
+该命令会使用真实模型、创建一个新会话、提交一次课程全量 Hadoop 任务，并等待自动解释与追问，可能运行十余分钟；结果保存在 `var/verification/natural-language/`。这是显式的集成验收入口，普通单元测试不会调用模型或启动 Hadoop。

@@ -54,7 +54,7 @@ async function loadMessages() {
     const meta = item.metadata || {};
     if (meta.request_id?.startsWith("explain:")) state.explained.add(meta.request_id.slice(8));
     const usedModels = [...new Set((meta.model_calls || []).flatMap(c => c.attempts || []).filter(a => a.status === "completed").map(a => a.model + (a.provider === "backup" ? "（备用）" : "")))];
-    if (usedModels.length) container.append(node("div", "回答模型：" + usedModels.join("、"), "trace"));
+    if (usedModels.length) container.append(node("div", (meta.response_origin === "application_receipt" ? "任务回执 · 请求模型：" : "回答模型：") + usedModels.join("、"), "trace"));
     if (meta.tool_calls?.length || meta.model_calls?.length) {
       const trace = node("button", "查看调用依据（工具 " + (meta.tool_calls?.length || 0) + " 次）", "secondary trace");
       trace.addEventListener("click", async () => {
