@@ -1,13 +1,19 @@
-"""Small query-tool registry; job tools and session persistence follow later."""
+"""Validated dispatch for immediate queries and durable job submission."""
 import logging
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, Literal
 
 from pydantic import BaseModel, ValidationError
 
 from ..contracts import ArtifactRef, QueryResult, ToolContext, ToolError
 
 logger = logging.getLogger(__name__)
+
+
+class ToolRejected(ValueError):
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass(frozen=True)
@@ -18,6 +24,7 @@ class QueryTool:
     input_model: type[BaseModel]
     output_model: type[BaseModel]
     handler: Callable[[BaseModel, ToolContext], tuple[BaseModel, list[ArtifactRef]]]
+    mode: Literal["query", "job"] = "query"
 
 
 class ToolRegistry:
@@ -32,7 +39,7 @@ class ToolRegistry:
     def describe(self) -> list[dict]:
         return [
             {"name": tool.name, "tool_version": tool.version,
-             "description": tool.description, "mode": "query",
+             "description": tool.description, "mode": tool.mode,
              "input_schema": tool.input_model.model_json_schema(),
              "output_schema": tool.output_model.model_json_schema()}
             for tool in self._tools.values()
@@ -52,10 +59,15 @@ class ToolRegistry:
         try:
             value, evidence = tool.handler(parsed, context)
             output = tool.output_model.model_validate(value)
+            if tool.mode == "job":
+                return QueryResult(call_id=context.call_id, status="accepted",
+                                   task_ref={"task_id": output.task_id}, evidence=evidence)
             return QueryResult(call_id=context.call_id, status="completed",
                                data=output.model_dump(mode="json"), evidence=evidence)
+        except ToolRejected as rejection:
+            return error("rejected", rejection.code, str(rejection))
         except KeyError:
-            return error("rejected", "ARTIFACT_NOT_FOUND", "The exact dataset version is not registered.")
+            return error("rejected", "ARTIFACT_NOT_FOUND", "The requested task or artifact version is not available.")
         except Exception:
             logger.exception("Query tool failed: %s, call_id=%s", name, context.call_id)
             return error("failed", "TOOL_EXECUTION_FAILED", "Query failed; inspect the local execution log.")

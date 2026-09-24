@@ -1,6 +1,6 @@
 # 开发环境与本地运行
 
-**已验证范围：** Python 包安装、只读数据核查、SQLite 原始数据登记、工具注册和 `datasets.describe` 查询。Hadoop、模型服务、后台任务及前端尚未接入。
+**已验证范围：** Python 包、原始核查与版本登记、工具注册、持久任务与独立 worker、HDFS/YARN 七作业治理、产物发布与证据查询。小数据通过手算断言；全量结果由迭代报告记录。模型、HTTP 会话与前端尚未接入。
 
 ## 环境与依赖
 
@@ -52,7 +52,7 @@ python -m movielens_agent describe --catalog var/catalog.sqlite3 --artifact-id m
 
 查询返回 `completed` 与清单、证据引用，或结构化的拒绝/失败原因；缺失版本不会回退到最新版本。它读取登记信息，不复查源文件是否在查询后改变；真正处理任务在消费原始文件前必须重新核对校验值。
 
-首版仅实现开发 CLI 和查询工具协议，还没有 HTTP 会话隔离、模型调用记录或长任务工具。通用框架的下一步是接入这些能力，不能把本次 CLI 查询描述为完整 Agent 验收。
+Hadoop 安装与启动见 [Hadoop 指南](hadoop-local.md)。任务提交、后台执行、证据读取和扩展步骤见 [任务与工具指南](tasks-and-tools.md)。已实现 governance.run 长任务工具，但还没有 HTTP 会话、模型调用记录或前端，CLI 运行不等同于完整 Agent 验收。
 
 ## 验证
 
