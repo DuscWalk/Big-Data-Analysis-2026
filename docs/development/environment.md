@@ -1,0 +1,65 @@
+# 开发环境与本地运行
+
+**已验证范围：** Python 包安装、只读数据核查、SQLite 原始数据登记、工具注册和 `datasets.describe` 查询。Hadoop、模型服务、后台任务及前端尚未接入。
+
+## 环境与依赖
+
+本机以 `duscwalk` 执行，Conda 环境为 `AgentDev`。当前 Python 3.11.16、Pydantic 2.13.5，实际依赖集合记录在 [requirements.lock](../../requirements.lock)；Conda 环境声明见 [environment.yml](../../environment.yml)。
+
+```bash
+source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
+conda activate AgentDev
+python -c 'import sys; print(sys.executable); print(sys.version)'
+```
+
+本机解释器应为 `/home/duscwalk/miniconda3/envs/AgentDev/bin/python`。在新的开发环境中，可先执行 `conda env create -f environment.yml`；已存在的环境按需使用 `conda env update -n AgentDev -f environment.yml`，不要直接覆盖或删除他人的环境。
+
+需要复现本次 Linux x86_64 的确切 Conda 包构建时，使用 [平台锁文件](../../environments/conda-linux-64.lock) 在尚不存在的环境中创建：
+
+```bash
+conda create -n AgentDev --file environments/conda-linux-64.lock
+```
+
+选择好环境后，在仓库根目录安装锁定的 Python 依赖与本地代码：
+
+```bash
+python -m pip install -r requirements.lock
+python -m pip install --no-deps --no-build-isolation -e .
+python -m pip check
+```
+
+新增业务依赖时同步更新 `pyproject.toml` 和锁文件；不同平台先按环境声明安装并记录实际兼容版本。锁文件不含模型凭据或运行数据。
+
+## 数据核查与登记
+
+将课程数据放到 `ml-1m/` 后执行：
+
+```bash
+python -m movielens_agent profile --data-dir ml-1m --output-dir var/profiles/run-001 --catalog var/catalog.sqlite3
+```
+
+该命令读取三个 `.dat` 文件，输出 `profile.json`、`manifest.json`，并向 SQLite 登记原始数据清单。输出目录必须是新目录且位于原始数据目录之外；再次核查使用新的运行目录，避免覆盖既有证据。省略 `--output-dir` 时自动生成新的运行目录。
+
+标准输出包含 `dataset_ref`。同一内容产生相同版本，内容变化生成新版本；同一版本不可被不同清单覆盖。清单包含当前数据的本地路径，数据搬迁需要显式处理位置登记，首版不会悄悄替换现有记录。
+
+## 通过工具注册表查询
+
+复制核查命令输出的实际版本。当前副本可使用：
+
+```bash
+python -m movielens_agent describe --catalog var/catalog.sqlite3 --artifact-id ml-1m.raw --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578
+```
+
+查询返回 `completed` 与清单、证据引用，或结构化的拒绝/失败原因；缺失版本不会回退到最新版本。它读取登记信息，不复查源文件是否在查询后改变；真正处理任务在消费原始文件前必须重新核对校验值。
+
+首版仅实现开发 CLI 和查询工具协议，还没有 HTTP 会话隔离、模型调用记录或长任务工具。通用框架的下一步是接入这些能力，不能把本次 CLI 查询描述为完整 Agent 验收。
+
+## 验证
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+测试使用临时的小型已知数据验证行为；正式原始数据核查结果见 [本轮报告](../iterations/01-governance/reports/2026-09-24-原始数据核查.md)。`var/` 包含生成报告、SQLite 数据库及临时产物，已由 Git 忽略。
+
+返回 [文档导航](../README.md)。

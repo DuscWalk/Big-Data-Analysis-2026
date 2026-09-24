@@ -4,7 +4,7 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：已整理需求、Agent 整体架构和首版实现文档，尚未编码。** 第一轮同时建设三轮可复用的 Agent 应用框架和 Hadoop 数据治理能力，本地开发环境已确定为 `AgentDev`，接下来开展数据核查并落实方案。实验代码、Agent 工具、前端和运行脚本尚未加入仓库，下文中的系统能力均为待实现目标。
+**当前进度：已完成文档分层、AgentDev Python 环境和首次只读数据核查。** 原始数据清单、SQLite 版本登记与 `datasets.describe` 工具查询已跑通。Hadoop 清洗与评分、长任务、模型服务和前端仍待实现；第一轮继续以共用 Agent 框架和实际数据治理为交付目标。
 
 ## 实验文档
 
@@ -24,7 +24,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 | 迭代 | 目标与主要任务 | 主要产物 | 状态 |
 | --- | --- | --- | --- |
-| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | 需求与实现文档已整理，待实现 |
+| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | 已完成数据核查与查询基础，治理流程待实现 |
 | 二：机器学习分析 | 预测评分是否不低于 4 分；按历史观影偏好聚类用户；降维并比较聚类效果、信息保留与资源开销 | 分类模型、用户画像与群体、降维模型与坐标、参数及评价结果 | 待实现 |
 | 三：知识图谱与图分析 | 构建并校验电影领域知识图谱，在同一图谱版本或其图投影上完成推荐、电影社区挖掘与链接分析 | 带来源与版本的知识图谱、推荐结果、社区结构与节点排序结果 | 待实现 |
 
@@ -50,6 +50,12 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 .
 ├── README.md
 ├── .gitignore
+├── pyproject.toml                 # 包定义与依赖声明
+├── environment.yml                # AgentDev 环境声明
+├── requirements.lock              # 已验证的 Python 库版本
+├── environments/                  # 平台环境锁文件
+├── src/movielens_agent/            # 核查、登记、协议和工具查询
+├── tests/                         # 小型数据与框架行为验证
 ├── docs/
 │   ├── README.md                  # 文档导航
 │   ├── course/                    # 课程原始要求
@@ -85,20 +91,20 @@ wc -l ml-1m/movies.dat ml-1m/ratings.dat ml-1m/users.dat
 
 以上步骤仅完成仓库与数据准备。技术文档已给出首版选型与接口建议；依赖版本和启动命令将在实现并实际验证后补充。
 
-## 本地开发环境
+## 本地开发与已实现命令
 
-本机使用 `duscwalk` 用户已有的 Conda 环境 **`AgentDev`**，位置为 `/home/duscwalk/miniconda3/envs/AgentDev`。后续 Python 开发、运行和验证均使用该环境，依赖随实现需要安装，并同步记录到项目依赖配置中。
-
-在本机 Bash 中可这样选择环境：
+使用 `duscwalk` 用户的 Conda 环境 **`AgentDev`**，当前已验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
 
 ```bash
 source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
 conda activate AgentDev
+python -m pip install -r requirements.lock
+python -m pip install --no-deps --no-build-isolation -e .
+python -m movielens_agent profile --data-dir ml-1m
+python -m unittest discover -s tests -v
 ```
 
-当前核查时，`AgentDev` 是空环境，尚未安装 Python 和其他 Conda 软件包。首次执行项目代码前需先在其中安装 Python；首版建议 Python 3.11，具体依赖版本在安装与运行验证后记录。安装后应确认 `sys.executable` 指向该环境下的解释器，再运行程序或使用 `python -m pip` 安装依赖。仅激活空环境时，`python` 仍可能解析到系统解释器。
-
-首版技术方案建议 FastAPI/Pydantic、受控工具调用循环、SQLite 与独立 worker，并优先验证单节点 Hadoop Streaming。上述建议尚未安装或验证，实际模型服务仍待确定；具体理由与候选方案见技术文档。
+核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
 
 ## 数据集说明
 
@@ -110,7 +116,7 @@ MovieLens 1M 由明尼苏达大学 GroupLens Research 发布。官方原始数�
 | `ratings.dat` | `UserID::MovieID::Rating::Timestamp` | 1,000,209 | 1,150,241 |
 | `users.dat` | `UserID::Gender::Age::Occupation::Zip-code` | 6,040 | 6,946 |
 
-本地行数于 **2026-09-24** 核对，与官方原始规模不同，仅用于说明初始化时的数据副本。行数不等于有效记录数，差异原因需在迭代一通过实际检查确认，不能直接据此认定存在某类错误。更换数据后应重新核验并登记版本。
+本地行数于 **2026-09-24** 核对，与官方原始规模不同，仅用于说明初始化时的数据副本。行数不等于有效记录数；实际核查已发现格式、值域、重复与冲突等问题，具体统计和局限见本轮核查报告。更换数据后应重新核验并登记版本。
 
 解析时需注意：
 
