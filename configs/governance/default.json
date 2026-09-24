@@ -1,0 +1,20 @@
+{
+  "schema_version": "1",
+  "rules": {
+    "version": "rules-v1",
+    "policy": "valid-first-isolate-conflicts",
+    "timestamp_min": 946684800,
+    "timestamp_max": 1046476799
+  },
+  "metrics": {
+    "version": "metrics-v1",
+    "formula": "constraint-ratios-equal-tables",
+    "reference_time": 1046476799,
+    "window_seconds": 31536000
+  },
+  "split": {
+    "version": "split-v1",
+    "train_end": 975628799,
+    "validation_end": 978307199
+  }
+}
