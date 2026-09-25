@@ -46,7 +46,7 @@ python -m movielens_agent serve --port 8765
 
 浏览器打开 <http://127.0.0.1:8765>。输入“请用默认规则清洗 MovieLens 1M 并评估前后质量”。模型返回的 job 工具成功受理后，应用直接用真实任务引用生成回执（`response_origin=application_receipt`），不再请求模型轮询。回复中的“受理”表示任务已入队，页面随后查询真实阶段；任务完成后展示五维指标、三表处置量、分母、时间划分、精确版本、报告下载和来源样例，并自动请求一次结果解释。API 请求不等待 Hadoop 完成。
 
-模型回答未完成时，页面仍可查询任务与下载产物。点击“解释当前结果”并发送新消息可重新提问；重复旧 `request_id` 只返回旧结果，包括旧失败，不重新调用模型。任务状态 `unknown` 表示需要核查，不能直接当作失败重跑。
+模型回答未完成时，页面仍可查询任务与下载产物。点击“解释当前结果”可发送新问题；失败的报告解释另提供“重新解释此问题”和“查看该任务报告”。重新解释从服务端找回原问题、原任务及连续样例的位置，使用新请求 ID，保留原失败。重复传输相同重试 ID 只返回该次结果，模型故障不会自动连续重试。任务状态 `unknown` 表示需要核查，不能直接当作失败重跑。
 
 已有 CLI 任务归属 `local-cli`，可显式创建同名本地会话来查看，原任务的归属不会改动：
 
@@ -68,6 +68,7 @@ python -m movielens_agent session --session-id local-cli --title '课程治理�
 | `POST /sessions`、`GET /sessions/{sid}` | 新建和查询本地会话 |
 | `GET /sessions/{sid}/messages` | `offset` / `limit` 分页读取消息和调用摘要 |
 | `POST /sessions/{sid}/messages` | `request_id`、`content`、可选 `task_id`；返回持久化回答或失败 |
+| `POST /sessions/{sid}/messages/{mid}/retry` | 仅传新 `request_id`；重新解释失败回答的原问题、原任务与原样例位置 |
 | `GET /sessions/{sid}/messages/{mid}/calls` | 本轮工具参数、结果，以及已脱敏的模型请求、回复和切换记录 |
 | `GET /sessions/{sid}/tasks`、`GET /sessions/{sid}/tasks/{tid}` | 本会话任务列表与真实执行状态 |
 | `GET /sessions/{sid}/tasks/{tid}/quality` | 已成功发布的质量摘要，重新校验文件摘要 |
@@ -92,19 +93,25 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 
 绑定任务的回答至少要求本轮读取该任务的证据。对已完成且有质量报告的治理追问，应用在第一次模型请求前，通过相同注册表读取本轮精确 summary；明确的异常规则、清洗文件、样例数和位置也会形成预读查询。每次预读重新校验文件哈希和会话范围，完整返回写入工具审计；`request_key` 以 `evidence:` 标明应用取证，模型请求工具沿用 `chat:`。新清洗任务的明确指令沿用原任务受理路径，不依赖旧报告可读。
 
-当前解释策略为 `quality-facts-v2`。模型输入只保留解释需要的事实要点、样例描述和本轮调用 ID，完整结构化指标和原始样例留在审计与产物中；样例原始行不作为系统指令进入模型。中文使用正常 Unicode，避免让模型处理字面量 Unicode 转义。绑定任务仅带入最近两组同任务历史，过长历史答复节略至 600 字符，原记录不变。
+当前解释策略为 `quality-facts-v3`。模型输入只保留解释需要的事实要点、样例描述和本轮调用 ID，完整结构化指标和原始样例留在审计与产物中；样例原始行不作为系统指令进入模型。中文使用正常 Unicode，避免让模型处理字面量 Unicode 转义。绑定任务仅带入最近两组同任务历史，过长历史答复节略至 600 字符，原记录不变。
 
-模型最终返回 `quality_ref`、`sections`、`unsupported` 的 JSON 计划。应用除校验精确引用和本轮证据，还检查明确问题要求的主题、样例规则/文件/数量/位置及来源字段。已识别的明确主题只允许选择本题所需要点及必要依据，单一公式或样例问题不能扩展为报告概述；模型输入也按此范围裁剪。明确要求证明事实真实性或保证下游效果时，必须标记 `unsupported=true`。明确简短的回答默认至多 4 个要点、800 字符；复合主题或多条样例的必要预算会在 `requirements` 中明确增加，不能靠截断删除证据。完整解释仍覆盖评分、处置、时效、划分和局限；无匹配样例须明确无法满足，不能推断总体没有异常。
+模型最终返回 `quality_ref`、`sections`、`unsupported` 的 JSON 计划；提示中的示例随本题必要要点与无法确认标记生成，避免固定示例与当前要求冲突。应用除校验精确引用和本轮证据，还检查明确问题要求的主题、样例规则/文件/数量/位置及来源字段。已识别的明确主题只允许选择本题所需要点及必要依据，单一公式或样例问题不能扩展为报告概述；模型输入也按此范围裁剪。明确要求证明事实真实性或保证下游效果时，必须标记 `unsupported=true`。明确简短的回答默认至多 4 个要点、800 字符；复合主题或多条样例的必要预算会在 `requirements` 中明确增加，不能靠截断删除证据。完整解释仍覆盖评分、处置、时效、划分和局限；无匹配样例须明确无法满足，不能推断总体没有异常。
 
-不符合要求时仅允许一次格式或覆盖修正，仍不满足则返回 `EXPLANATION_PLAN_INVALID`。应用取证失败返回 `EVIDENCE_UNAVAILABLE`，超过明确样例范围等不支持的请求返回 `EXPLANATION_REQUEST_UNSUPPORTED`；均不重提治理任务。证据反馈与修正是 system 应用反馈，原始用户问题继续保留。
+不符合要求时仅允许一次格式或覆盖修正，仍不满足则返回 `EXPLANATION_PLAN_INVALID`。应用取证失败返回 `EVIDENCE_UNAVAILABLE`，超过工具数量/位置限制返回 `EXPLANATION_REQUEST_UNSUPPORTED`。样例数量分配或指代不明确时，应用直接返回 `application_clarification`，不调用模型或查询工具。已绑定报告的解释及重试仅允许查询工具，执行层也拒绝 job 工具；明确的新清洗请求继续走任务受理流程。证据反馈与修正是 system 应用反馈，原始用户问题继续保留。
 
 成功回答的 `response_origin=evidence_rendered`，页面显示“报告事实 · 要点选择模型”。`validation` 保存策略版本、精确报告、本轮摘要调用、要点来源、应用取证调用、问题要求、样例检查、实际字符数和被拒绝尝试。调用依据区分别标记 `application` 和 `model`，不把应用预读写成模型自主选择。来源样例由应用按工具原始返回生成，不能推算总体。
 
-当前明确约束的解析覆盖治理领域的常见中英文主题、规则键、文件名、数量、序号和分句否定；这是有边界的需求识别，含糊指代与未覆盖表达仍依赖模型。事实有来源不保证所有问题都切题，必须继续用重复实测检查。业务规则位于 `governance/questions.py` 和 `governance/explanation.py`，通用调用审计位于 `agent/service.py`；后续算法应提供自己的问题要求和证据解释策略。
+数量按明确来源分别绑定，支持“十一条”“第十一条”“两个评分样例和一个用户样例”、各来源共享数量及已有英文数词；每次每个来源支持 1—20 条、起始位置 1—10001。总量分配不明、范围或不定数量会要求澄清。“真实样例”本身不增加真实性证明主题。
+
+“再给一个”“换一个例子”“再给两条”仅继承同一会话、任务和精确报告的最近成功样例，按实际返回条数推进。多来源时须指定其一；澄清消息不消耗游标。前页无样例、跨任务或缺少唯一来源时要求澄清。`validation.requirements.continuation_of` 记录来源消息，`sample_checks` 记录查询范围与实际数量。
+
+显式重试冻结失败请求的要求与游标，后续消息和页面任务选择不改变重试目标；成功解释、非解释失败、任务未发布时拒绝此入口。兼容旧 v2 报告失败，按原问题重新解析。原报告版本改变或取证失效则明确失败。失败记录和自动解释缓存均保留。
+
+当前解析仍是治理领域有边界的需求识别；复杂的隐含关系与未覆盖表达不保证识别。事实有来源不保证所有问题都切题，必须继续用重复实测检查。业务规则位于 `governance/questions.py` 和 `governance/explanation.py`，通用调用审计位于 `agent/service.py`；后续算法应提供自己的问题要求和证据解释策略。
 
 原问题与执行顺序见[追问可靠性优化计划](../iterations/01-governance/plans/追问可靠性优化.md)，实际结果见[追问优化实测](../iterations/01-governance/reports/2026-09-25-追问可靠性优化实测.md)：三轮 21 次请求中 17 正确返回、4 次网关故障，受影响三类题各补测一次均通过；成功答案的样例与简短约束通过检查。历史的[备用服务实测](../iterations/01-governance/reports/2026-09-25-备用模型全链路实测.md)保留 v1 的样例遗漏与冗长问题，不能用新策略覆盖旧运行记录。
 
-历史错误回答和缓存请求保持原样。新逻辑不会重写旧消息，也不会让同一 `explain:{tid}` 请求重新执行；阅读旧任务时，可通过新消息重新提问，查看新的“报告事实”回答。汇报仍需核对采用的代码、报告与回答版本。
+历史错误回答和缓存请求保持原样。新逻辑不会重写旧消息，也不会让同一 `explain:{tid}` 请求重新执行；阅读旧任务时，可通过新消息重新提问；符合条件的旧失败也可点击“重新解释此问题”，生成新的“报告事实”回答。汇报仍需核对采用的代码、报告与回答版本。
 
 注册扩展示例位于 [catalog_versions.py](../../scripts/examples/catalog_versions.py)。它新增读取真实 catalog 的 `datasets.versions`，更新工具 schema 快照，复用原分发器、会话记录和页面调用依据，无需修改核心分发逻辑：
 
@@ -153,6 +160,19 @@ NODE_PATH="$PWD/var/browser-check/node_modules" \
 ```
 
 该检查会调用一次真实追问的模型循环，截图和结果默认写入 `var/verification/evidence-reply-browser/`；可设置 `MOVIELENS_BROWSER_OUTPUT` 改目录。它不提交治理任务。服务暂不可用时，另设 `MOVIELENS_MESSAGE_ID` 为已有真实回答 ID，可仅验证该持久化回答的显示、调用依据与刷新；结果标记为 `persisted-reply`，不能将其当作一次新的模型请求成功。
+
+本轮数量与多轮追问回归使用 `scripts/checks/followup_variants.py`，同样需停止 API 并选择新输出目录：
+
+```bash
+python scripts/checks/followup_variants.py \
+  --session-id 94c8e0627f004038b75fd28c94af2e37 \
+  --task-id 064523f8a8bf41a38f7c2193caf59930 \
+  --output var/verification/followup-variants
+```
+
+脚本要求配置为 `MODEL_PROVIDER=backup`，不新增治理任务；检查局部数量、来源、连续位置、澄清和三个简短变体。可用 `--case` 选择补测场景，连续追问必须同时包含前序场景；保留首测及补测目录。
+
+`scripts/checks/retry_browser.cjs` 用 `MOVIELENS_SESSION_ID`、`MOVIELENS_TASK_ID`、`MOVIELENS_MESSAGE_ID` 选择真实失败回答，并通过页面按钮调用一次真实重新解释；还需设置新的 `MOVIELENS_BROWSER_OUTPUT` 目录。它核对原失败不变、原任务绑定、重复传输缓存、报告可读、刷新与手机宽度，不提交治理任务。可控故障交互另用 `retry_fixture.py --root <新目录> --port 8766` 启动隔离测试服务，再向浏览器检查传入 `MOVIELENS_RETRY_FIXTURE=<目录>/fixture.json`；其中模型与数据均为测试替身，不证明真实服务可用。
 
 需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
 

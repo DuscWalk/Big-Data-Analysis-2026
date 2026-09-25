@@ -9,9 +9,13 @@ from ..tools.datasets import register_dataset_tools
 from ..tools.governance import register_governance_tools
 from ..tools.registry import ToolRegistry
 from .model import RoutedModel, ModelError, tool_schemas
-from .explanation import ReportAnswer, InvalidPlan, prompt_json
+from .explanation import POLICY, ReportAnswer, InvalidPlan, prompt_json
+from ..governance.questions import AnswerRequirements, ClarificationNeeded
+from ..storage.conversations import ConversationConflict
 
 logger = logging.getLogger(__name__)
+RETRYABLE_ERRORS = {"MODEL_HTTP_ERROR", "MODEL_TIMEOUT", "MODEL_CONNECTION_ERROR", "MODEL_NOT_CONFIGURED",
+                    "MODEL_TRUNCATED", "MODEL_INVALID_RESPONSE", "EXPLANATION_PLAN_INVALID"}
 
 INSTRUCTIONS = """你是 MovieLens 大数据分析实验助手，用中文回答。
 回答简洁，按用户问题选择相关证据；已完成治理任务须遵循下方的解释计划格式。
@@ -62,7 +66,7 @@ class AgentService:
         return {"registered": [ref.model_dump() for ref in refs],
                 "default": default.model_dump() if default else None}
 
-    def _invoke_tool(self, uid, session_id, name, arguments, *, application=False):
+    def _invoke_tool(self, uid, session_id, name, arguments, *, application=False, read_only=False):
         normalized = arguments
         if arguments is not None:
             try:
@@ -77,7 +81,7 @@ class AgentService:
                 error=ToolError(code="INVALID_ARGUMENTS", message="工具参数不是有效 JSON 对象。"))
         else:
             result = self.registry.call(name, arguments, ToolContext(
-                session_id=session_id, message_id=uid, call_id=call_id, request_id=request_key))
+                session_id=session_id, message_id=uid, call_id=call_id, request_id=request_key), allow_jobs=not read_only)
         value = self.settings.redact(result.model_dump(mode="json"))
         self.conversations.finish_tool(call_id, value)
         return call_id, result, value
@@ -98,11 +102,26 @@ class AgentService:
                 report_answer.read_excerpt(arguments["artifact_ref"], arguments["mode"], value["data"]["value"],
                                            call_id, arguments.get("file_name"), arguments)
 
-    def respond(self, session_id, request_id, content, task_id=None, require_quality=False):
+    def retry(self, session_id, message_id, request_id):
+        source = self.conversations.answer_request(session_id, message_id)
+        response, payload = source["response"], source["payload"]
+        validation = response.get("validation") or {}
+        if (source["status"] != "failed" or not source["task_id"]
+                or validation.get("policy") not in {"quality-facts-v2", POLICY}
+                or (response.get("error") or {}).get("code") not in RETRYABLE_ERRORS):
+            raise ConversationConflict("只有失败的已发布报告解释可以重新请求；此入口不会重提任务。")
+        if self.tasks.get(source["task_id"], session_id)["status"] != "succeeded":
+            raise ConversationConflict("原任务尚无已发布结果，不能重新解释。")
+        frozen = AnswerRequirements.from_dict(validation["requirements"]) if validation.get("policy") == POLICY else None
+        return self.respond(session_id, request_id, payload["content"], source["task_id"], payload["require_quality"],
+                            retry_of=message_id, requirements=frozen, expected_quality=validation.get("quality_ref"))
+
+    def respond(self, session_id, request_id, content, task_id=None, require_quality=False,
+                *, retry_of=None, requirements=None, expected_quality=None):
         if not content.strip():
             raise ValueError("消息不能为空。")
         content = self.settings.redact(content)
-        request, created = self.conversations.begin(session_id, request_id, content, task_id, require_quality)
+        request, created = self.conversations.begin(session_id, request_id, content, task_id, require_quality, retry_of)
         if not created:
             return json.loads(request["response"])
         uid = request["request_uid"]
@@ -116,9 +135,16 @@ class AgentService:
                 reports = [item for item in task["artifacts"] if item["kind"] == "quality_report"]
                 if task["status"] == "succeeded" and len(reports) == 1:
                     try:
-                        report_answer = ReportAnswer.for_request(task["task_id"], reports[0]["ref"], full=require_quality, question=content)
+                        if expected_quality and reports[0]["ref"] != expected_quality:
+                            raise ModelError("EVIDENCE_UNAVAILABLE", "原回答与当前报告版本不同，不能按旧问题上下文重试。")
+                        previous = self.conversations.previous_evidence(session_id, task["task_id"], reports[0]["ref"])
+                        report_answer = ReportAnswer.for_request(task["task_id"], reports[0]["ref"], full=require_quality,
+                                                               question=content, previous=previous, requirements=requirements)
                         if report_answer:
                             self._prepare_answer(uid, session_id, report_answer, task["artifacts"])
+                    except ClarificationNeeded as error:
+                        return self.conversations.finish(uid, str(error), origin="application_clarification",
+                            validation={"policy": POLICY, "task_id": task["task_id"], "state": "needs_clarification"})
                     except ValueError as error:
                         raise ModelError("EXPLANATION_REQUEST_UNSUPPORTED", str(error)) from error
             messages = [{"role": "system", "content": INSTRUCTIONS + "\n可信项目上下文：\n" + canonical(context)}]
@@ -135,7 +161,11 @@ class AgentService:
             call_count = len(report_answer.application_calls) if report_answer else 0
             selected_evidence = quality_evidence = bool(report_answer and report_answer.ready)
             for round_number in range(self.settings.max_rounds):
-                payload = self.settings.redact(self.model.payload(messages, self.definitions))
+                definitions = self.definitions
+                if report_answer:
+                    queries = {t["name"] for t in self.registry.describe() if t["mode"] == "query"}
+                    definitions = [d for d in self.definitions if self.aliases[d["function"]["name"]] in queries]
+                payload = self.settings.redact(self.model.payload(messages, definitions))
                 if report_answer and report_answer.rejections:
                     payload["tool_choice"] = "none"
                 if round_number == self.settings.max_rounds - 1:
@@ -201,7 +231,7 @@ class AgentService:
                             raise ValueError("Expected an object")
                     except (ValueError, TypeError):
                         arguments = None
-                    internal_id, result, value = self._invoke_tool(uid, session_id, name, arguments)
+                    internal_id, result, value = self._invoke_tool(uid, session_id, name, arguments, read_only=bool(report_answer))
                     if result.status == "accepted":
                         accepted_tasks.append(result.task_ref["task_id"])
                     if result.status == "completed" and request["task_id"]:
@@ -254,7 +284,8 @@ class AgentService:
         except ModelError as error:
             return self.conversations.finish(uid, str(error),
                                              {"code": error.code, "message": str(error)},
-                                             validation={"policy": "quality-facts-v2", "rejected_attempts": report_answer.rejections,
+                                             retryable=bool(report_answer) and error.code in RETRYABLE_ERRORS,
+                                             validation={"policy": POLICY, "task_id": report_answer.task_id, "quality_ref": report_answer.ref, "rejected_attempts": report_answer.rejections,
                                                          "requirements": report_answer.requirements.as_dict(),
                                                          "application_call_ids": report_answer.application_calls} if report_answer else None)
         except Exception as error:

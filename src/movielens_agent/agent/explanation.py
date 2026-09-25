@@ -4,11 +4,10 @@ import json
 from pydantic import Field, StrictBool, ValidationError
 
 from ..contracts import ArtifactRef, Contract
-from ..governance.config import canonical
 from ..governance.explanation import answer_sections
 from ..governance.questions import FULL_SECTIONS, explicit_governance_run, question_requirements
 
-POLICY = "quality-facts-v2"
+POLICY = "quality-facts-v3"
 
 
 def prompt_json(value):
@@ -27,9 +26,9 @@ class InvalidPlan(ValueError):
 
 
 class ReportAnswer:
-    def __init__(self, task_id, quality_ref, full=False, question=""):
+    def __init__(self, task_id, quality_ref, full=False, question="", previous=None, requirements=None):
         self.task_id, self.ref = task_id, quality_ref
-        self.requirements = question_requirements(question, full)
+        self.requirements = requirements or question_requirements(question, full, previous)
         self.full = self.requirements.full
         self.sections, self.sources, self.rejections = {}, {}, []
         self.excerpts = {}
@@ -37,10 +36,10 @@ class ReportAnswer:
         self.application_calls = []
 
     @classmethod
-    def for_request(cls, task_id, quality_ref, *, full=False, question=""):
-        if not full and explicit_governance_run(question):
+    def for_request(cls, task_id, quality_ref, *, full=False, question="", previous=None, requirements=None):
+        if requirements is None and not full and explicit_governance_run(question):
             return None
-        return cls(task_id, quality_ref, full=full, question=question)
+        return cls(task_id, quality_ref, full=full, question=question, previous=previous, requirements=requirements)
 
     @property
     def ready(self):
@@ -60,10 +59,22 @@ class ReportAnswer:
                 allowed.add(key)
         return allowed & set(self.sections)
 
+    def example_plan(self):
+        selected = list(self.requirements.required_sections)
+        for sample in self.requirements.samples:
+            keys = [k for k, e in self.excerpts.items() if self._matches(sample, e)]
+            if keys:
+                selected.append(keys[0])
+        if not selected and self.allowed_sections():
+            selected = [sorted(self.allowed_sections())[0]]
+        unavailable = any(not self.excerpts[k]["value"]["items"] for k in selected if k in self.excerpts)
+        return {"quality_ref": self.ref, "sections": selected,
+                "unsupported": self.requirements.require_unsupported or unavailable}
+
     def instructions(self):
         return ("当前是已完成治理任务的证据解释。应用准备的本轮证据可直接使用，不必再次查询任务或摘要。"
                 "没有本轮证据时才通过工具补读；历史回答不是事实依据。最终回复只能是 JSON 对象：" +
-                canonical({"quality_ref": self.ref, "sections": ["freshness"], "unsupported": False}) +
+                prompt_json(self.example_plan()) +
                 "。sections 从本轮可用要点选择，应用负责生成事实文字；不附加 Markdown、自由文本或其他字段。"
                 "必须覆盖回答要求，样例题须选择符合规则/文件/数量的样例要点，不以报告概述替代样例。"
                 "原始样例留在工具记录，由应用按来源生成；模型上下文只展示其选择信息。"
@@ -144,6 +155,7 @@ class ReportAnswer:
     def _matches(sample, excerpt):
         a = excerpt["arguments"]
         return (excerpt["mode"] == sample.mode and a.get("offset", 0) == sample.offset
+                and a.get("limit", sample.count) == sample.count
                 and (not sample.reason or a.get("reason") == sample.reason)
                 and (not sample.file_name or excerpt["file_name"] == sample.file_name)
                 and (sample.mode != "examples" or not sample.table or (
@@ -176,7 +188,7 @@ class ReportAnswer:
                 if sample.reason and sample.reason.split("/", 1)[1] not in item.get("reasons", []):
                     raise InvalidPlan("样例实际原因与请求不符。")
             sample_checks.append({"section": matches[0], "count": len(items), "requested_count": sample.count,
-                                  "reason": sample.reason, "file_name": sample.file_name, "offset": sample.offset})
+                                  "mode": sample.mode, "table": sample.table, "reason": sample.reason, "file_name": sample.file_name, "offset": sample.offset})
         if self.requirements.samples:
             matched = {c["section"] for c in sample_checks}
             if any(key in self.excerpts and key not in matched for key in selected):

@@ -59,7 +59,7 @@ const path = require("node:path");
     const trace = JSON.parse(await last.locator("pre").textContent());
     assert.deepEqual(trace.validation, result.response.validation);
     assert.ok(trace.tools.some(item => item.call_id === trace.validation.summary_call_id));
-    const v2 = trace.validation.policy === "quality-facts-v2";
+    const v2 = ["quality-facts-v2", "quality-facts-v3"].includes(trace.validation.policy);
     if (v2) {
       assert.equal(trace.validation.answer_characters, [...result.response.content].length);
       assert.ok(trace.validation.application_call_ids.length > 0);

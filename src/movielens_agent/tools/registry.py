@@ -48,13 +48,15 @@ class ToolRegistry:
     def normalize(self, name: str, arguments: dict) -> dict:
         return self._tools[name].input_model.model_validate(arguments).model_dump(mode="json")
 
-    def call(self, name: str, arguments: dict, context: ToolContext) -> QueryResult:
+    def call(self, name: str, arguments: dict, context: ToolContext, *, allow_jobs=True) -> QueryResult:
         def error(status, code, message):
             return QueryResult(call_id=context.call_id, status=status,
                                error=ToolError(code=code, message=message))
         if name not in self._tools:
             return error("rejected", "TOOL_NOT_FOUND", "Tool is not registered.")
         tool = self._tools[name]
+        if tool.mode == "job" and not allow_jobs:
+            return error("rejected", "READ_ONLY_EXPLANATION", "结果解释只能查询证据，不能提交新任务。")
         try:
             parsed = tool.input_model.model_validate(arguments)
         except ValidationError:

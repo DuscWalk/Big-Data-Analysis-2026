@@ -30,6 +30,10 @@ class MessageInput(Contract):
     task_id: str | None = Field(default=None, min_length=1, max_length=128)
 
 
+class RetryInput(Contract):
+    request_id: str = Field(min_length=1, max_length=128)
+
+
 def public_task(task):
     result = {key: task[key] for key in ("task_id", "status", "stage", "error", "created_at", "updated_at")}
     result["attempts"] = [{key: item[key] for key in
@@ -117,6 +121,11 @@ def create_app(settings=None, model=None):
         if not body.content.strip():
             raise HTTPException(422, "消息不能为空。")
         result = agent.respond(session_id, body.request_id, body.content, body.task_id)
+        return JSONResponse(result, status_code=503 if result["status"] == "failed" else 200)
+
+    @app.post("/api/v1/sessions/{session_id}/messages/{message_id}/retry")
+    def retry_message(session_id: str, message_id: str, body: RetryInput):
+        result = agent.retry(session_id, message_id, body.request_id)
         return JSONResponse(result, status_code=503 if result["status"] == "failed" else 200)
 
     @app.get("/api/v1/sessions/{session_id}/messages/{message_id}/calls")

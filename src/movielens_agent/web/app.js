@@ -28,7 +28,7 @@ function resetResult() {
 }
 async function openSession(session) {
   clearTimeout(state.timer); state.epoch++; state.session = session; state.task = null; state.explained.clear(); resetResult();
-  state.sending = false; $("send").disabled = false; $("send-state").textContent = "Ctrl / ⌘ + Enter 发送";
+  sending(false);
   localStorage.setItem("movielens-session", session);
   history.replaceState(null, "", "?session=" + encodeURIComponent(session));
   $("session-caption").textContent = "会话 " + session.slice(0, 12);
@@ -52,6 +52,28 @@ async function loadMessages() {
     container.append(node("div", item.role === "user" ? "你" : "实验助手", "role"));
     container.append(node("div", item.content, "body"));
     const meta = item.metadata || {};
+    container.dataset.messageId = item.message_id;
+    if (meta.response_origin === "application_clarification") container.append(node("div", "需要明确问题范围", "trace"));
+    const reportAnswer = item.role === "assistant" && item.task_id && meta.validation?.policy?.startsWith("quality-facts-");
+    const retryCodes = ["MODEL_HTTP_ERROR", "MODEL_TIMEOUT", "MODEL_CONNECTION_ERROR", "MODEL_NOT_CONFIGURED", "MODEL_TRUNCATED", "MODEL_INVALID_RESPONSE", "EXPLANATION_PLAN_INVALID"];
+    if (reportAnswer && item.status === "failed") {
+      if (meta.retryable || retryCodes.includes(meta.error?.code)) {
+        const retry = node("button", "重新解释此问题", "secondary retry-explanation");
+        retry.disabled = state.sending;
+        retry.addEventListener("click", () => retryExplanation(item).catch(error => notice(error.message)));
+        container.append(retry);
+      }
+      const report = node("button", "查看该任务报告", "secondary report-view");
+      report.addEventListener("click", async () => {
+        try {
+          state.task = item.task_id; state.epoch++; resetResult();
+          $("task-select").value = item.task_id;
+          await loadTask(false);
+          $("quality").scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (error) { notice(error.message); }
+      });
+      container.append(report);
+    }
     if (meta.request_id?.startsWith("explain:")) state.explained.add(meta.request_id.slice(8));
     const usedModels = [...new Set((meta.model_calls || []).flatMap(c => c.attempts || []).filter(a => a.status === "completed").map(a => a.model + (a.provider === "backup" ? "（备用）" : "")))];
     if (usedModels.length) container.append(node("div", (meta.response_origin === "application_receipt" ? "任务回执 · 请求模型：" : meta.response_origin === "evidence_rendered" ? "报告事实 · 要点选择模型：" : "回答模型：") + usedModels.join("、"), "trace"));
@@ -72,9 +94,37 @@ async function loadMessages() {
   }
   box.scrollTop = box.scrollHeight;
 }
+function sending(active, text = "正在调用模型与工具…") {
+  state.sending = active; $("send").disabled = active;
+  $("send-state").textContent = active ? text : "Ctrl / ⌘ + Enter 发送";
+  document.querySelectorAll("button.retry-explanation").forEach(button => { button.disabled = active; });
+}
+async function retryExplanation(item) {
+  if (state.sending) return;
+  const session = state.session;
+  const key = "movielens-retry-" + session + ":" + item.message_id;
+  let payload;
+  try { payload = JSON.parse(localStorage.getItem(key)); } catch {}
+  if (!payload?.request_id) payload = { request_id: crypto.randomUUID() };
+  localStorage.setItem(key, JSON.stringify(payload));
+  sending(true, "正在重新解释原问题；任务产物仍可查看…"); notice("");
+  try {
+    await api("/sessions/" + encodeURIComponent(session) + "/messages/" + encodeURIComponent(item.message_id) + "/retry", {
+      method: "POST", body: JSON.stringify(payload)
+    });
+    localStorage.removeItem(key);
+  } catch (error) {
+    if (error.body?.request_id === payload.request_id) localStorage.removeItem(key);
+    if (session === state.session) notice(error.message);
+  } finally {
+    if (session === state.session) {
+      sending(false); await loadMessages(); await refreshTasks();
+    }
+  }
+}
 async function send(content) {
   if (state.sending || !content.trim()) return;
-  state.sending = true; $("send").disabled = true; $("send-state").textContent = "正在调用模型与工具…"; notice("");
+  sending(true); notice("");
   const session = state.session, selectedTask = state.task;
   const key = "movielens-pending-" + session;
   let previous = null; try { previous = JSON.parse(localStorage.getItem(key)); } catch {}
@@ -91,7 +141,7 @@ async function send(content) {
     if (error.body?.request_id === payload.request_id) { localStorage.removeItem(key); $("prompt").value = ""; }
   } finally {
     if (session === state.session) {
-      state.sending = false; $("send").disabled = false; $("send-state").textContent = "Ctrl / ⌘ + Enter 发送";
+      sending(false);
       await loadMessages(); await refreshTasks();
     }
   }
@@ -113,7 +163,7 @@ async function refreshTasks() {
     if (page.items.some(t => ["queued", "running"].includes(t.status))) state.timer = setTimeout(refreshTasks, 2000);
   } catch (error) { notice(error.message); }
 }
-async function loadTask() {
+async function loadTask(autoExplain = true) {
   const epoch = state.epoch, taskId = state.task;
   const task = await api(route() + "/tasks/" + taskId);
   if (epoch !== state.epoch || taskId !== state.task) return;
@@ -132,7 +182,7 @@ async function loadTask() {
     if (epoch !== state.epoch || taskId !== state.task) return;
     renderQuality(result.data.value, task); state.qualityTask = taskId;
   }
-  if (!state.sending && !state.explained.has(taskId)) explain(taskId).catch(error => notice(error.message));
+  if (autoExplain && !state.sending && !state.explained.has(taskId)) explain(taskId).catch(error => notice(error.message));
 }
 async function explain(taskId, attempt = 0) {
   if (taskId !== state.task || state.explained.has(taskId)) return;

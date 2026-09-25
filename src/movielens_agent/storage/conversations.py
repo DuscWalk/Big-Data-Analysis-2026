@@ -58,8 +58,9 @@ class ConversationStore(TaskStore):
             raise KeyError("Conversation does not exist.")
         return dict(row)
 
-    def begin(self, session_id, request_id, content, task_id=None, require_quality=False):
-        payload = canonical({"content": content, "task_id": task_id, "require_quality": require_quality})
+    def begin(self, session_id, request_id, content, task_id=None, require_quality=False, retry_of=None):
+        payload = canonical({"content": content, "task_id": task_id, "require_quality": require_quality,
+                             **({"retry_of": retry_of} if retry_of else {})})
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             session = conn.execute("SELECT * FROM chat_sessions WHERE session_id=?", (session_id,)).fetchone()
@@ -107,6 +108,31 @@ class ConversationStore(TaskStore):
                     result.append(item)
         return result
 
+    def answer_request(self, session_id, message_id):
+        with self.connect() as conn:
+            row = conn.execute("SELECT r.* FROM chat_requests r JOIN chat_messages m "
+                               "ON m.request_uid=r.request_uid WHERE m.session_id=? "
+                               "AND m.message_id=? AND m.role='assistant'", (session_id, message_id)).fetchone()
+        if not row:
+            raise KeyError("Answer is not visible in this conversation.")
+        return dict(row) | {"payload": json.loads(row["payload"]), "response": json.loads(row["response"])}
+
+    def previous_evidence(self, session_id, task_id, quality_ref):
+        # Clarification turns do not consume a sample cursor. Other intervening
+        # successful answers or a different task must not silently reuse it.
+        with self.connect() as conn:
+            rows = conn.execute("SELECT response FROM chat_requests WHERE session_id=? AND status='completed' "
+                                "ORDER BY created_at DESC LIMIT 8", (session_id,)).fetchall()
+        for row in rows:
+            response = json.loads(row[0])
+            if response["response_origin"] == "application_clarification":
+                continue
+            value = response.get("validation") or {}
+            if response["response_origin"] == "evidence_rendered" and value.get("task_id") == task_id and value.get("quality_ref") == quality_ref:
+                return value | {"message_id": response["message_id"]}
+            return None
+        return None
+
     def start_tool(self, request_uid, name, request_key, arguments):
         call_id = uuid4().hex
         with self.connect() as conn:
@@ -138,7 +164,7 @@ class ConversationStore(TaskStore):
                          (canonical(response) if response else None, "failed" if error else "completed",
                           error, duration_ms, call_id))
 
-    def finish(self, request_uid, content, error=None, origin=None, validation=None):
+    def finish(self, request_uid, content, error=None, origin=None, validation=None, retryable=False):
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             request = conn.execute("SELECT * FROM chat_requests WHERE request_uid=?", (request_uid,)).fetchone()
@@ -169,6 +195,11 @@ class ConversationStore(TaskStore):
                         "content": content, "error": error,
                         "response_origin": origin or ("application_error" if error else "model"), "task_ids": list(dict.fromkeys(task_ids)),
                         "evidence": list(evidence.values()), "tool_calls": trace, "model_calls": model_trace}
+            retry_of = json.loads(request["payload"]).get("retry_of")
+            if retry_of:
+                response["retry_of"] = retry_of
+            if retryable:
+                response["retryable"] = True
             if validation is not None:
                 response["validation"] = validation
             conn.execute("INSERT INTO chat_messages VALUES (?,?,?,'assistant',?,?)",
