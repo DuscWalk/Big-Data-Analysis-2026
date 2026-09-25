@@ -158,4 +158,6 @@ NODE_PATH="$PWD/var/browser-check/node_modules" node scripts/checks/natural_lang
 
 该命令会使用真实模型、创建一个新会话、提交一次课程全量 Hadoop 任务，并等待自动解释与追问，可能运行十余分钟；结果保存在 `var/verification/natural-language/`。这是显式的集成验收入口，普通单元测试不会调用模型或启动 Hadoop。
 
+仅使用备用服务验收时，在本地 `.env` 设置 `MODEL_PROVIDER=backup` 后重启 API，并在上述命令前增加 `MOVIELENS_EXPECT_PROVIDER=backup`。脚本会核对 API 当前配置，以及受理、自动解释和追问的每次模型尝试确实都来自备用服务；同时要求真实任务回执、任务成功、完整解释覆盖必要要点、追问引用本任务的质量报告且没有重提任务。各阶段的调用记录即时写入结果目录，失败记录保留，不仅检查 HTTP 200。
+
 返回[文档导航](../README.md)。
