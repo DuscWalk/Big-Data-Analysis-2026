@@ -121,3 +121,53 @@ def explanation_sections(report):
     refs = {"原始数据": report["input_ref"], "清洗数据": report["cleaned_ref"], **report["config_refs"]}
     sections["versions"] = "\n".join([f"{key}：{value['artifact_id']}@{value['version']}" for key, value in refs.items()])
     return sections
+
+
+def answer_sections(report, *, brief=False, dimensions=()):
+    """Project verified facts for a question; never replace stored metrics."""
+    sections = explanation_sections(report)
+    if dimensions:
+        selected = set(dimensions)
+        lines = ["所问维度评分（0—100 分）："]
+        for dimension in DIMENSIONS:
+            if dimension in selected:
+                a, b = (report[phase]["overall"][dimension]["score"] for phase in ("before", "after"))
+                lines.append(f"{dimension}：{score(a)} → {score(b)}。")
+        lines.append("得分衡量已实现约束，不能证明事实真实。")
+        sections["scores"] = "\n".join(lines)
+        formulas = {
+            "Accurate": "值约束通过数 / 应检查约束数",
+            "Complete": "完整必需槽位 / 期望槽位",
+            "Unique": "不同合法业务键 / 全部行",
+            "Consistent": "全部结构、值域、时间、同键及跨表约束通过的行 / 全部行",
+        }
+        methods = [f"{d} = {formulas[d]} × 100" for d in DIMENSIONS if d in selected and d in formulas]
+        if methods:
+            sections["metric_method"] = "；".join(methods) + "。先分表计算再等权汇总，空必需表不可评价；前后口径一致，隔离/去重改变分母。"
+    if not brief:
+        return sections
+    if not dimensions:
+        sections["scores"] = "评分（0—100 分）：" + "；".join(
+            f"{d} {score(report['before']['overall'][d]['score'])} → {score(report['after']['overall'][d]['score'])}"
+            for d in DIMENSIONS) + "。"
+    if not dimensions:
+        sections["metric_method"] = (
+            "前后使用同一套约束公式。清洗通过隔离非法/冲突记录、去重及确定性修复改变评价对象和分母；"
+            "四项满分只表示保留数据通过这些约束。")
+    sections["limitations"] = "已发布报告的局限：" + "；".join(report["limitations"][:2])
+    # Preserve the remaining report caveats in a compact projection, including
+    # uncertainty and storage state rather than asserting unsupported guarantees.
+    if len(report["limitations"]) > 2:
+        sections["limitations"] += "；历史参照、不可核验属性及时间分区限制仍以报告为准。"
+    config = GovernanceConfig.model_validate(report["configuration"])
+    metric = config.metrics
+    lines = [f"时效性历史窗口 [{utc(metric.reference_time - metric.window_seconds)}, {utc(metric.reference_time)}]（两端包含）。"]
+    for label, phase in (("前", "before"), ("后", "after")):
+        value = report[phase]["tables"]["ratings"]["metrics"]["Up-to-date"]
+        if value["population"] and value["score"] is not None:
+            lines.append(f"{label}：{number(value['passed'])} / {number(value['population'])} × 100 = {score(value['score'])} 分（{score(value['score'])}%）。")
+        else:
+            lines.append(f"{label}：{number(value['passed'])} / {number(value['population'])}；不可评价。")
+    lines.append("仅评分表适用；清洗不改变历史事件时间。")
+    sections["freshness"] = "\n".join(lines)
+    return sections

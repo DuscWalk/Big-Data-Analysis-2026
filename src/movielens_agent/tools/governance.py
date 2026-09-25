@@ -46,6 +46,7 @@ class ArtifactInput(Contract):
     file_name: str | None = Field(default=None, description="Exact registered filename; required for multi-file artifacts.")
     reason: str | None = Field(default=None, max_length=120,
         description="Only for examples: a table/rule key such as ratings/R14_VALID_KEY_CONFLICT, not a call rationale.")
+    table: Literal["users", "movies", "ratings"] | None = Field(default=None, description="Optional table filter for examples.")
     offset: int = Field(default=0, ge=0, le=10000)
     limit: int = Field(default=3, ge=1, le=20)
 
@@ -120,12 +121,16 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
             if arguments.mode == "examples":
                 if artifact["kind"] != "quality_report":
                     raise ToolRejected("UNSUPPORTED_VIEW", "Examples require a quality report.")
+                if arguments.table and arguments.reason and not arguments.reason.startswith(arguments.table + "/"):
+                    raise ToolRejected("INVALID_FILTER", "The example rule does not belong to the requested table.")
                 report = json.loads(path.read_text(encoding="utf-8"))
                 groups = report["after"]["samples"]
                 selected = groups.get(arguments.reason, []) if arguments.reason else [
                     item for entries in groups.values() for item in entries]
                 examples, seen = [], set()
                 for item in selected:
+                    if arguments.table and item["table"] != arguments.table:
+                        continue
                     source = item["source_ref"]
                     key = source["file_name"], source["byte_offset"]
                     if key in seen:
@@ -136,7 +141,8 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
                         "table", "source_ref", "disposition", "reasons", "warnings", "changes")} | {
                         "raw_preview": preview[:500], "preview_truncated": len(preview) > 500})
                 value = {"items": examples[arguments.offset:arguments.offset + arguments.limit],
-                         "available_examples": len(examples), "reason": arguments.reason,
+                         "available_examples": len(examples), "reason": arguments.reason, "table": arguments.table,
+                         "offset": arguments.offset, "sample_limit": arguments.limit,
                          "note": "Bounded representative examples, not all affected records."}
             elif arguments.mode == "sample":
                 if path.suffix != ".jsonl":

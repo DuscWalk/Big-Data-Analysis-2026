@@ -123,8 +123,7 @@ class ApiTests(unittest.TestCase):
 
     def test_completed_explanation_persists_fact_selection_and_exact_evidence(self):
         task, ref, _ = publish(self.f)
-        self.model.responses = [call("artifacts_get", {"artifact_ref": ref, "mode": "summary"}),
-                                answer(json.dumps({"quality_ref": ref, "sections": sorted(FULL_SECTIONS),
+        self.model.responses = [answer(json.dumps({"quality_ref": ref, "sections": sorted(FULL_SECTIONS),
                                                    "unsupported": False}))]
         response = self.client.post(self.route + "/tasks/" + task + "/explanation", json={})
         self.assertEqual(response.status_code, 200)
@@ -134,7 +133,8 @@ class ApiTests(unittest.TestCase):
         messages = self.client.get(self.route + "/messages").json()["items"]
         self.assertEqual(messages[-1]["metadata"]["validation"], result["validation"])
         self.assertEqual(result, self.client.post(self.route + "/tasks/" + task + "/explanation", json={}).json())
-        self.assertEqual(len(self.model.requests), 2)
+        self.assertEqual(len(self.model.requests), 1)
+        self.assertEqual(len(result["validation"]["application_call_ids"]), 1)
 
     def test_simultaneous_message_conflicts_without_blocking_read_queries(self):
         entered, release = Event(), Event()

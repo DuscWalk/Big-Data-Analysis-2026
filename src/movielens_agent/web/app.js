@@ -62,7 +62,7 @@ async function loadMessages() {
           const result = await api(route() + "/messages/" + encodeURIComponent(item.message_id) + "/calls");
           let view = container.querySelector("pre");
           if (!view) { view = node("pre"); container.append(view); }
-          view.textContent = JSON.stringify({ validation: meta.validation, tools: result.items, models: result.models }, null, 2); view.classList.toggle("hidden", false);
+          view.textContent = JSON.stringify({ validation: meta.validation, tools: result.items.map(call => ({ ...call, requested_by: call.request_key?.startsWith("evidence:") ? "application" : "model" })), models: result.models }, null, 2); view.classList.toggle("hidden", false);
         } catch (error) { notice(error.message); }
       });
       container.append(trace);

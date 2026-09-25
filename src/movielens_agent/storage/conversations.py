@@ -88,17 +88,23 @@ class ConversationStore(TaskStore):
                          (uid, uid, session_id, content, stamp))
             return dict(conn.execute("SELECT * FROM chat_requests WHERE request_uid=?", (uid,)).fetchone()), True
 
-    def history(self, session_id, max_pairs=8):
+    def history(self, session_id, max_pairs=8, *, task_id=None, assistant_chars=None):
         self.session(session_id)
         with self.connect() as conn:
+            scope = " AND task_id=?" if task_id else ""
+            parameters = (session_id, task_id, max_pairs) if task_id else (session_id, max_pairs)
             requests = conn.execute(
-                "SELECT request_uid FROM chat_requests WHERE session_id=? AND status!='processing' "
-                "ORDER BY created_at DESC LIMIT ?", (session_id, max_pairs)).fetchall()
+                "SELECT request_uid FROM chat_requests WHERE session_id=? AND status!='processing'" + scope +
+                " ORDER BY created_at DESC LIMIT ?", parameters).fetchall()
             result = []
             for request in reversed(requests):
                 rows = conn.execute("SELECT role,content FROM chat_messages WHERE request_uid=? "
                                     "ORDER BY created_at", (request[0],)).fetchall()
-                result.extend(dict(row) for row in rows)
+                for row in rows:
+                    item = dict(row)
+                    if assistant_chars and item["role"] == "assistant" and len(item["content"]) > assistant_chars:
+                        item["content"] = item["content"][:assistant_chars] + "\n（历史答复已节略；事实须以本轮工具证据为准。）"
+                    result.append(item)
         return result
 
     def start_tool(self, request_uid, name, request_key, arguments):
