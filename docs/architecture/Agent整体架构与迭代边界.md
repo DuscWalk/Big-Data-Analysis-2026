@@ -1,6 +1,6 @@
 # MovieLens Agent 整体架构与迭代边界
 
-**状态：模型适配、会话与 API、工具、任务、独立 worker、版本化产物、页面和 Hadoop 治理均已实现。** 本文维护三轮共同架构；模块状态以[开发计划](../iterations/01-governance/开发与交接计划.md)为准。Python 和 Hadoop/JDK 组合已通过真实作业验证，实际模型、页面与业务联调见[2026-09-25 报告](../iterations/01-governance/reports/2026-09-25-Agent联调实测.md)，额外真实查询工具已验证；成员复现与汇报演练仍待验收。
+**状态：模型适配、会话与 API、工具、任务、独立 worker、版本化产物、页面和 Hadoop 治理均已实现。** 本文维护三轮共同架构；模块状态以[开发计划](../iterations/01-governance/开发与交接计划.md)为准。Python 和 Hadoop/JDK 组合已通过真实作业验证，实际模型、页面与业务联调见[2026-09-25 报告](../iterations/01-governance/reports/2026-09-25-Agent联调实测.md)，额外真实查询工具已验证。当前追问解析、连续样例及显式重试的实现与验收见[专项计划](../iterations/01-governance/plans/追问解析与重试完善.md)。
 
 来源：[项目总体要求](../course/引言_项目总体要求与汇报安排.md)、[迭代一课程要求](../course/迭代一_Hadoop数据清洗与Agent基础.md)、[需求拆解与验收清单](../iterations/01-governance/需求拆解与验收清单.md)，以及负责人明确的“迭代一为后续轮次搭建 Agent 整体架构”目标。参考资料见第 8 节。
 
