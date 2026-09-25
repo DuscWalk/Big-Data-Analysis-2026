@@ -148,7 +148,7 @@ NODE_PATH="$PWD/var/browser-check/node_modules" \
   node scripts/checks/evidence_reply_browser.cjs
 ```
 
-该检查会调用一次真实追问的模型循环，截图和结果默认写入 `var/verification/evidence-reply-browser/`；可设置 `MOVIELENS_BROWSER_OUTPUT` 改目录。它不提交治理任务。
+该检查会调用一次真实追问的模型循环，截图和结果默认写入 `var/verification/evidence-reply-browser/`；可设置 `MOVIELENS_BROWSER_OUTPUT` 改目录。它不提交治理任务。服务暂不可用时，另设 `MOVIELENS_MESSAGE_ID` 为已有真实回答 ID，可仅验证该持久化回答的显示、调用依据与刷新；结果标记为 `persisted-reply`，不能将其当作一次新的模型请求成功。
 
 需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
 

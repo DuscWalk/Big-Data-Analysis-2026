@@ -1,4 +1,4 @@
-// Opt-in: one real model followup against an existing task, then UI/reload checks.
+// Check a live followup, or replay a persisted real reply with MOVIELENS_MESSAGE_ID.
 const { chromium } = require("playwright");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
@@ -21,19 +21,39 @@ const path = require("node:path");
     await page.selectOption("#task-select", task);
     await page.waitForFunction(() => !document.querySelector("#quality").classList.contains("hidden"));
     const prefix = base + "/api/v1/sessions/" + session;
-    const response = page.waitForResponse(r => r.url() === prefix + "/messages" && r.request().method() === "POST", { timeout: 600000 });
-    await page.locator("#prompt").fill("请只解释本任务时效性：给出实际分子、分母、正确分数、百分比及历史窗口，不要重新清洗。");
-    await page.locator("#send").click();
-    const http = await response;
-    result.http_status = http.status();
-    result.response = await http.json();
+    const replay = process.env.MOVIELENS_MESSAGE_ID;
+    let assistantIndex = -1;
+    if (replay) {
+      result.mode = "persisted-reply";
+      const items = [];
+      for (let offset = 0; ; offset += 100) {
+        const http = await page.request.get(prefix + "/messages?offset=" + offset);
+        assert.equal(http.status(), 200);
+        const value = await http.json();
+        items.push(...value.items);
+        if (!value.has_more) break;
+      }
+      const assistants = items.filter(item => item.role === "assistant");
+      assistantIndex = assistants.findIndex(item => item.message_id === replay);
+      assert.ok(assistantIndex >= 0, "The requested persisted reply is not in this session.");
+      result.response = assistants[assistantIndex].metadata;
+    } else {
+      result.mode = "live-followup";
+      const response = page.waitForResponse(r => r.url() === prefix + "/messages" && r.request().method() === "POST", { timeout: 600000 });
+      await page.locator("#prompt").fill("请只解释本任务时效性：给出实际分子、分母、正确分数、百分比及历史窗口，不要重新清洗。");
+      await page.locator("#send").click();
+      const http = await response;
+      result.http_status = http.status();
+      result.response = await http.json();
+    }
     await fs.writeFile(path.join(out, "response.json"), JSON.stringify(result, null, 2) + "\n");
-    assert.equal(result.http_status, 200);
+    if (!replay) assert.equal(result.http_status, 200);
+    assert.equal(result.response.status, "completed");
     assert.equal(result.response.response_origin, "evidence_rendered");
-    assert.ok(result.response.validation.sections.includes("freshness"));
-    const ready = async () => page.waitForFunction(text => [...document.querySelectorAll("#messages .assistant .body")].at(-1)?.textContent === text, result.response.content);
+    if (!replay) assert.ok(result.response.validation.sections.includes("freshness"));
+    const ready = async () => page.waitForFunction(({ text, index }) => [...document.querySelectorAll("#messages .assistant .body")].at(index)?.textContent === text, { text: result.response.content, index: assistantIndex });
     await ready();
-    const last = page.locator("#messages .assistant").last();
+    const last = page.locator("#messages .assistant").nth(assistantIndex);
     assert.ok((await last.textContent()).includes("报告事实 · 要点选择模型"));
     await last.locator("button.trace").click();
     const trace = JSON.parse(await last.locator("pre").textContent());
@@ -42,7 +62,7 @@ const path = require("node:path");
     await page.screenshot({ path: path.join(out, "desktop.png"), fullPage: true });
     await page.reload();
     await ready();
-    assert.ok((await page.locator("#messages .assistant").last().textContent()).includes("报告事实 · 要点选择模型"));
+    assert.ok((await page.locator("#messages .assistant").nth(assistantIndex).textContent()).includes("报告事实 · 要点选择模型"));
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: path.join(out, "mobile.png"), fullPage: true });

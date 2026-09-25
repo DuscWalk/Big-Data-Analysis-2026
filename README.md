@@ -4,7 +4,7 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：Agent、持久会话、HTTP API、页面和 Hadoop 治理已接通。** 模型支持主备切换，页面读取真实任务和版本化产物。验证结果见[2026-09-25 Agent 联调](docs/iterations/01-governance/reports/2026-09-25-Agent联调实测.md)；额外查询工具已验证，成员交接与汇报演练仍需继续。
+**当前进度：Agent、持久会话、HTTP API、页面和 Hadoop 治理已接通。** 模型支持主备切换，页面读取真实任务和版本化产物。全量运行见[Agent 联调](docs/iterations/01-governance/reports/2026-09-25-Agent联调实测.md)，报告事实解释和固定版本读取见[最新实测](docs/iterations/01-governance/reports/2026-09-25-解释约束与数据交接实测.md)。额外查询工具与交接示例已就绪，成员独立复现与汇报演练仍需继续。
 
 ## 实验文档
 
