@@ -196,7 +196,8 @@ def question_requirements(question, full=False, previous=None):
     topics = set()
     if "Up-to-date" in dimensions:
         topics.add("freshness")
-    if any(d != "Up-to-date" for d in dimensions) or has(r"五维|四项|五个维度|满分|质量(?:得分|评分)|分数|得分|quality scores?"):
+    general_scores = has(r"分数|得分") and not dimensions
+    if any(d != "Up-to-date" for d in dimensions) or general_scores or has(r"五维|四项|五个维度|满分|质量(?:得分|评分)|quality scores?"):
         topics.add("scores")
     if has(r"\b(?:T1|T2|train|validation|test)\b|训练|验证期|测试期|分区|时间边界|时间划分"):
         topics.add("time_splits")

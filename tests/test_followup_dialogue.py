@@ -83,6 +83,19 @@ class ParsingVariantsTests(unittest.TestCase):
         q=question_requirements('这些分数能否证明数据真实？简短说明')
         self.assertTrue(q.require_unsupported); self.assertIn('scores',q.required_sections)
 
+    def test_specific_freshness_score_does_not_require_all_scores(self):
+        questions = [
+            '有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。',
+            '请只解释本任务时效性：给出实际分子、分母、正确分数、百分比及历史窗口，不要重新清洗。',
+        ]
+        for question in questions:
+            with self.subTest(question=question):
+                self.assertEqual(question_requirements(question).required_sections, ('freshness',))
+        generic = question_requirements('这些分数能否证明数据真实？简短说明')
+        self.assertIn('scores', generic.required_sections)
+        mixed = question_requirements('为何四项得分提高而时效性依然低？请简短回答')
+        self.assertTrue({'scores', 'metric_method', 'freshness'}.issubset(mixed.required_sections))
+
     def test_prompt_example_matches_truth_request_and_sample_evidence(self):
         ref={'artifact_id':'fixture.quality','version':'exact'}
         a=ReportAnswer('fixture',ref,question='简短解释四项满分能否证明数据真实')
