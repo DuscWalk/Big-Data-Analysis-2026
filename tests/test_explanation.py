@@ -1,4 +1,7 @@
+import fcntl
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -144,6 +147,34 @@ class ExplanationLoopTests(unittest.TestCase):
         result = agent.respond(f.session, "unbound", "解释这个报告")
         self.assertEqual(result["response_origin"], "evidence_rendered")
         self.assertEqual(result["validation"]["task_id"], self.task)
+
+    def test_evidence_feedback_preserves_the_original_user_question(self):
+        f = self.f
+        question = "给出来源样例，不要写完整概述"
+        def finish(payload):
+            self.assertEqual([m["content"] for m in payload["messages"] if m["role"] == "user"][-1], question)
+            self.assertEqual(payload["messages"][-1]["role"], "system")
+            return answer(plan(self.ref, ["rating_loss"]))
+        f.settings.max_rounds = 4
+        agent = f.agent([call("tasks_get", {"task_id": self.task}), answer("尚未读取报告"), self.summary(), finish])
+        result = agent.respond(f.session, "preserve-question", question, self.task)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(len(f.model.requests), 4)
+
+    def test_standalone_regression_cannot_recover_an_active_api_request(self):
+        f = self.f
+        pending, _ = f.chats.begin(f.session, "active-api", "尚在处理")
+        with Path(str(f.db.resolve()) + ".api.lock").open("a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = subprocess.run([sys.executable, "scripts/checks/explanation_regression.py",
+                "--catalog", str(f.db), "--session-id", f.session, "--task-id", self.task],
+                capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Stop the API", result.stderr)
+        with f.tasks.connect() as conn:
+            status = conn.execute("SELECT status FROM chat_requests WHERE request_uid=?",
+                                  (pending["request_uid"],)).fetchone()[0]
+        self.assertEqual(status, "processing")
 
     def test_only_current_source_linked_examples_can_be_selected(self):
         f = self.f

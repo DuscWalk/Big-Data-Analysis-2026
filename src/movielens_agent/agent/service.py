@@ -98,8 +98,8 @@ class AgentService:
                     # Reserve the last round for a bounded final answer instead
                     # of spending every round on increasingly redundant reads.
                     payload["tool_choice"] = "none"
-                    payload["messages"] = payload["messages"] + [{"role": "user", "content":
-                        "本轮已到调用预算的最后一轮，请依据已获得的证据直接回答；证据缺失的部分说明无法确认。"}]
+                    payload["messages"] = payload["messages"] + [{"role": "system", "content":
+                        "本轮已到调用预算的最后一轮，请按规定格式回答原始用户问题；证据缺失的部分说明无法确认。"}]
                 if len(canonical(payload)) > self.settings.max_context_chars:
                     raise ModelError("CONTEXT_LIMIT", "本轮证据已达到上下文上限，请缩小问题范围。")
                 model_call = self.conversations.start_model(uid, round_number, payload)
@@ -123,8 +123,12 @@ class AgentService:
                     # conversational text. Completed governance needs its quality summary.
                     if request["task_id"] and (not selected_evidence or (require_quality or report_answer) and not quality_evidence):
                         messages.append(assistant)
-                        messages.append({"role": "user", "content":
-                            "本轮还没有读取所选任务的工具证据。请先读取该任务状态；解释分数须读取质量摘要。"})
+                        # Application feedback is not a new user question. A
+                        # synthetic user turn here caused real followups to be
+                        # replaced by generic summaries after evidence recovery.
+                        messages.append({"role": "system", "content":
+                            "本轮所选任务的证据尚不完整。请补读任务的质量摘要（若尚未发布则读取状态）。"
+                            "已有的样例仍可使用；补齐后继续回答原始用户问题，不要改成泛泛概述。"})
                         continue
                     if report_answer:
                         try:
@@ -194,6 +198,9 @@ class AgentService:
                                 evidence_instructions.append(report_answer.instructions())
                             if report_answer:
                                 report_answer.read_summary(ref, value["data"]["value"], internal_id)
+                                if report_answer.ready:
+                                    evidence_instructions.append(report_answer.instructions() +
+                                        "本轮摘要已就绪，请回答原始用户问题。可选 sections：" + canonical(list(report_answer.sections)))
                         elif report_answer and (
                             mode == "examples" and ref == report_answer.ref
                             or mode == "sample" and artifact["kind"] == "cleaned_dataset"

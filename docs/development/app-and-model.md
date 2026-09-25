@@ -94,6 +94,8 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 
 模型根据问题选择要点和顺序，最终返回 `quality_ref`、`sections`、`unsupported` 的 JSON 计划；应用校验报告引用、要点 ID 和必要范围，再使用报告事实生成中文回答。自由文本、额外字段、未知或尚未读取的样例 ID、混用报告会被拒绝，预算内仅允许一次格式修正；仍不符合则返回 `EXPLANATION_PLAN_INVALID`。自动完整解释必须覆盖评分、处置、时效、划分和局限，普通追问仅展示相关要点。
 
+证据补读、格式修正和调用预算提示属于应用反馈，使用 system 消息，不伪装成新的用户提问；质量摘要读入后再次提供解释协议及本轮要点，避免追问被流程提示替代。
+
 成功回答的 `response_origin=evidence_rendered`，页面显示“报告事实 · 要点选择模型”。`validation` 保存 `quality-facts-v1` 策略、精确报告、本轮摘要工具调用、已选要点、样例来源及被拒绝尝试；原始模型输出仍在调用记录中。读取过的 `examples` 或清洗 `sample` 只能作为带来源的有限样例引用，不推算总体。超出支持范围时，模型可选择 `unsupported=true`，应用明确说明无法确认。
 
 这个约束覆盖已支持的治理报告解释，**不是通用的自然语言事实验证器**：要点是否切题、是否遗漏用户关心的问题，仍取决于模型和审阅。普通新任务、未完成任务的状态答复和新增的其他业务工具保留原有工具循环；后续算法结果应另设计对应的证据解释协议。
@@ -127,7 +129,7 @@ NODE_PATH="$PWD/var/browser-check/node_modules" MOVIELENS_SESSION_ID=local-cli n
 可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。页面打开已完成任务时可能调用真实模型解释，因此检查前配置好服务。
 
 
-仅回归已有任务的真实模型解释时，关闭同会话的其他提问后执行：
+仅回归已有任务的真实模型解释时，先停止 API 和其他独立 Agent 脚本，再执行：
 
 ```bash
 python scripts/checks/explanation_regression.py \
@@ -135,7 +137,18 @@ python scripts/checks/explanation_regression.py \
   --task-id 33ce0c793b6e4d92acb6400cd96b3faa
 ```
 
-它直接调用实际 AgentService 和模型，逐项检查完整解释、错误合计、公式单位、分区状态、无法确认的推断及来源样例，不需要启动 API/Hadoop/worker。每题创建新消息请求，保存原始调用与校验结果，并检查任务数没有增加；只适用于已经存在该会话/任务的本地 catalog，其他环境请替换为自己的引用。
+脚本持有与 API 相同的进程锁，防止服务启动把正在处理的独立回归消息标成中断；锁被占用时立即退出，不开始模型请求。它直接调用实际 AgentService 和模型，逐项检查完整解释、错误合计、公式单位、分区状态、无法确认的推断及来源样例，不需要启动 API/Hadoop/worker。每题创建新消息请求，保存原始调用与校验结果，并检查任务数没有增加；只适用于已经存在该会话/任务的本地 catalog，其他环境请替换为自己的引用。失败后可用 `--case complete` 等参数只重试对应题目，并为 `--output` 指定新目录保留旧记录。
+
+独立回归结束后再启动 API，可在浏览器中验证一次真实追问、回答来源标签、调用依据和刷新持久性：
+
+```bash
+NODE_PATH="$PWD/var/browser-check/node_modules" \
+  MOVIELENS_SESSION_ID=0db6090d62ba443595980aad6b2d0eab \
+  MOVIELENS_TASK_ID=33ce0c793b6e4d92acb6400cd96b3faa \
+  node scripts/checks/evidence_reply_browser.cjs
+```
+
+该检查会调用一次真实追问的模型循环，截图和结果默认写入 `var/verification/evidence-reply-browser/`；可设置 `MOVIELENS_BROWSER_OUTPUT` 改目录。它不提交治理任务。
 
 需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
 

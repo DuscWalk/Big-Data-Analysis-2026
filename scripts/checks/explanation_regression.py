@@ -4,6 +4,7 @@ No Hadoop worker is needed. Each question has a fresh durable request ID; this
 checks the actual model and AgentService, not a scripted model or new pipeline.
 """
 import argparse
+import fcntl
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -29,18 +30,11 @@ CASES = [
 ]
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--session-id", required=True)
-    parser.add_argument("--task-id", required=True)
-    parser.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
-    parser.add_argument("--case", action="append", choices=[case[0] for case in CASES],
-                        help="Repeat only selected cases; use a new output directory to preserve failures.")
-    parser.add_argument("--output", type=Path, default=Path("var/verification/explanation-regression"))
-    args = parser.parse_args()
+def run(args):
     settings = Settings.load(catalog=args.catalog)
     chats, tasks = ConversationStore(args.catalog), TaskStore(args.catalog)
     chats.initialize()
+    chats.recover_interrupted_messages()
     chats.session(args.session_id)
     task = tasks.get(args.task_id, args.session_id)
     if task["status"] != "succeeded":
@@ -89,6 +83,25 @@ def main():
     (args.output / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if not result["passed"]:
         raise RuntimeError("Some live explanation checks did not pass; evidence has been preserved.")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--session-id", required=True)
+    parser.add_argument("--task-id", required=True)
+    parser.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
+    parser.add_argument("--case", action="append", choices=[case[0] for case in CASES],
+                        help="Repeat only selected cases; use a new output directory to preserve failures.")
+    parser.add_argument("--output", type=Path, default=Path("var/verification/explanation-regression"))
+    args = parser.parse_args()
+    # Share the API's lifetime lock. API startup must not recover a live
+    # standalone regression request as an interrupted message (or vice versa).
+    with Path(str(args.catalog.resolve()) + ".api.lock").open("a") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            parser.error("Stop the API or other standalone regression before using this catalog.")
+        run(args)
 
 
 if __name__ == "__main__":
