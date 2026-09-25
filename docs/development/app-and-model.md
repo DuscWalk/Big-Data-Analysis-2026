@@ -84,14 +84,21 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 ## 代码与扩展位置
 
 - `agent/settings.py` 读取和脱敏配置；`agent/model.py` 适配原生 `tool_calls` 和备用切换。文本中的伪工具指令不会被执行。
+- `governance/explanation.py` 生成治理事实要点，`agent/explanation.py` 校验模型解释计划与本轮证据。
 - `agent/service.py` 组织有界调用循环；工具名称从注册表生成，对外把点映射成下划线，如 `governance.run` → `governance_run`。
 - `storage/conversations.py` 保存消息、工具、模型和请求去重记录。模型和 Hadoop 执行期间不持有数据库事务。
 - `api/app.py` 管理 HTTP、同源检查、会话范围、产物下载与静态页面；`web/` 位于 Python 包内，随包安装。
 - 新算法通过 `tools/` 注册参数与结果协议，通过 `workflows/`、`adapters/` 接入实际执行。模型自动获得工具 schema；专用结果视图按需要添加，公共会话与任务机制继续复用。
 
-绑定任务的回答至少要求本轮读取该任务的证据；自动结果解释还要求读取该任务精确质量版本的 summary。summary 附带 `interpretation_facts`：直接计算父表引用原因的命中总和、明确计数可重叠、给出评分去重数，并引用报告的分区存储说明。这些辅助事实不改变已发布的分数或报告。
+绑定任务的回答至少要求本轮读取该任务的证据。已完成且有质量报告的治理任务，无论自动解释还是普通追问，都必须读取本轮精确质量版本的 summary。summary 在原有 `interpretation_facts` 外提供 `explanation_sections`：数值、分数单位、处置守恒、重叠原因、时间过滤与报告局限的确定性解释要点。原始报告和 Hadoop 评分不会被改写。
 
-该检查不等于验证模型每一句话。本次联调确实出现过原因合计错误与分区描述矛盾，已保留原回答和重新取证后的更正；文字中的公式单位仍需审校。正式分数、原始分子/分母和文件状态以产物为准，人工汇报应核对模型总结。
+模型根据问题选择要点和顺序，最终返回 `quality_ref`、`sections`、`unsupported` 的 JSON 计划；应用校验报告引用、要点 ID 和必要范围，再使用报告事实生成中文回答。自由文本、额外字段、未知或尚未读取的样例 ID、混用报告会被拒绝，预算内仅允许一次格式修正；仍不符合则返回 `EXPLANATION_PLAN_INVALID`。自动完整解释必须覆盖评分、处置、时效、划分和局限，普通追问仅展示相关要点。
+
+成功回答的 `response_origin=evidence_rendered`，页面显示“报告事实 · 要点选择模型”。`validation` 保存 `quality-facts-v1` 策略、精确报告、本轮摘要工具调用、已选要点、样例来源及被拒绝尝试；原始模型输出仍在调用记录中。读取过的 `examples` 或清洗 `sample` 只能作为带来源的有限样例引用，不推算总体。超出支持范围时，模型可选择 `unsupported=true`，应用明确说明无法确认。
+
+这个约束覆盖已支持的治理报告解释，**不是通用的自然语言事实验证器**：要点是否切题、是否遗漏用户关心的问题，仍取决于模型和审阅。普通新任务、未完成任务的状态答复和新增的其他业务工具保留原有工具循环；后续算法结果应另设计对应的证据解释协议。
+
+历史错误回答和缓存请求保持原样。新逻辑不会重写旧消息，也不会让同一 `explain:{tid}` 请求重新执行；阅读旧任务时，可通过新消息重新提问，查看新的“报告事实”回答。汇报仍需核对采用的代码、报告与回答版本。
 
 注册扩展示例位于 [catalog_versions.py](../../scripts/examples/catalog_versions.py)。它新增读取真实 catalog 的 `datasets.versions`，更新工具 schema 快照，复用原分发器、会话记录和页面调用依据，无需修改核心分发逻辑：
 
@@ -119,6 +126,16 @@ NODE_PATH="$PWD/var/browser-check/node_modules" MOVIELENS_SESSION_ID=local-cli n
 
 可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。页面打开已完成任务时可能调用真实模型解释，因此检查前配置好服务。
 
+
+仅回归已有任务的真实模型解释时，关闭同会话的其他提问后执行：
+
+```bash
+python scripts/checks/explanation_regression.py \
+  --session-id 0db6090d62ba443595980aad6b2d0eab \
+  --task-id 33ce0c793b6e4d92acb6400cd96b3faa
+```
+
+它直接调用实际 AgentService 和模型，逐项检查完整解释、错误合计、公式单位、分区状态、无法确认的推断及来源样例，不需要启动 API/Hadoop/worker。每题创建新消息请求，保存原始调用与校验结果，并检查任务数没有增加；只适用于已经存在该会话/任务的本地 catalog，其他环境请替换为自己的引用。
 
 需要完整的自然语言验收时，在 API、Hadoop 和 worker 都已启动后执行：
 

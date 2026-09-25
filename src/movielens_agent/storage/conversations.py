@@ -132,7 +132,7 @@ class ConversationStore(TaskStore):
                          (canonical(response) if response else None, "failed" if error else "completed",
                           error, duration_ms, call_id))
 
-    def finish(self, request_uid, content, error=None, origin=None):
+    def finish(self, request_uid, content, error=None, origin=None, validation=None):
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             request = conn.execute("SELECT * FROM chat_requests WHERE request_uid=?", (request_uid,)).fetchone()
@@ -163,6 +163,8 @@ class ConversationStore(TaskStore):
                         "content": content, "error": error,
                         "response_origin": origin or ("application_error" if error else "model"), "task_ids": list(dict.fromkeys(task_ids)),
                         "evidence": list(evidence.values()), "tool_calls": trace, "model_calls": model_trace}
+            if validation is not None:
+                response["validation"] = validation
             conn.execute("INSERT INTO chat_messages VALUES (?,?,?,'assistant',?,?)",
                          (reply_id, request_uid, request["session_id"], content, stamp))
             conn.execute("UPDATE chat_requests SET status=?,response=?,updated_at=? WHERE request_uid=?",

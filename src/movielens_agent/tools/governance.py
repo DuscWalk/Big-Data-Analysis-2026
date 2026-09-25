@@ -9,6 +9,7 @@ from pydantic import Field
 
 from ..contracts import ArtifactRef, Contract
 from ..governance.config import GovernanceConfig
+from ..governance.explanation import explanation_sections
 from ..storage.tasks import RequestConflict, file_digest
 from ..workflows.governance import implementation_digest
 from .registry import QueryTool, ToolRejected
@@ -147,12 +148,13 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
                          "has_more": len(items) > arguments.limit, "sample_limit": arguments.limit}
             elif artifact["kind"] == "quality_report":
                 report = json.loads(path.read_text(encoding="utf-8"))
-                value = {key: report[key] for key in ("task_id", "input_ref", "cleaned_ref",
+                value = {key: report[key] for key in ("schema_version", "task_id", "input_ref", "cleaned_ref",
                          "config_refs", "configuration", "limitations")}
                 value["before"] = {key: report["before"][key] for key in ("overall", "tables")}
                 value["after"] = {key: report["after"][key] for key in
-                                  ("overall", "tables", "dispositions", "reasons", "warnings", "splits")}
+                                  ("overall", "tables", "dispositions", "reasons", "warnings", "splits", "changes")}
                 value["interpretation_facts"] = interpretation_facts(report)
+                value["explanation_sections"] = explanation_sections(report)
             elif path.suffix == ".md":
                 if path.stat().st_size > 65536:
                     raise ToolRejected("CONTENT_TOO_LARGE", "Report exceeds the tool context limit.")

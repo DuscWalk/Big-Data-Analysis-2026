@@ -9,6 +9,8 @@ import unittest
 from fastapi.testclient import TestClient
 
 from agent_fixture import AgentFixture, ScriptedModel, answer, call
+from quality_fixture import publish
+from movielens_agent.agent.explanation import FULL_SECTIONS
 from movielens_agent.agent.model import ModelError
 from movielens_agent.api.app import create_app
 from movielens_agent.workflows.governance import make_artifact
@@ -118,6 +120,21 @@ class ApiTests(unittest.TestCase):
         cached = self.client.post(self.route + "/tasks/" + task + "/explanation", json={})
         self.assertEqual(cached.json(), response.json())
         self.assertEqual(len(self.model.requests), 3)
+
+    def test_completed_explanation_persists_fact_selection_and_exact_evidence(self):
+        task, ref, _ = publish(self.f)
+        self.model.responses = [call("artifacts_get", {"artifact_ref": ref, "mode": "summary"}),
+                                answer(json.dumps({"quality_ref": ref, "sections": sorted(FULL_SECTIONS),
+                                                   "unsupported": False}))]
+        response = self.client.post(self.route + "/tasks/" + task + "/explanation", json={})
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result["response_origin"], "evidence_rendered")
+        self.assertEqual(result["validation"]["quality_ref"], ref)
+        messages = self.client.get(self.route + "/messages").json()["items"]
+        self.assertEqual(messages[-1]["metadata"]["validation"], result["validation"])
+        self.assertEqual(result, self.client.post(self.route + "/tasks/" + task + "/explanation", json={}).json())
+        self.assertEqual(len(self.model.requests), 2)
 
     def test_simultaneous_message_conflicts_without_blocking_read_queries(self):
         entered, release = Event(), Event()

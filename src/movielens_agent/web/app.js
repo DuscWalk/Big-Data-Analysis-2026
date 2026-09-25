@@ -54,7 +54,7 @@ async function loadMessages() {
     const meta = item.metadata || {};
     if (meta.request_id?.startsWith("explain:")) state.explained.add(meta.request_id.slice(8));
     const usedModels = [...new Set((meta.model_calls || []).flatMap(c => c.attempts || []).filter(a => a.status === "completed").map(a => a.model + (a.provider === "backup" ? "（备用）" : "")))];
-    if (usedModels.length) container.append(node("div", (meta.response_origin === "application_receipt" ? "任务回执 · 请求模型：" : "回答模型：") + usedModels.join("、"), "trace"));
+    if (usedModels.length) container.append(node("div", (meta.response_origin === "application_receipt" ? "任务回执 · 请求模型：" : meta.response_origin === "evidence_rendered" ? "报告事实 · 要点选择模型：" : "回答模型：") + usedModels.join("、"), "trace"));
     if (meta.tool_calls?.length || meta.model_calls?.length) {
       const trace = node("button", "查看调用依据（工具 " + (meta.tool_calls?.length || 0) + " 次）", "secondary trace");
       trace.addEventListener("click", async () => {
@@ -62,7 +62,7 @@ async function loadMessages() {
           const result = await api(route() + "/messages/" + encodeURIComponent(item.message_id) + "/calls");
           let view = container.querySelector("pre");
           if (!view) { view = node("pre"); container.append(view); }
-          view.textContent = JSON.stringify({ tools: result.items, models: result.models }, null, 2); view.classList.toggle("hidden", false);
+          view.textContent = JSON.stringify({ validation: meta.validation, tools: result.items, models: result.models }, null, 2); view.classList.toggle("hidden", false);
         } catch (error) { notice(error.message); }
       });
       container.append(trace);
