@@ -89,6 +89,16 @@ def run(args):
                 items = calls[0]["result"]["data"]["value"]["items"] if calls and calls[0]["status"] == "completed" else []
                 checks["sample_in_answer"] = len(items) == 1 and items[0]["raw_preview"] in reply["content"] and all(
                     k in items[0]["source_ref"] for k in ["dataset_ref", "file_name", "line", "byte_offset"]) and "quarantined" in reply["content"]
+            allowed = {
+                "overlap": {"parent_references", "rating_loss", "dispositions"},
+                "units": {"freshness"}, "partitions": {"time_splits"},
+                "unsupported": {"scores", "metric_method", "limitations"},
+                "concise": {"scores", "metric_method", "freshness", "limitations"},
+            }
+            if name in allowed:
+                checks["focused_sections"] = bool(selected) and selected.issubset(allowed[name])
+            if name == "example":
+                checks["focused_sections"] = bool(selected) and all(key.startswith("examples:") for key in selected)
             if name == "concise":
                 checks["brief_length"] = len(reply["content"]) <= 800
                 checks["brief_scope"] = len(selected) <= 4

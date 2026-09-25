@@ -59,6 +59,18 @@ const path = require("node:path");
     const trace = JSON.parse(await last.locator("pre").textContent());
     assert.deepEqual(trace.validation, result.response.validation);
     assert.ok(trace.tools.some(item => item.call_id === trace.validation.summary_call_id));
+    const v2 = trace.validation.policy === "quality-facts-v2";
+    if (v2) {
+      assert.equal(trace.validation.answer_characters, [...result.response.content].length);
+      assert.ok(trace.validation.application_call_ids.length > 0);
+      for (const id of trace.validation.application_call_ids) {
+        assert.ok(trace.tools.some(item => item.call_id === id && item.requested_by === "application"));
+      }
+      if (trace.validation.requirements.brief) {
+        assert.ok([...result.response.content].length <= trace.validation.requirements.max_characters);
+        assert.ok(trace.validation.sections.length <= trace.validation.requirements.max_sections);
+      }
+    }
     await page.screenshot({ path: path.join(out, "desktop.png"), fullPage: true });
     await page.reload();
     await ready();
@@ -68,6 +80,7 @@ const path = require("node:path");
     await page.screenshot({ path: path.join(out, "mobile.png"), fullPage: true });
     assert.deepEqual(errors, []);
     result.checks = { rendered_reply: true, persisted_validation: true, current_summary_call: true,
+                      ...(v2 ? { application_evidence_source: true, answer_length_metadata: true } : {}),
                       reloaded_reply: true, mobile_no_overflow: true, browser_errors: errors };
     result.completed_at = new Date().toISOString();
     await fs.writeFile(path.join(out, "result.json"), JSON.stringify(result, null, 2) + "\n");

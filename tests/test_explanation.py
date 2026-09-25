@@ -100,7 +100,7 @@ class ExplanationLoopTests(unittest.TestCase):
         f = self.f
         def correction(payload):
             self.assertEqual(payload["tool_choice"], "none")
-            return answer(plan(self.ref, ["rating_loss", "parent_references"]))
+            return answer(plan(self.ref, ["rating_loss"]))
         agent = f.agent([answer("评分全被修复，1 / 3 = 99%"), correction])
         result = agent.respond(f.session, "correct", "解释评分损失", self.task)
         self.assertEqual(result["status"], "completed")

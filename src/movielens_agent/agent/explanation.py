@@ -46,6 +46,20 @@ class ReportAnswer:
     def ready(self):
         return self.summary_call_id is not None
 
+    def allowed_sections(self):
+        required = set(self.requirements.required_sections)
+        if self.full or not required and not self.requirements.samples:
+            return set(self.sections)
+        allowed = set(required)
+        if "scores" in required:
+            allowed.update({"metric_method", "limitations"})
+        if "parent_references" in required:
+            allowed.add("dispositions")
+        for key, excerpt in self.excerpts.items():
+            if any(self._matches(sample, excerpt) for sample in self.requirements.samples):
+                allowed.add(key)
+        return allowed & set(self.sections)
+
     def instructions(self):
         return ("当前是已完成治理任务的证据解释。应用准备的本轮证据可直接使用，不必再次查询任务或摘要。"
                 "没有本轮证据时才通过工具补读；历史回答不是事实依据。最终回复只能是 JSON 对象：" +
@@ -55,6 +69,8 @@ class ReportAnswer:
                 "原始样例留在工具记录，由应用按来源生成；模型上下文只展示其选择信息。"
                 "证据无法确认的结论或没有符合条件的样例时，unsupported=true，并选取能说明限制的已有要点。"
                 "仅解释已有结果时不得重新清洗。必要主题：" + prompt_json(self.requirements.required_sections) +
+                "；允许选择的要点：" + prompt_json(sorted(self.allowed_sections())) +
+                ("；本问题要求报告无法证明的结论，unsupported 必须为 true" if self.requirements.require_unsupported else "") +
                 "；最多要点数：" + str(self.requirements.max_sections) +
                 ("；回答最多 " + str(self.requirements.max_characters) + " 字符。" if self.requirements.brief else "。") +
                 "样例要求：" + prompt_json(self.requirements.as_dict()["samples"]))
@@ -110,8 +126,11 @@ class ReportAnswer:
         return "\n".join(lines)
 
     def model_view(self):
-        sections = {key: text for key, text in self.sections.items() if key not in self.excerpts}
+        allowed = self.allowed_sections()
+        sections = {key: text for key, text in self.sections.items() if key not in self.excerpts and key in allowed}
         for key, e in self.excerpts.items():
+            if key not in allowed:
+                continue
             sections[key] = {"kind": e["mode"], "file_name": e["file_name"],
                              "reason": e["arguments"].get("reason"), "table": e["arguments"].get("table"),
                              "offset": e["arguments"].get("offset", 0), "count": len(e["value"]["items"]),
@@ -181,6 +200,10 @@ class ReportAnswer:
         if missing:
             raise InvalidPlan("遗漏用户要求的解释主题：" + "、".join(sorted(missing)))
         sample_checks = self._check_samples(plan.sections, plan.unsupported)
+        if self.requirements.require_unsupported and not plan.unsupported:
+            raise InvalidPlan("问题要求证明真实性或保证下游效果，治理报告不能确认，unsupported 必须为 true。")
+        if set(plan.sections) - self.allowed_sections():
+            raise InvalidPlan("包含本轮问题范围之外的要点；允许：" + "、".join(sorted(self.allowed_sections())))
         if len(plan.sections) > self.requirements.max_sections:
             raise InvalidPlan("选择要点过多，请仅保留用户所问主题及必要依据。")
         parts = [f"依据任务 {self.task_id} 的已发布质量报告："]

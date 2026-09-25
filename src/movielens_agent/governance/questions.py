@@ -53,6 +53,7 @@ class AnswerRequirements:
     samples: tuple[SampleRequest, ...]
     max_sections: int
     max_characters: int | None
+    require_unsupported: bool = False
 
     def as_dict(self):
         return {**asdict(self), "required_sections": list(self.required_sections),
@@ -121,7 +122,8 @@ def question_requirements(question, full=False):
     required = len(topics) + len(samples)
     max_sections = max(4, required) if brief else 16 if full or not question else max(6, required)
     max_characters = max(800, len(topics) * 160 + sum(s.count for s in samples) * 400) if brief else None
-    return AnswerRequirements(full, brief, tuple(sorted(topics)), dimensions, tuple(samples), max_sections, max_characters)
+    require_unsupported = has(r"(?:证明|保证|承诺|核验).*(?:真实|准确率|分类效果|预测效果|下游效果)|(?:prove|guarantee).*(?:true|truth|accuracy|performance)")
+    return AnswerRequirements(full, brief, tuple(sorted(topics)), dimensions, tuple(samples), max_sections, max_characters, require_unsupported)
 
 
 def explicit_governance_run(question):

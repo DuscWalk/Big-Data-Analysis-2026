@@ -22,9 +22,9 @@ INSTRUCTIONS = """你是 MovieLens 大数据分析实验助手，用中文回答
 应用未提供本轮依据时，才通过工具查找精确报告并读取；不得仅凭聊天记录中的旧数字。
 quality_report 的 summary 已含五维指标、三表行数/处置、时间边界与局限，
 一般足够解释结果；证据足够后直接回答，不必额外重复读取报告和处置日志。
-interpretation_facts 提供已计算的父表引用原因总命中数、评分去重数、分区文件说明，
+本轮报告要点提供已计算的父表引用原因总命中数、评分去重数和分区文件说明，
 必须据此解释，不自行合并重叠原因当作受影响行数；评分去重为 0 时不能声称去重了评分行。
-分区计数不代表文件已物化，严格遵守 time_split_storage_statement；历史回答可能算错，须以本轮工具为准。
+分区计数不代表文件已物化，以本轮时间划分要点为准；历史回答可能算错，须以本轮工具为准。
 reason 参数仅筛选异常样例的规则键，不是填写工具调用理由的字段。
 完整率/准确性等是约束代理：四项满分不证明真实性，隔离和去重不等于修复。
 时效性是固定历史场景，不得为提高分数改规则；说明分子、分母与数据损失。
@@ -183,7 +183,7 @@ class AgentService:
                                 raise ModelError("EXPLANATION_PLAN_INVALID", "模型未生成符合证据约束的解释；报告与产物仍可查询。") from error
                             messages.append(assistant)
                             messages.append({"role": "system", "content": str(error) + " 请修正一次。" + report_answer.instructions() +
-                                             "本轮可用 sections：" + canonical(list(report_answer.sections))})
+                                             "本轮可用 sections：" + prompt_json(sorted(report_answer.allowed_sections()))})
                             continue
                         return self.conversations.finish(uid, rendered, origin="evidence_rendered", validation=validation)
                     return self.conversations.finish(uid, assistant["content"])
@@ -221,12 +221,11 @@ class AgentService:
                         if artifact["kind"] == "quality_report" and mode == "summary":
                             if report_answer is None and not request["task_id"]:
                                 report_answer = ReportAnswer(artifact["producer_task_id"], ref, full=require_quality, question=content)
-                                evidence_instructions.append(report_answer.instructions())
                             if report_answer:
                                 report_answer.read_summary(ref, value["data"]["value"], internal_id)
                                 if report_answer.ready:
                                     evidence_instructions.append(report_answer.instructions() +
-                                        "本轮摘要已就绪，请回答原始用户问题。可选 sections：" + canonical(list(report_answer.sections)))
+                                        "本轮摘要已就绪，请回答原始用户问题。可选 sections：" + prompt_json(sorted(report_answer.allowed_sections())))
                         elif report_answer and (
                             mode == "examples" and ref == report_answer.ref
                             or mode == "sample" and artifact["kind"] == "cleaned_dataset"

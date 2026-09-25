@@ -142,6 +142,24 @@ class AnswerCoverageTests(unittest.TestCase):
             a.render(plan(self.ref, required))
         self.assertEqual(validation, json.loads(json.dumps(validation)))
 
+    def test_single_topic_cannot_include_unrelated_sections_even_below_count_limit(self):
+        a = self.ready("请给出时效性的正确分子、分母、公式和历史窗口")
+        self.assertEqual(set(a.model_view()["explanation_sections"]), {"freshness"})
+        with self.assertRaises(InvalidPlan):
+            a.render(plan(self.ref, ["freshness", "dispositions"]))
+        text, _ = a.render(plan(self.ref, ["freshness"]))
+        self.assertIn("× 100", text)
+
+    def test_requests_for_truth_or_downstream_guarantees_require_unsupported(self):
+        a = self.ready("四项满分能否证明事实真实，并保证分类准确率达到99%？")
+        required = list(a.requirements.required_sections)
+        self.assertTrue(a.requirements.require_unsupported)
+        with self.assertRaises(InvalidPlan):
+            a.render(plan(self.ref, required))
+        text, v = a.render(plan(self.ref, required, unsupported=True))
+        self.assertTrue(v["unsupported"])
+        self.assertIn("无法据此作答", text)
+
     def test_projection_preserves_single_dimension_and_zero_denominator(self):
         sections = answer_sections(self.report, dimensions=("Unique",))
         self.assertIn("Unique", sections["scores"])
