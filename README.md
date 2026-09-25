@@ -16,6 +16,7 @@
 - [Agent 整体架构与迭代边界](docs/architecture/Agent整体架构与迭代边界.md)：共用模块、工具与任务协议、版本化产物、后续接入方式及课件参考。
 - [迭代一：技术方案与接口约定](docs/iterations/01-governance/技术方案与接口约定.md)：首版选型建议、模块边界、工具与 HTTP 接口、任务状态及结果发布。
 - [迭代一：数据与评分约定](docs/iterations/01-governance/数据与评分约定.md)：三表输出格式、来源追踪、已实现的清洗规则、五维评分方法与时间划分。
+- [清洗数据交接与读取](docs/iterations/01-governance/handoff/清洗数据读取.md)：固定产物引用、哈希校验、T1/T2 分区与下一轮 Python 示例。
 - [迭代一：开发与交接计划](docs/iterations/01-governance/开发与交接计划.md)：W00—W09 工作项、依赖关系、运行验证和交接清单。
 
 README 提供项目入口与准备说明。课程要求以总体与各轮实验文档为准；需求清单和架构草案另记录小组确定的交付目标与实现建议。
@@ -56,7 +57,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── environments/                  # 平台环境锁文件
 ├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
 ├── configs/governance/            # 规则、评分与时间配置
-├── scripts/                       # Hadoop 生命周期与实际浏览器验收
+├── scripts/                       # Hadoop、实际验收与交接读取示例
 ├── tests/                         # 小型数据与框架行为验证
 ├── docs/
 │   ├── README.md                  # 文档导航
@@ -75,7 +76,10 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ```bash
 git clone git@github.com:DuscWalk/Big-Data-Analysis-2026.git
 cd Big-Data-Analysis-2026
+git switch feat/iteration-01-foundation
 ```
+
+当前实现位于上述功能分支，正式交付合并后再以主分支和交付标签为准。
 
 将课程提供的 `ml-1m.zip` 放到仓库根目录后解压。若 `ml-1m/` 已就位，无需重复解压。
 

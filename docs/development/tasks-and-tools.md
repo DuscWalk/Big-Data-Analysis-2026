@@ -1,6 +1,6 @@
 # 任务、工具与产物开发
 
-当前已实现共用工具注册、原始数据登记、任务受理、独立 worker、阶段记录和原子发布。HTTP 会话、模型适配与前端仍待接入。以下是实际 Python/CLI 行为，不代表自然语言 Agent 已验收。
+当前已实现共用工具注册、原始数据登记、任务受理、独立 worker、阶段记录和原子发布；持久会话、模型与前端已完成实际联调，见[应用指南](app-and-model.md)。本文说明底层 Python/CLI 行为和下一轮接入方式。
 
 ## 运行一个治理任务
 
@@ -43,7 +43,7 @@ task 返回真实状态、当前阶段、错误、所有阶段尝试、外部作
 | artifacts.list | query | task_id、offset/limit；每页最多 100 项 |
 | artifacts.get | query | artifact_ref、mode、file_name、offset/limit；元数据、评分摘要、报告或有来源的 JSONL 样例 |
 
-通用入口位于 [registry.py](../../src/movielens_agent/tools/registry.py)；保留 QueryTool 这个首版类型名，通过 mode 区分查询与任务受理。输入输出都经 Pydantic 校验，额外参数拒绝。模型未来只能填写业务参数；会话与 request_id 由应用传入 ToolContext。
+通用入口位于 [registry.py](../../src/movielens_agent/tools/registry.py)；保留 QueryTool 这个首版类型名，通过 mode 区分查询与任务受理。输入输出都经 Pydantic 校验，额外参数拒绝。模型只能填写业务参数；会话与 request_id 由应用传入 ToolContext。
 
 配置默认从 [default.json](../../configs/governance/default.json)读取，配置内容哈希是实际版本。传入未登记的规则/评分引用会拒绝，不执行任意路径、脚本或 Shell 命令。
 
@@ -64,6 +64,6 @@ python -m movielens_agent evidence --artifact-id CLEANED_ARTIFACT_ID --version A
 2. 新建独立工作流 handler，在 Worker 的工作流字典中注册，不给分发器新增算法专用分支。
 3. 工作流经适配器执行外部程序，沿用阶段日志和外部 ID 持久化；无法确认状态时抛 ExternalStateUnknown。
 4. 准备并校验结果文件，返回统一产物清单；worker 负责最终原子发布。新增产物类型应记录输入数据、模型/图谱配置、时间范围和实际文件。
-5. 后续 API、模型和页面复用这些工具与引用。训练和图工具额外检查数据可用性与 T1/T2；task succeeded 不自动证明满足训练或图谱前置条件。
+5. API、模型和页面复用这些工具与引用。训练和图工具额外检查数据可用性与 T1/T2；task succeeded 不自动证明满足训练或图谱前置条件。
 
-当前清洗数据通过 artifacts.get 查询，datasets.describe 尚只覆盖原始数据。会话消息持久化、真实模型循环和完整 UI 是下一阶段工作，不能把 CLI 提交等同于一次自然语言任务验收。
+当前清洗数据通过 artifacts.get 查询，datasets.describe 尚只覆盖原始数据。下一轮直接读取清洗文件时，可复用 [CleanedDataset](../../src/movielens_agent/storage/cleaned.py) 的精确引用、哈希校验和显式分区过滤；可运行命令、固定数据版本及防止未来数据进入训练的方法见[清洗数据交接](../iterations/01-governance/handoff/清洗数据读取.md)。实际新增查询工具的注册示例见 [catalog_versions.py](../../scripts/examples/catalog_versions.py)。
