@@ -8,7 +8,7 @@
 
 ## 实验文档
 
-完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。
+完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
 
 - [项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。
 - [迭代一：Hadoop 数据清洗与 Agent 基础](docs/course/迭代一_Hadoop数据清洗与Agent基础.md)：数据检查方向、五维质量评分、Agent 工具与前端要求。
