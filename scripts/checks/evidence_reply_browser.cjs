@@ -51,9 +51,12 @@ const path = require("node:path");
     assert.equal(result.response.status, "completed");
     assert.equal(result.response.response_origin, "evidence_rendered");
     if (!replay) assert.ok(result.response.validation.sections.includes("freshness"));
-    const ready = async () => page.waitForFunction(({ text, index }) => [...document.querySelectorAll("#messages .assistant .body")].at(index)?.textContent === text, { text: result.response.content, index: assistantIndex });
+    // Repeated questions can produce identical text. Wait for the new message
+    // identity so an older answer cannot satisfy the check during a UI reload.
+    const replySelector = '[data-message-id="' + result.response.message_id + '"]';
+    const ready = async () => page.waitForFunction(({ text, selector }) => document.querySelector(selector + ' .body')?.textContent === text, { text: result.response.content, selector: replySelector });
     await ready();
-    const last = page.locator("#messages .assistant").nth(assistantIndex);
+    const last = page.locator(replySelector);
     assert.ok((await last.textContent()).includes("报告事实 · 要点选择模型"));
     await last.locator("button.trace").click();
     const trace = JSON.parse(await last.locator("pre").textContent());
@@ -74,7 +77,7 @@ const path = require("node:path");
     await page.screenshot({ path: path.join(out, "desktop.png"), fullPage: true });
     await page.reload();
     await ready();
-    assert.ok((await page.locator("#messages .assistant").nth(assistantIndex).textContent()).includes("报告事实 · 要点选择模型"));
+    assert.ok((await page.locator(replySelector).textContent()).includes("报告事实 · 要点选择模型"));
     await page.setViewportSize({ width: 390, height: 844 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     await page.screenshot({ path: path.join(out, "mobile.png"), fullPage: true });
