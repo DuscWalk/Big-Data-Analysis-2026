@@ -1,50 +1,86 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>MovieLens · 数据治理实验</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>MovieLens · 数据治理工作台</title>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
 </head>
-<body>
-  <header><a href="/" class="brand"><span class="mark">M</span><span>MovieLens<small>大数据分析 · 迭代一</small></span></a>
-    <div class="header-actions"><span id="model-state" class="badge">读取配置…</span><button id="new-session" class="secondary">新建会话</button></div></header>
-  <main>
-    <section class="intro"><span class="eyebrow">DATA GOVERNANCE</span><h1>让每一个分析结果，都有据可查。</h1><p>用自然语言发起清洗，查看五维质量变化，并围绕同一次实验继续追问。</p></section>
+<body class="notebook">
+  <a class="skip-link" href="#results">跳到实验结果</a>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="MovieLens 首页">
+      <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><rect x="3" y="3" width="30" height="30" rx="8"/><path d="M10 25V11l8 9 8-9v14M10 7v2m8-2v2m8-2v2M10 27v2m8-2v2m8-2v2"/></svg>
+      <span>MovieLens<small>数据实验室</small></span>
+    </a>
+    <a class="header-assistant-link" href="#assistant">前往实验助手 <span aria-hidden="true">↗</span></a>
+  </header>
+  <main class="workbench">
+    <div class="page-heading">
+      <div><p class="breadcrumb">大数据分析课程 <span>/</span> 迭代一</p><h1>数据治理<span class="heading-dataset">MovieLens 1M</span></h1></div>
+      <p class="page-description">从清洗到评估，<br>让每一条结论有据可查。</p>
+    </div>
     <div id="notice" role="alert" class="notice hidden"></div>
     <div class="workspace">
-      <section class="card conversation">
-        <div class="card-head"><div><h2>实验助手</h2><p id="session-caption">正在准备会话</p></div><span class="dot"></span></div>
-        <div id="messages" class="messages" aria-live="polite"><p class="empty">输入需求，开始这次实验。</p></div>
-        <div class="suggestions"><button id="suggest-run">清洗并评估数据</button><button id="suggest-explain">解释当前结果</button></div>
-        <form id="chat-form"><label class="sr-only" for="prompt">输入实验需求</label>
-          <textarea id="prompt" rows="3" maxlength="6000" placeholder="例如：请使用默认规则清洗 MovieLens 1M，并比较前后五维质量。"></textarea>
-          <div class="compose-footer"><span id="send-state">Ctrl / ⌘ + Enter 发送</span><button id="send" type="submit">发送请求 <span aria-hidden="true">↗</span></button></div>
-        </form>
-      </section>
-      <section class="results">
-        <div class="card task-card"><div class="card-head"><div><h2>运行与结果</h2><p>指标来自已发布的实际产物</p></div><button id="refresh" class="secondary">刷新</button></div>
-          <label for="task-select" class="small-label">当前任务</label><select id="task-select"><option value="">尚无任务</option></select>
+      <nav class="section-index" aria-label="工作台内容">
+        <a href="#overview" aria-current="location"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="12" y="3" width="5" height="5" rx="1"/><rect x="3" y="12" width="5" height="5" rx="1"/><rect x="12" y="12" width="5" height="5" rx="1"/></svg>实验概览</a>
+        <a href="#quality-area"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3v14h14M7 13V8m4 5V5m4 8V9"/></svg>质量与处置</a>
+        <a href="#evidence-area"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2h7l4 4v12H5zM12 2v5h4M8 10h5m-5 4h5"/></svg>产物与证据</a>
+        <a class="index-assistant" href="#assistant"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v11H8l-5 3zM6 7h8m-8 3h5"/></svg>实验助手</a>
+      </nav>
+      <section id="results" class="results" aria-label="实验结果">
+        <section id="overview" class="overview-panel" aria-labelledby="overview-title">
+          <div class="section-heading"><h2 id="overview-title">本次实验</h2><span id="overview-state" class="subtle-label">等待结果</span></div>
+          <div class="summary-grid" aria-label="当前任务的数据概览">
+            <div class="summary-item"><span class="summary-label">清洗后评分</span><strong id="summary-retained">—</strong><span id="summary-input" class="summary-note">完成任务后显示</span></div>
+            <div class="summary-item"><span class="summary-label">隔离评分</span><strong id="summary-quarantined">—</strong><span id="summary-loss" class="summary-note">保留实际数据处置</span></div>
+            <div class="summary-item"><span class="summary-label">已发布文件</span><strong id="summary-files">—</strong><span id="summary-evidence" class="summary-note">数据、报告与来源</span></div>
+          </div>
+          <div class="task-controls"><label for="task-select">当前任务</label><select id="task-select"><option value="">尚无任务</option></select><button id="refresh" class="secondary"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7A6 6 0 1 0 16 13M16 3v4h-4"/></svg>刷新</button></div>
           <div id="task-status" class="task-status"><span class="badge">等待请求</span><span>任务受理后会自动刷新进展</span></div>
-          <div id="task-error" class="notice hidden"></div><details id="attempts-panel" class="hidden"><summary>查看执行阶段</summary><ol id="attempts"></ol></details>
+          <div id="task-error" class="notice hidden"></div>
+          <details id="attempts-panel" class="hidden"><summary>查看执行阶段</summary><ol id="attempts" class="attempts"></ol></details>
+        </section>
+        <div id="quality-empty" class="empty-result panel">
+          <svg class="empty-illustration" viewBox="0 0 160 92" fill="none" aria-hidden="true"><path d="M20 70h120M30 18v52"/><rect x="46" y="46" width="15" height="24" rx="3"/><rect x="74" y="34" width="15" height="36" rx="3"/><rect x="102" y="20" width="15" height="50" rx="3"/><circle cx="129" cy="19" r="10"/><path d="m125 19 3 3 5-6"/></svg>
+          <h2>从第一条请求开始</h2><p>使用实验助手发起清洗。任务完成后，<br>在这里查看质量变化、数据处置与报告。</p><a class="text-link" href="#prompt">前往实验助手</a>
         </div>
-        <div id="quality-empty" class="card empty-result"><div class="chart-symbol" aria-hidden="true">▂ ▅ ▃ ▇ ▄</div><h3>结果尚未生成</h3><p>完成评分与清洗后，这里将显示真实分数、数据去向和时间划分。</p></div>
         <div id="quality" class="hidden">
-          <div class="card"><div class="card-head"><div><h2>五维质量</h2><p>0—100 分 · 同一口径对比</p></div><div class="legend"><span class="before-dot"></span>清洗前 <span class="after-dot"></span>清洗后</div></div>
-            <div id="metrics" class="metrics"></div><p class="footnote">准确性是可验证约束代理；高分不证明真实性，隔离也不等于修复。</p>
-          </div>
-          <div class="card"><div class="card-head"><div><h2>数据去了哪里</h2><p>每条输入只有一个最终去向</p></div></div>
-            <div class="table-scroll"><table><thead><tr><th>数据表</th><th>输入</th><th>输出</th><th>修复</th><th>去重</th><th>隔离</th></tr></thead><tbody id="dispositions"></tbody></table></div>
-            <p id="splits" class="footnote"></p><details><summary>查看评分依据和处理原因</summary><div id="method"></div></details>
-          </div>
-          <div class="card"><div class="card-head"><div><h2>产物与证据</h2><p>精确版本 · 可下载 · 保留来源</p></div></div>
-            <div id="downloads" class="downloads"></div><div class="sample-toolbar"><label for="sample-table">清洗样例</label><select id="sample-table"><option value="ratings">评分</option><option value="movies">电影</option><option value="users">用户</option></select><button id="load-sample" class="secondary">查看 3 条</button></div><pre id="sample" class="hidden"></pre>
-            <div class="sample-toolbar"><label for="issue-rule">异常样例</label><select id="issue-rule"></select><button id="load-example" class="secondary">查看依据</button></div><pre id="examples" class="hidden"></pre><details><summary>数据与配置版本</summary><pre id="versions"></pre></details>
-          </div>
+          <section id="quality-area" class="panel metric-panel" aria-labelledby="quality-title">
+            <div class="section-heading"><div><h2 id="quality-title">五维质量</h2><p>同一口径，比较清洗前后</p></div><div class="legend"><span class="before-dot"></span>清洗前<span class="after-dot"></span>清洗后<span class="scale-label">/ 100 分</span></div></div>
+            <div id="metrics" class="metrics"></div>
+            <p class="footnote quality-footnote"><span class="info-icon" aria-hidden="true">i</span>准确性是可验证约束代理；高分不证明真实性，隔离也不等于修复。</p>
+          </section>
+          <section class="panel data-panel" aria-labelledby="dispositions-title">
+            <div class="section-heading"><div><h2 id="dispositions-title">数据去了哪里</h2><p>每条输入只有一个最终去向</p></div><span class="subtle-label">3 张数据表</span></div>
+            <div class="table-scroll" tabindex="0" role="region" aria-label="各表数据处置，窄屏可横向滚动"><table><thead><tr><th scope="col">数据表</th><th scope="col">输入</th><th scope="col">输出</th><th scope="col">修复</th><th scope="col">去重</th><th scope="col">隔离</th></tr></thead><tbody id="dispositions"></tbody></table></div>
+            <p class="footnote">输入 = 输出 + 去重 + 隔离；修复记录已计入输出。</p>
+            <div id="splits" class="splits"></div>
+            <details><summary>查看评分依据和处理原因</summary><div id="method"></div></details>
+          </section>
+          <section id="evidence-area" class="panel evidence-panel" aria-labelledby="evidence-title">
+            <div class="section-heading"><div><h2 id="evidence-title">产物与证据</h2><p>精确版本，保留来源</p></div><span class="subtle-label">点击文件下载</span></div>
+            <div id="downloads" class="downloads"></div>
+            <div class="sample-block"><div class="sample-toolbar"><label for="sample-table">清洗样例</label><select id="sample-table"><option value="ratings">评分 ratings</option><option value="movies">电影 movies</option><option value="users">用户 users</option></select><button id="load-sample" class="secondary">查看 3 条</button></div><pre id="sample" class="hidden"></pre>
+            <div class="sample-toolbar"><label for="issue-rule">异常样例</label><select id="issue-rule"></select><button id="load-example" class="secondary">查看依据</button></div><pre id="examples" class="hidden"></pre></div>
+            <details><summary>数据与配置版本</summary><pre id="versions"></pre></details>
+          </section>
         </div>
       </section>
+      <aside id="assistant" class="conversation" aria-labelledby="assistant-title">
+        <div class="conversation-heading"><div class="assistant-identity"><svg class="assistant-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5c0 7-4 11-11 11 7 0 11 4 11 11 0-7 4-11 11-11-7 0-11-4-11-11Z"/></svg><div><h2 id="assistant-title">实验助手</h2><p id="session-caption">正在准备会话</p></div></div><button id="new-session" class="secondary" title="创建新的实验会话">新会话</button></div>
+        <div class="assistant-context"><span class="context-dot" aria-hidden="true"></span><span id="context-caption">提出清洗请求或实验问题</span></div>
+        <div id="messages" class="messages" role="log" aria-label="实验对话" aria-live="polite" tabindex="0"><p class="empty">输入需求，开始这次实验。</p></div>
+        <div id="request-progress" class="request-progress hidden" role="status"><span class="pending-dot" aria-hidden="true"></span><span id="request-progress-text">正在读取模型与工具…</span></div>
+        <div class="suggestions"><button id="suggest-run" type="button"><span aria-hidden="true">＋</span>清洗并评估</button><button id="suggest-explain" type="button"><span aria-hidden="true">↳</span>解释当前结果</button></div>
+        <form id="chat-form"><label class="sr-only" for="prompt">输入实验需求</label><textarea id="prompt" rows="3" maxlength="6000" placeholder="提出一个问题，或发起一次清洗…"></textarea><div class="compose-footer"><span id="send-state">Ctrl / ⌘ + Enter 发送</span><button id="send" type="submit">发送<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 6-6 6 6M10 4v12"/></svg></button></div></form>
+        <div class="model-caption"><span id="model-state">读取模型配置…</span><span>配置状态</span></div>
+      </aside>
     </div>
-    <footer>原始数据保持只读。任务状态、质量评分与模型解释分别记录，结果可以追溯。</footer>
+    <footer><span>MovieLens 数据治理实验</span><span>原始数据只读 · 结果与解释分别记录</span></footer>
   </main>
+  <nav class="mobile-nav" aria-label="手机快捷导航"><a href="#overview">查看结果</a><a href="#assistant">使用助手</a></nav>
 </body>
 </html>

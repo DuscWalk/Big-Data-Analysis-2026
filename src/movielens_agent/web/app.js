@@ -5,8 +5,10 @@ const statuses = { queued: "排队中", running: "执行中", succeeded: "已完
 const stages = { "prepare-inputs": "核对与封装输入", "before-parents": "检查原始主表", "before-ratings": "检查原始评分", "before-metrics": "汇总清洗前指标", "clean-parents": "清洗用户与电影", "clean-ratings": "清洗评分与关联", "after-groups": "检查清洗结果", "after-metrics": "汇总清洗后指标", "verify-and-export": "核对并导出产物", published: "结果已发布" };
 const labels = { users: "用户", movies: "电影", ratings: "评分" };
 const dimensions = { Accurate: "准确性", Complete: "完整性", Unique: "唯一性", "Up-to-date": "时效性", Consistent: "一致性" };
-const number = value => typeof value === "number" ? value.toLocaleString("zh-CN") : "—";
-const score = value => typeof value === "number" ? value.toFixed(3) : "不可评价";
+const number = value => Number.isFinite(value) ? value.toLocaleString("zh-CN") : "—";
+const score = value => Number.isFinite(value) ? value.toFixed(3) : "不可评价";
+const utc = value => new Date(value * 1000).toISOString().replace("T", " ").replace(".000Z", " UTC");
+const sectionLinks = [...document.querySelectorAll(".section-index a")];
 const node = (tag, text, className) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (className) e.className = className; return e; };
 function notice(text) { $("notice").textContent = text || ""; $("notice").classList.toggle("hidden", !text); }
 async function api(path, options = {}) {
@@ -25,12 +27,21 @@ function resetResult() {
   }
   $("quality").classList.add("hidden"); $("quality-empty").classList.remove("hidden");
   $("sample").classList.add("hidden"); $("examples").classList.add("hidden");
+  sectionLinks[1].href = "#quality-empty"; sectionLinks[2].href = "#quality-empty";
+  for (const id of ["summary-retained", "summary-quarantined", "summary-files"]) $(id).textContent = "—";
+  $("summary-input").textContent = "完成任务后显示";
+  $("summary-loss").textContent = "保留实际数据处置";
+  $("summary-evidence").textContent = "数据、报告与来源";
+  $("overview-state").textContent = "等待结果";
+  $("context-caption").textContent = "提出清洗请求或实验问题";
 }
 async function openSession(session) {
   clearTimeout(state.timer); state.epoch++; state.session = session; state.task = null; state.explained.clear(); resetResult();
   sending(false);
   localStorage.setItem("movielens-session", session);
-  history.replaceState(null, "", "?session=" + encodeURIComponent(session));
+  const url = new URL(location.href);
+  url.searchParams.set("session", session);
+  history.replaceState(null, "", url.pathname + url.search + url.hash);
   $("session-caption").textContent = "会话 " + session.slice(0, 12);
   await loadMessages(); await refreshTasks();
 }
@@ -93,11 +104,19 @@ async function loadMessages() {
     box.append(container);
   }
   box.scrollTop = box.scrollHeight;
+  const latest = box.lastElementChild;
+  if (latest?.classList.contains("message")) {
+    box.scrollTop += latest.getBoundingClientRect().top - box.getBoundingClientRect().top - 20;
+  }
 }
 function sending(active, text = "正在调用模型与工具…") {
   state.sending = active; $("send").disabled = active;
   $("send-state").textContent = active ? text : "Ctrl / ⌘ + Enter 发送";
   document.querySelectorAll("button.retry-explanation").forEach(button => { button.disabled = active; });
+  $("request-progress").classList.toggle("hidden", !active);
+  $("request-progress-text").textContent = text;
+  $("chat-form").setAttribute("aria-busy", String(active));
+  $("send").setAttribute("aria-label", active ? "正在发送，请等待回答" : "发送请求");
 }
 async function retryExplanation(item) {
   if (state.sending) return;
@@ -200,28 +219,12 @@ async function explain(taskId, attempt = 0) {
 }
 function renderQuality(value, task) {
   $("quality-empty").classList.add("hidden"); $("quality").classList.remove("hidden"); $("metrics").replaceChildren();
-  for (const [dimension, label] of Object.entries(dimensions)) {
-    const before = value.before.overall[dimension].score, after = value.after.overall[dimension].score;
-    const row = node("div", undefined, "metric"), title = node("div", undefined, "metric-title");
-    const labelNode = node("span", label + " "); labelNode.append(node("small", dimension));
-    title.append(labelNode, node("span", score(before) + " → " + score(after), "metric-score")); row.append(title);
-    const bars = node("div", undefined, "metric-bars");
-    for (const [v, kind] of [[before, "before"], [after, "after"]]) {
-      const progress = node("progress", undefined, "bar " + kind); progress.max = 100; progress.value = v === null ? 0 : v;
-      progress.setAttribute("aria-label", label + (kind === "before" ? "清洗前 " : "清洗后 ") + score(v)); bars.append(progress);
-    }
-    row.append(bars); $("metrics").append(row);
-  }
   $("dispositions").replaceChildren();
   for (const table of ["users", "movies", "ratings"]) {
     const d = value.after.dispositions[table], row = node("tr");
     const values = [labels[table], number(value.before.tables[table].rows), number(value.after.tables[table].rows), number(d.repaired || 0), number(d.deduplicated || 0), number(d.quarantined || 0)];
     values.forEach(v => row.append(node("td", v))); $("dispositions").append(row);
   }
-  const split = value.after.splits;
-  const utc = v => new Date(v * 1000).toISOString().replace("T", " ").replace(".000Z", " UTC");
-  $("splits").textContent = "训练 " + number(split.train) + " · 验证 " + number(split.validation) + " · 测试 " + number(split.test) +
-    "。T1：" + utc(value.configuration.split.train_end) + "；T2：" + utc(value.configuration.split.validation_end) + "。";
   $("method").replaceChildren();
   const reference = value.configuration.metrics;
   $("method").append(node("p", "Accurate / Complete / Unique / Consistent 按三表等权汇总；空表不可评价。时效性只评价评分，以 " +
@@ -239,7 +242,11 @@ function renderQuality(value, task) {
   value.limitations.forEach(text => $("method").append(node("p", text, "method-line")));
   $("downloads").replaceChildren();
   for (const artifact of task.artifacts) for (const file of artifact.files) {
-    const link = node("a", file.name); link.href = "/api/v1" + artifactRoute(artifact.ref) + "/download?file_name=" + encodeURIComponent(file.name);
+    const link = node("a");
+    const icon = node("span", "↓", "file-icon"); icon.setAttribute("aria-hidden", "true");
+    const size = node("span", fileSize(file.size_bytes), "file-size"); size.setAttribute("aria-hidden", "true");
+    link.append(icon, node("span", file.name, "file-name"), size);
+    link.href = "/api/v1" + artifactRoute(artifact.ref) + "/download?file_name=" + encodeURIComponent(file.name);
     link.setAttribute("download", file.name); $("downloads").append(link);
   }
   $("versions").textContent = JSON.stringify({ task_id: task.task_id, input: value.input_ref, cleaned: value.cleaned_ref, configuration: value.config_refs }, null, 2);
@@ -247,7 +254,93 @@ function renderQuality(value, task) {
   for (const table of ["users", "movies", "ratings"]) for (const reason of Object.keys(value.after.reasons[table])) {
     $("issue-rule").append(new Option(labels[table] + " · " + reason, table + "/" + reason));
   }
+  renderWorkspace(value, task);
 }
+function renderWorkspace(value, task) {
+  sectionLinks[1].href = "#quality-area";
+  sectionLinks[2].href = "#evidence-area";
+  const input = value.before.tables.ratings.rows;
+  const retained = value.after.tables.ratings.rows;
+  const quarantined = value.after.dispositions.ratings.quarantined || 0;
+  const files = task.artifacts.flatMap(artifact => artifact.files);
+  $("summary-retained").textContent = number(retained);
+  $("summary-input").textContent = "原始 " + number(input) + " 条";
+  $("summary-quarantined").textContent = number(quarantined);
+  $("summary-loss").textContent = input > 0 ? "占原始评分的 " + (quarantined / input * 100).toFixed(2) + "%" : "原始评分为空";
+  $("summary-files").textContent = number(files.length);
+  $("summary-evidence").textContent = "数据、报告与来源";
+  $("overview-state").textContent = "来自当前已发布任务";
+  $("context-caption").textContent = "围绕任务 " + task.task_id.slice(0, 8) + " 继续追问";
+
+  $("metrics").replaceChildren();
+  for (const [key, label] of Object.entries(dimensions)) {
+    const before = value.before.overall[key].score, after = value.after.overall[key].score;
+    const metric = node("article", undefined, "metric");
+    metric.dataset.dimension = key;
+    const heading = node("div", undefined, "metric-heading");
+    heading.append(node("h3", label), node("span", key));
+    const result = node("div", undefined, "metric-value");
+    result.append(node("strong", score(after)), node("span", "分"));
+    const previous = node("div", "清洗前 " + score(before), "metric-history");
+    const bars = node("div", undefined, "metric-bars");
+    for (const [v, kind] of [[before, "before"], [after, "after"]]) {
+      const bar = node("progress", undefined, "bar " + kind);
+      bar.max = 100; bar.value = Number.isFinite(v) ? v : 0;
+      bar.setAttribute("aria-label", label + (kind === "before" ? "清洗前 " : "清洗后 ") + score(v));
+      if (!Number.isFinite(v)) bar.setAttribute("aria-valuetext", "不可评价");
+      bars.append(bar);
+    }
+    const delta = Number.isFinite(before) && Number.isFinite(after) ? after - before : null;
+    const deltaText = delta === null ? "变化不可评价" : delta === 0 ? "持平" : (delta > 0 ? "↑ " : "↓ ") + Math.abs(delta).toFixed(3);
+    const change = node("span", deltaText, "metric-delta" + (delta !== null && delta < 0 ? " decline" : ""));
+    change.setAttribute("aria-label", delta === null ? "变化不可评价" : "变化 " + (delta > 0 ? "+" : "") + delta.toFixed(3) + " 分");
+    metric.append(heading, result, bars, previous, change);
+    $("metrics").append(metric);
+  }
+  const guide = node("aside", undefined, "metric-guide");
+  guide.append(node("span", "读懂这些分数"), node("p", "满分代表通过已实现的约束。历史数据的时效性需要单独看待。"));
+  $("metrics").append(guide);
+
+  renderSplits(value);
+}
+function fileSize(bytes) {
+  if (!Number.isFinite(bytes)) return "下载";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+function renderSplits(value) {
+  const names = { train: "训练集", validation: "验证集", test: "测试集" };
+  const splits = value.after.splits;
+  const total = Object.keys(names).reduce((sum, key) => sum + (splits[key] || 0), 0);
+  const box = $("splits"); box.replaceChildren();
+  const heading = node("div", undefined, "split-heading");
+  heading.append(node("h3", "按时间划分"), node("span", "仅统计范围，未另存分区文件"));
+  box.append(heading);
+  const chart = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  chart.setAttribute("viewBox", "0 0 1000 12"); chart.setAttribute("preserveAspectRatio", "none");
+  chart.setAttribute("class", "split-bar"); chart.setAttribute("role", "img");
+  chart.setAttribute("aria-label", Object.entries(names).map(([key, name]) => name + " " + number(splits[key]) + " 条").join("，"));
+  let x = 0;
+  for (const key of Object.keys(names)) {
+    const width = total ? splits[key] / total * 1000 : 0;
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    for (const [name, val] of Object.entries({ x, y: 0, width, height: 12, class: "split-" + key })) rect.setAttribute(name, val);
+    chart.append(rect); x += width;
+  }
+  const legend = node("div", undefined, "split-legend");
+  for (const [key, name] of Object.entries(names)) {
+    const item = node("div", undefined, "split-item " + key);
+    item.append(node("span", name), node("strong", number(splits[key])));
+    legend.append(item);
+  }
+  const boundaries = node("p", "T1 " + utc(value.configuration.split.train_end) + "；T2 " + utc(value.configuration.split.validation_end), "split-boundaries");
+  box.append(chart, legend, boundaries);
+}
+sectionLinks.forEach(link => link.addEventListener("click", () => {
+  sectionLinks.forEach(item => item.removeAttribute("aria-current"));
+  link.setAttribute("aria-current", "location");
+}));
 $("chat-form").addEventListener("submit", event => { event.preventDefault(); send($("prompt").value).catch(error => notice(error.message)); });
 $("prompt").addEventListener("keydown", event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); $("chat-form").requestSubmit(); } });
 $("suggest-run").addEventListener("click", () => { $("prompt").value = "请使用默认规则清洗 MovieLens 1M，评估前后五维质量，并说明处理的问题与局限。"; $("prompt").focus(); });
@@ -273,7 +366,7 @@ $("load-example").addEventListener("click", async () => {
 });
 (async () => {
   const status = await api("/status");
-  $("model-state").textContent = status.model_configured ? "模型已配置" + (status.backup_model_name ? " · 备用可选" : "") : "模型尚未配置";
+  $("model-state").textContent = status.model_configured ? "已配置 " + status.model_name + (status.model_provider === "backup" ? "（备用）" : "") : "模型尚未配置";
   const requested = new URLSearchParams(location.search).get("session");
   const previous = requested || localStorage.getItem("movielens-session");
   if (previous) {
