@@ -1,0 +1,274 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="2170" viewBox="0 0 1800 2170" role="img" aria-labelledby="figure-title figure-description">
+<title id="figure-title">Hadoop 治理的七个 MapReduce 作业</title><desc id="figure-description">执行顺序：准备输入，清洗前父表检查、评分表检查、指标聚合，清洗父表和评分表，清洗后复查和指标聚合，核对导出，最后由 worker 登记并发布四类产物。</desc>
+<defs>
+<marker id="arrow-red" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#ad352c"/></marker>
+<marker id="arrow-green" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#52756b"/></marker>
+<marker id="arrow-grey" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#788078"/></marker>
+<marker id="arrow-model" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#71809a"/></marker>
+</defs><rect width="1800" height="2170" fill="#faf9f6"/>
+<g font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<text x="60" y="66" font-size="38" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="60" dy="0">Hadoop 治理工作流</tspan>
+</text>
+<text x="60" y="106" font-size="19" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="60" dy="0">执行细节  /  迭代一已实现  /  2026-09-27  /  实现基线 9732d72</tspan>
+</text>
+<text x="60" y="150" font-size="21" font-weight="400" fill="#262722" text-anchor="start">
+<tspan x="60" dy="0">九个执行阶段 = 输入准备 + 七个 MapReduce 作业 + 核对导出；随后由 worker 发布产物。</tspan>
+</text>
+<g id="source-files" class="module"><rect x="60" y="200" width="440" height="145" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="78" y="232" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="78" dy="0">输入：已登记的原始三表</tspan>
+</text>
+<text x="78" y="263" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="78" dy="0">users.dat / movies.dat / ratings.dat</tspan>
+<tspan x="78" dy="26">保留原文件，不覆盖、不原地清洗</tspan>
+<tspan x="78" dy="26">每行记录原始版本、行号和字节偏移</tspan>
+</text>
+</g>
+<g id="prepare-inputs" class="module"><rect x="570" y="200" width="710" height="145" rx="8" fill="#edf2ef" stroke="#52756b" stroke-width="1.5"/>
+<text x="588" y="232" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">准备 · prepare-inputs</tspan>
+</text>
+<text x="588" y="263" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">核对原始文件哈希、大小与行数</tspan>
+<tspan x="588" dy="26">逐行封装 Base64 原始字节及 source_ref，不做业务过滤</tspan>
+<tspan x="588" dy="26">上传到任务专属 HDFS 输入目录</tspan>
+</text>
+</g>
+<g id="configuration" class="module"><rect x="1350" y="200" width="390" height="145" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="232" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">固定本次运行依据</tspan>
+</text>
+<text x="1368" y="263" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">输入版本 / 规则 / 评分 / 时间配置</tspan>
+<tspan x="1368" dy="26">实现哈希与 streaming.py 快照</tspan>
+<tspan x="1368" dy="26">每个作业使用同一份配置</tspan>
+</text>
+</g>
+<g id="before-phase"><rect x="60" y="420" width="440" height="400" rx="14" fill="#f2f1ec" stroke="#d4d6ce" stroke-width="1.5"/></g>
+<text x="84" y="457" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">A · 清洗前评分</tspan>
+</text>
+<text x="86" y="502" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="86" dy="0">先检查 users、movies 两张父表，</tspan>
+<tspan x="86" dy="32">再检查 ratings 引用的用户与电影。</tspan>
+<tspan x="86" dy="32">父表索引描述 ID 是否存在及冲突。</tspan>
+</text>
+<text x="86" y="640" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="86" dy="0">五个维度分别计算：</tspan>
+<tspan x="86" dy="32">准确性 / 完整性 / 唯一性</tspan>
+<tspan x="86" dy="32">时效性 / 一致性</tspan>
+<tspan x="86" dy="32">评分来自真实 Hadoop 输出。</tspan>
+</text>
+<g id="before-parents" class="module"><rect x="570" y="420" width="710" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="588" y="452" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">01 · before-parents</tspan>
+</text>
+<text x="588" y="483" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">读取原始 users、movies；检查字段与同键记录</tspan>
+<tspan x="588" dy="26">输出分组统计及原始父表索引所需记录</tspan>
+</text>
+</g>
+<g id="before-ratings" class="module"><rect x="570" y="565" width="710" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="588" y="597" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">02 · before-ratings</tspan>
+</text>
+<text x="588" y="628" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">读取原始 ratings，使用原始父表索引</tspan>
+<tspan x="588" dy="26">检查评分事件、引用及质量；使用 2 个 reducer</tspan>
+</text>
+</g>
+<g id="before-metrics" class="module"><rect x="570" y="710" width="710" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="588" y="742" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">03 · before-metrics</tspan>
+</text>
+<text x="588" y="773" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">汇总作业 01、02 的输出</tspan>
+<tspan x="588" dy="26">形成清洗前各表指标、五维得分及其分子分母</tspan>
+</text>
+</g>
+<g id="raw-parent-index" class="module"><rect x="1350" y="420" width="390" height="160" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="452" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">原始父表索引</tspan>
+</text>
+<text x="1368" y="483" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">来自作业 01 的 Hadoop 输出</tspan>
+<tspan x="1368" dy="28">由工作流整理为 JSON 文件</tspan>
+<tspan x="1368" dy="28">随作业分发给 02、05 使用</tspan>
+</text>
+</g>
+<g id="before-quality" class="module"><rect x="1350" y="710" width="390" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="742" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">清洗前质量结果</tspan>
+</text>
+<text x="1368" y="773" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">before-metrics.jsonl</tspan>
+<tspan x="1368" dy="26">作为前后对比的固定基准</tspan>
+</text>
+</g>
+<g id="clean-phase"><rect x="60" y="900" width="440" height="255" rx="14" fill="#fcf1ea" stroke="#d4afa0" stroke-width="1.5"/></g>
+<text x="84" y="937" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">B · 清洗与处置</tspan>
+</text>
+<text x="86" y="984" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="86" dy="0">先清父表，再处理评分的引用。</tspan>
+<tspan x="86" dy="32">记录保留、修复、去重、隔离原因。</tspan>
+<tspan x="86" dy="32">不按官方记录数补齐或删减数据。</tspan>
+<tspan x="86" dy="32">每条输出和处置保留来源。</tspan>
+</text>
+<g id="clean-parents" class="module"><rect x="570" y="900" width="710" height="110" rx="8" fill="#fcf1ea" stroke="#d4afa0" stroke-width="1.5"/>
+<text x="588" y="932" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">04 · clean-parents</tspan>
+</text>
+<text x="588" y="963" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">重新读取原始 users、movies，执行清洗规则</tspan>
+<tspan x="588" dy="26">输出保留记录、处置记录及清洗后父表索引</tspan>
+</text>
+</g>
+<g id="clean-ratings" class="module"><rect x="570" y="1045" width="710" height="110" rx="8" fill="#fcf1ea" stroke="#d4afa0" stroke-width="1.5"/>
+<text x="588" y="1077" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">05 · clean-ratings</tspan>
+</text>
+<text x="588" y="1108" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">读取原始 ratings，使用原始 + 清洗后父表索引</tspan>
+<tspan x="588" dy="26">处理评分冲突、无效引用等；使用 2 个 reducer</tspan>
+</text>
+</g>
+<g id="clean-parent-index" class="module"><rect x="1350" y="900" width="390" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="932" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">清洗后父表索引</tspan>
+</text>
+<text x="1368" y="963" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">来自作业 04 的输出</tspan>
+<tspan x="1368" dy="26">分发给作业 05、06 使用</tspan>
+</text>
+</g>
+<g id="clean-records" class="module"><rect x="1350" y="1045" width="390" height="140" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="1077" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">候选清洗数据与处置记录</tspan>
+</text>
+<text x="1368" y="1108" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">作业 04：用户和电影</tspan>
+<tspan x="1368" dy="26">作业 05：评分</tspan>
+<tspan x="1368" dy="26">此时尚未登记为完整产物</tspan>
+</text>
+</g>
+<g id="after-phase"><rect x="60" y="1250" width="440" height="255" rx="14" fill="#edf2ef" stroke="#9aafa5" stroke-width="1.5"/></g>
+<text x="84" y="1287" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">C · 清洗后复查</tspan>
+</text>
+<text x="86" y="1334" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="86" dy="0">按同一指标口径重新评分。</tspan>
+<tspan x="86" dy="32">统计记录处置与 T1/T2 时间区间。</tspan>
+<tspan x="86" dy="32">应用层核对结果并生成报告，</tspan>
+<tspan x="86" dy="32">不在本地重算一套替代得分。</tspan>
+</text>
+<g id="after-groups" class="module"><rect x="570" y="1250" width="710" height="110" rx="8" fill="#edf2ef" stroke="#9aafa5" stroke-width="1.5"/>
+<text x="588" y="1282" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">06 · after-groups</tspan>
+</text>
+<text x="588" y="1313" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">读取作业 04、05 的保留三表，使用清洗后父表索引</tspan>
+<tspan x="588" dy="26">复查约束并产生评分分组；使用 2 个 reducer</tspan>
+</text>
+</g>
+<g id="after-metrics" class="module"><rect x="570" y="1395" width="710" height="110" rx="8" fill="#edf2ef" stroke="#9aafa5" stroke-width="1.5"/>
+<text x="588" y="1427" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">07 · after-metrics</tspan>
+</text>
+<text x="588" y="1458" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">汇总作业 06 的评分以及作业 04、05 的处置输出</tspan>
+<tspan x="588" dy="26">形成清洗后五维指标、处置数量、训练 / 验证 / 测试行数</tspan>
+</text>
+</g>
+<g id="after-quality" class="module"><rect x="1350" y="1395" width="390" height="140" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1368" y="1427" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">清洗后质量结果</tspan>
+</text>
+<text x="1368" y="1458" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">after-metrics.jsonl</tspan>
+<tspan x="1368" dy="26">保留行指标 / 全部处置统计</tspan>
+<tspan x="1368" dy="26">T1/T2 过滤范围及行数</tspan>
+</text>
+</g>
+<g id="conservation" class="module"><rect x="60" y="1620" width="440" height="145" rx="8" fill="#fffefa" stroke="#52756b" stroke-width="1.5"/>
+<text x="78" y="1652" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="78" dy="0">守恒与有效引用</tspan>
+</text>
+<text x="78" y="1683" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="78" dy="0">输入 = 输出 + 去重 + 隔离</tspan>
+<tspan x="78" dy="26">输出 = 保留 + 修复后保留</tspan>
+<tspan x="78" dy="26">每条保留评分引用有效用户和电影</tspan>
+</text>
+</g>
+<g id="verify-export" class="module"><rect x="570" y="1620" width="710" height="145" rx="8" fill="#edf2ef" stroke="#52756b" stroke-width="1.5"/>
+<text x="588" y="1652" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">核对与导出 · verify-and-export</tspan>
+</text>
+<text x="588" y="1683" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">核对行数守恒、外键、约束分数与时间分区合计</tspan>
+<tspan x="588" dy="26">写入清洗三表、处置记录、质量报告及清单</tspan>
+<tspan x="588" dy="26">将清洗三表上传到 HDFS dataset/；本地文件设为只读</tspan>
+</text>
+</g>
+<g id="publication" class="module"><rect x="570" y="1850" width="710" height="120" rx="8" fill="#f8e8e2" stroke="#ad352c" stroke-width="1.5"/>
+<text x="588" y="1882" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">Worker 发布 · TaskStore.publish</tspan>
+</text>
+<text x="588" y="1913" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">再次核对每个产物文件的大小与 SHA-256</tspan>
+<tspan x="588" dy="26">在同一 SQLite 事务中登记四类产物并将任务置为 succeeded</tspan>
+</text>
+</g>
+<g id="published-artifacts" class="module"><rect x="1350" y="1620" width="390" height="370" rx="8" fill="#fffefa" stroke="#52756b" stroke-width="1.5"/>
+<text x="1368" y="1652" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1368" dy="0">发布结果：四类产物 / 七个文件</tspan>
+</text>
+<text x="1368" y="1683" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1368" dy="0">cleaned_dataset</tspan>
+<tspan x="1368" dy="31">  users.jsonl / movies.jsonl</tspan>
+<tspan x="1368" dy="31">  ratings.jsonl</tspan>
+<tspan x="1368" dy="31">quality_report</tspan>
+<tspan x="1368" dy="31">  quality.json</tspan>
+<tspan x="1368" dy="31">disposition_log</tspan>
+<tspan x="1368" dy="31">  dispositions.jsonl</tspan>
+<tspan x="1368" dy="31">report</tspan>
+<tspan x="1368" dy="31">  report.md / dataset-manifest.json</tspan>
+</text>
+</g>
+<g id="pipeline-limits" class="module"><rect x="60" y="1850" width="440" height="150" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="78" y="1882" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="78" dy="0">结果的含义</tspan>
+</text>
+<text x="78" y="1913" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="78" dy="0">约束满分不等于真实世界无误</tspan>
+<tspan x="78" dy="26">分区是过滤条件，未另存三份数据</tspan>
+<tspan x="78" dy="26">来源定位用于追溯，不是正确性证明</tspan>
+</text>
+</g>
+<path d="M500,270 L570,270" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1350,270 L1280,270" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,345 L925,420" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,530 L925,565" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,675 L925,710" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,820 L925,900" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,1010 L925,1045" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,1155 L925,1250" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,1360 L925,1395" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,1505 L925,1620" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M925,1765 L925,1850" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)"/>
+<path d="M1280,470 L1350,470" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1280,760 L1350,760" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1280,950 L1350,950" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1280,1095 L1350,1095" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1280,1445 L1350,1445" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<path d="M1280,1910 L1350,1910" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)"/>
+<text x="945" y="1808" font-size="17" font-weight="400" fill="#ad352c" text-anchor="start">
+<tspan x="945" dy="0">文件就绪后核对并登记</tspan>
+</text>
+<text x="60" y="2080" font-size="19" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="60" dy="0">中央箭头表示工作流执行顺序，右侧展示关键输出；具体输入在每个作业框中标明。</tspan>
+<tspan x="60" dy="32">每个 MapReduce 作业都记录真实 application/job ID。计算中间文件不作为成功产物对外发布。</tspan>
+</text>
+</g></svg>
