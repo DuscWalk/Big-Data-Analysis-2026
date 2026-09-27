@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = { session: null, task: null, detail: null, qualityTask: null, sending: false, timer: null, epoch: 0, explained: new Set() };
+const state = { session: null, task: null, detail: null, qualityTask: null, sending: false, timer: null, messageTimer: null, epoch: 0, navigation: 0, messageLoad: 0, explained: new Set(), inflight: new Set(), drafts: new Map() };
 const statuses = { queued: "排队中", running: "执行中", succeeded: "已完成", failed: "失败", unknown: "状态待核查" };
 const stages = { "prepare-inputs": "核对与封装输入", "before-parents": "检查原始主表", "before-ratings": "检查原始评分", "before-metrics": "汇总清洗前指标", "clean-parents": "清洗用户与电影", "clean-ratings": "清洗评分与关联", "after-groups": "检查清洗结果", "after-metrics": "汇总清洗后指标", "verify-and-export": "核对并导出产物", published: "结果已发布" };
 const labels = { users: "用户", movies: "电影", ratings: "评分" };
@@ -56,10 +56,10 @@ function createDisclosure(button, view, expandedText, load) {
 }
 const route = () => "/sessions/" + encodeURIComponent(state.session);
 function artifactRoute(ref) { return route() + "/artifacts/" + encodeURIComponent(ref.artifact_id) + "/versions/" + encodeURIComponent(ref.version); }
-function resetResult() {
+function resetResult(clearTask = false) {
   state.qualityTask = null; state.detail = null;
-  if (!state.task) {
-    $("task-status").replaceChildren(node("span", "等待请求", "badge"), node("span", "任务受理后会自动刷新进展"));
+  if (!state.task || clearTask) {
+    $("task-status").replaceChildren(node("span", state.task ? "读取中" : "等待请求", "badge"), node("span", state.task ? "正在读取所选任务" : "任务受理后会自动刷新进展"));
     $("task-error").classList.add("hidden"); $("attempts-panel").classList.add("hidden");
   }
   $("quality").classList.add("hidden"); $("quality-empty").classList.remove("hidden");
@@ -73,24 +73,39 @@ function resetResult() {
   $("context-caption").textContent = "提出清洗请求或实验问题";
 }
 async function openSession(session) {
-  clearTimeout(state.timer); state.epoch++; state.session = session; state.task = null; state.explained.clear(); resetResult();
-  sending(false);
+  const navigation = ++state.navigation;
+  const value = await api("/sessions/" + encodeURIComponent(session));
+  if (navigation !== state.navigation) return;
+  if (state.session) state.drafts.set(state.session, $("prompt").value);
+  clearTimeout(state.timer); clearTimeout(state.messageTimer);
+  state.epoch++; state.session = session; state.task = value.active_task_id; state.explained.clear(); resetResult(true);
+  $("task-select").replaceChildren(new Option("正在读取任务…", ""));
+  $("messages").replaceChildren(node("p", "正在读取会话…", "empty"));
+  $("prompt").value = state.drafts.get(session) || "";
+  sending(true, "正在读取会话…"); notice("");
   localStorage.setItem("movielens-session", session);
   const url = new URL(location.href);
   url.searchParams.set("session", session);
   history.replaceState(null, "", url.pathname + url.search + url.hash);
   $("session-caption").textContent = "会话 " + session.slice(0, 12);
-  await loadMessages(); await refreshTasks();
+  try {
+    await loadMessages();
+    if (navigation !== state.navigation) return;
+    await refreshTasks(false);
+  } catch (error) {
+    if (navigation === state.navigation) sending(state.inflight.has(session));
+    throw error;
+  }
 }
 async function newSession() {
   const session = await api("/sessions", { method: "POST", body: JSON.stringify({ title: "数据治理实验" }) });
   notice(""); await openSession(session.session_id);
 }
 async function loadMessages() {
-  const session = state.session, items = [];
+  const session = state.session, generation = ++state.messageLoad, items = [];
   for (let offset = 0; ; offset += 100) {
-    const page = await api(route() + "/messages?offset=" + offset);
-    if (session !== state.session) return;
+    const page = await api("/sessions/" + encodeURIComponent(session) + "/messages?offset=" + offset);
+    if (session !== state.session || generation !== state.messageLoad) return;
     items.push(...page.items); if (!page.has_more) break;
   }
   const box = $("messages"); box.replaceChildren();
@@ -114,7 +129,7 @@ async function loadMessages() {
       const report = node("button", "查看该任务报告", "secondary report-view");
       report.addEventListener("click", async () => {
         try {
-          state.task = item.task_id; state.epoch++; resetResult();
+          state.task = item.task_id; state.epoch++; resetResult(true);
           $("task-select").value = item.task_id;
           await loadTask(false);
           $("quality").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -139,6 +154,12 @@ async function loadMessages() {
     if (item.role === "user" && item.status === "processing") container.append(node("div", "正在读取工具与证据…", "trace"));
     box.append(container);
   }
+  const active = state.inflight.has(session) || items.some(item => item.status === "processing");
+  sending(active);
+  clearTimeout(state.messageTimer);
+  if (active) state.messageTimer = setTimeout(() => {
+    if (session === state.session) loadMessages().catch(error => { if (session === state.session) notice(error.message); });
+  }, 2000);
   box.scrollTop = box.scrollHeight;
   const latest = box.lastElementChild;
   if (latest?.classList.contains("message")) {
@@ -157,6 +178,7 @@ function sending(active, text = "正在调用模型与工具…") {
 async function retryExplanation(item) {
   if (state.sending) return;
   const session = state.session;
+  state.inflight.add(session);
   const key = "movielens-retry-" + session + ":" + item.message_id;
   let payload;
   try { payload = JSON.parse(localStorage.getItem(key)); } catch {}
@@ -172,15 +194,21 @@ async function retryExplanation(item) {
     if (error.body?.request_id === payload.request_id) localStorage.removeItem(key);
     if (session === state.session) notice(error.message);
   } finally {
+    state.inflight.delete(session);
     if (session === state.session) {
       sending(false); await loadMessages(); await refreshTasks();
     }
   }
 }
+function clearSubmittedDraft(session, content) {
+  if (state.drafts.get(session) === content) state.drafts.delete(session);
+  if (state.session === session && $("prompt").value === content) $("prompt").value = "";
+}
 async function send(content) {
   if (state.sending || !content.trim()) return;
   sending(true); notice("");
   const session = state.session, selectedTask = state.task;
+  state.inflight.add(session);
   const key = "movielens-pending-" + session;
   let previous = null; try { previous = JSON.parse(localStorage.getItem(key)); } catch {}
   const payload = previous?.content === content && previous?.task_id === selectedTask ? previous : {
@@ -189,19 +217,19 @@ async function send(content) {
   localStorage.setItem(key, JSON.stringify(payload));
   try {
     await api(route() + "/messages", { method: "POST", body: JSON.stringify(payload) });
-    localStorage.removeItem(key); if (session === state.session) $("prompt").value = "";
+    localStorage.removeItem(key); clearSubmittedDraft(session, content);
   } catch (error) {
-    if (session !== state.session) return;
-    notice(error.message);
-    if (error.body?.request_id === payload.request_id) { localStorage.removeItem(key); $("prompt").value = ""; }
+    if (error.body?.request_id === payload.request_id) { localStorage.removeItem(key); clearSubmittedDraft(session, content); }
+    if (session === state.session) notice(error.message);
   } finally {
+    state.inflight.delete(session);
     if (session === state.session) {
       sending(false);
       await loadMessages(); await refreshTasks();
     }
   }
 }
-async function refreshTasks() {
+async function refreshTasks(autoExplain = true) {
   const session = state.session;
   if (!session) return;
   clearTimeout(state.timer);
@@ -212,11 +240,12 @@ async function refreshTasks() {
     if (!page.items.length) select.append(new Option("尚无任务", ""));
     for (const task of page.items) select.append(new Option(task.task_id.slice(0, 12) + " · " + (statuses[task.status] || task.status), task.task_id));
     const selected = page.items.some(t => t.task_id === state.task) ? state.task : page.items[0]?.task_id || null;
-    if (selected !== state.task) { state.task = selected; state.epoch++; resetResult(); }
+    if (selected !== state.task) { state.task = selected; state.epoch++; resetResult(true); }
     select.value = state.task || "";
-    if (state.task) await loadTask();
-    if (page.items.some(t => ["queued", "running"].includes(t.status))) state.timer = setTimeout(refreshTasks, 2000);
-  } catch (error) { notice(error.message); }
+    if (state.task) await loadTask(autoExplain);
+    if (session !== state.session) return;
+    if (page.items.some(t => ["queued", "running"].includes(t.status))) state.timer = setTimeout(() => refreshTasks(autoExplain), 2000);
+  } catch (error) { if (session === state.session) notice(error.message); }
 }
 async function loadTask(autoExplain = true) {
   const epoch = state.epoch, taskId = state.task;
@@ -383,8 +412,8 @@ $("prompt").addEventListener("keydown", event => { if ((event.ctrlKey || event.m
 $("suggest-run").addEventListener("click", () => { $("prompt").value = "请使用默认规则清洗 MovieLens 1M，评估前后五维质量，并说明处理的问题与局限。"; $("prompt").focus(); });
 $("suggest-explain").addEventListener("click", () => { $("prompt").value = "请读取当前任务的实际指标，解释分数变化和数据处置，并说明哪些问题仍无法核实。"; $("prompt").focus(); });
 $("new-session").addEventListener("click", () => newSession().catch(error => notice(error.message)));
-$("refresh").addEventListener("click", () => { state.qualityTask = null; refreshTasks(); loadMessages().catch(error => notice(error.message)); });
-$("task-select").addEventListener("change", () => { state.task = $("task-select").value || null; state.epoch++; resetResult(); if (state.task) loadTask().catch(error => notice(error.message)); });
+$("refresh").addEventListener("click", () => { state.qualityTask = null; refreshTasks(false); loadMessages().catch(error => notice(error.message)); });
+$("task-select").addEventListener("change", () => { state.task = $("task-select").value || null; state.epoch++; resetResult(true); if (state.task) loadTask(false).catch(error => notice(error.message)); });
 const sampleDisclosure = createDisclosure($("load-sample"), $("sample"), "收起样例", async () => {
   const artifact = state.detail.artifacts.find(item => item.kind === "cleaned_dataset");
   const value = await api(artifactRoute(artifact.ref) + "?mode=sample&limit=3&file_name=" + $("sample-table").value + ".jsonl");
@@ -397,13 +426,17 @@ const exampleDisclosure = createDisclosure($("load-example"), $("examples"), "�
 });
 $("sample-table").addEventListener("change", sampleDisclosure.reset);
 $("issue-rule").addEventListener("change", exampleDisclosure.reset);
+function updateModelState(status) {
+  const provider = { auto: "自动主备", primary: "主服务", backup: "备用服务" }[status.model_provider];
+  $("model-state").textContent = status.model_configured ? (status.model_name || status.backup_model_name || "已配置模型") + " · " + provider : "模型尚未配置";
+}
 (async () => {
   const status = await api("/status");
-  $("model-state").textContent = status.model_configured ? "已配置 " + status.model_name + (status.model_provider === "backup" ? "（备用）" : "") : "模型尚未配置";
+  updateModelState(status);
   const requested = new URLSearchParams(location.search).get("session");
   const previous = requested || localStorage.getItem("movielens-session");
   if (previous) {
-    try { await api("/sessions/" + encodeURIComponent(previous)); await openSession(previous); return; }
+    try { await openSession(previous); return; }
     catch (error) { if (error.status !== 404) throw error; }
   }
   await newSession();

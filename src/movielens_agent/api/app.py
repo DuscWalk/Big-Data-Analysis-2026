@@ -2,22 +2,26 @@
 from contextlib import asynccontextmanager
 import fcntl
 from pathlib import Path
+import time
 from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from ..agent.service import AgentService
 from ..agent.settings import Settings
+from ..agent.preferences import ModelPreferences, ModelEdit, ModelCheck, SettingsConflict
+from ..agent.probe import list_models, tool_probe
 from ..contracts import ArtifactRef, Contract, ToolContext
 from ..governance.config import GovernanceConfig
 from ..storage.catalog import DatasetCatalog
 from ..storage.conversations import ConversationBusy, ConversationConflict, ConversationStore
-from ..storage.tasks import TaskStore, file_digest
+from ..storage.tasks import TaskStore, file_digest, now
 
 
 class SessionInput(Contract):
@@ -49,6 +53,8 @@ def public_task(task):
 def create_app(settings=None, model=None):
     settings = settings or Settings.load()
     settings.catalog = settings.catalog.resolve()
+    preferences = ModelPreferences(settings)
+    settings = preferences.snapshot()
     conversations = ConversationStore(settings.catalog)
     conversations.initialize()
     tasks, catalog = TaskStore(settings.catalog), DatasetCatalog(settings.catalog)
@@ -68,6 +74,7 @@ def create_app(settings=None, model=None):
 
     app = FastAPI(title="MovieLens 数据治理", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.agent, app.state.conversations, app.state.tasks = agent, conversations, tasks
+    app.state.model_preferences = preferences
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
 
     @app.middleware("http")
@@ -93,14 +100,76 @@ def create_app(settings=None, model=None):
     async def conflict(request, error):
         return JSONResponse({"detail": str(error)}, status_code=409)
 
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request, error):
+        # Validation must never echo API keys or other submitted field values.
+        return JSONResponse({"detail": "请求参数无效，请检查字段格式和数值范围。"}, status_code=422)
+
+    @app.exception_handler(SettingsConflict)
+    async def settings_conflict(request, error):
+        return JSONResponse({"detail": str(error)}, status_code=409)
+
+    @app.get("/api/v1/model-settings")
+    def model_settings():
+        return preferences.public()
+
+    @app.put("/api/v1/model-settings")
+    def save_model_settings(body: ModelEdit):
+        nonlocal agent, settings
+        try:
+            with preferences.lock:
+                candidate = preferences.prepare(body)
+                replacement = AgentService(candidate, conversations, tasks, catalog, configuration, model=model)
+                settings = preferences.save(body)
+                agent = replacement
+                app.state.agent = replacement
+                return preferences.public()
+        except SettingsConflict:
+            raise
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+        except OSError:
+            raise HTTPException(503, "模型设置未保存，请检查本地目录权限与磁盘空间。") from None
+
+    def check_settings(body):
+        try:
+            return preferences.prepare(body.configuration).model_copy(update={"model_provider": body.provider})
+        except SettingsConflict:
+            raise
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+
+    @app.post("/api/v1/model-settings/models")
+    def model_list(body: ModelCheck):
+        candidate = check_settings(body)
+        return candidate.redact(list_models(candidate))
+
+    @app.post("/api/v1/model-settings/probe")
+    def model_probe(body: ModelCheck):
+        candidate = check_settings(body)
+        started = time.monotonic()
+        try:
+            result = tool_probe(candidate)
+        except Exception:
+            result = {"status": "failed", "error": "PROBE_FAILED", "message": "模型检测未完成，请检查配置后重试。"}
+        return candidate.redact(result | {"checked_at": now(), "duration_ms": int((time.monotonic() - started) * 1000),
+                                          "checked_provider": body.provider})
+
     @app.get("/api/v1/status")
     def status():
-        return {"model_configured": settings.configured,
-                "model_name": settings.model_name if settings.model_provider != "backup" else settings.backup_name,
-                "model_provider": settings.model_provider,
-                "backup_model_name": settings.backup_name if settings.provider_configured("backup") else None,
-                "datasets": agent.datasets(), "configuration": configuration.model_dump(mode="json"),
+        current = app.state.agent
+        active = current.settings
+        return {"model_configured": active.configured,
+                "model_name": active.model_name if active.model_provider != "backup" else active.backup_name,
+                "model_provider": active.model_provider,
+                "backup_model_name": active.backup_name if active.provider_configured("backup") else None,
+                "datasets": current.datasets(), "configuration": configuration.model_dump(mode="json"),
                 "configuration_refs": configuration.refs()}
+
+    @app.get("/api/v1/sessions")
+    def list_sessions(q: str = Query("", max_length=100), offset: int = Query(0, ge=0, le=100000),
+                      limit: int = Query(20, ge=1, le=100)):
+        return settings.redact(conversations.list_sessions(q.strip(), offset, limit))
 
     @app.post("/api/v1/sessions", status_code=201)
     def create_session(body: SessionInput):

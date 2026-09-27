@@ -8,6 +8,8 @@
 
 ## 实验文档
 
+首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；操作见[模型与页面指南](docs/development/app-and-model.md)。
+
 完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
 
 - [项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。

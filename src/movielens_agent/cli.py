@@ -106,7 +106,8 @@ def main(argv=None) -> int:
     serve.add_argument("--config", type=Path, default=Path("configs/governance/default.json"))
     probe = commands.add_parser("model-probe", help="Check model discovery or native tool calling, without printing secrets")
     probe.add_argument("--env-file", type=Path, default=Path(".env"))
-    probe.add_argument("--provider", choices=("auto", "primary", "backup"), default="auto")
+    probe.add_argument("--provider", choices=("auto", "primary", "backup"))
+    probe.add_argument("--catalog", type=Path, default=Path("var/catalog.sqlite3"))
     probe.add_argument("--list-models", action="store_true")
     session = commands.add_parser("session", help="Create a local conversation, optionally for an existing CLI session ID")
     session.add_argument("--session-id")
@@ -125,7 +126,10 @@ def main(argv=None) -> int:
                 uvicorn.run(create_app(settings), host=args.host, port=args.port, access_log=False)
                 return 0
             from .agent.probe import list_models, tool_probe
-            settings = Settings.load(args.env_file, model_provider=args.provider)
+            from .agent.preferences import ModelPreferences
+            settings = ModelPreferences(Settings.load(args.env_file, catalog=args.catalog)).snapshot()
+            if args.provider:
+                settings = settings.model_copy(update={"model_provider": args.provider})
             result = list_models(settings) if args.list_models else tool_probe(settings)
             print(json.dumps(settings.redact(result), ensure_ascii=False, indent=2))
             if args.list_models:

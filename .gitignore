@@ -11,6 +11,8 @@ __MACOSX/
 .env
 .env.*
 !.env.example
+*.models.json
+.model-settings-*
 
 # Python environments, caches and packaging
 .venv/

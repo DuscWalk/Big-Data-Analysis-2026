@@ -49,7 +49,9 @@ def tool_probe(settings):
         valid = valid and json.loads(calls[0]["function"]["arguments"]) == {"text": "ready"}
         return {"status": "completed" if valid else "failed", "native_tool_call": valid,
                 "provider": response["provider"], "model": response["model"],
-                "attempts": response["attempts"]}
+                "attempts": response["attempts"],
+                **({} if valid else {"error": "INVALID_PROBE_CALL",
+                    "message": "服务已响应，但没有返回检测要求的工具调用。"})}
     except (ValueError, KeyError, TypeError):
         return {"status": "failed", "error": "INVALID_PROBE_CALL"}
     except ModelError as error:

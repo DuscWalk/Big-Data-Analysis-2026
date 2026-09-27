@@ -58,6 +58,28 @@ class ConversationStore(TaskStore):
             raise KeyError("Conversation does not exist.")
         return dict(row)
 
+    def list_sessions(self, query="", offset=0, limit=20):
+        with self.connect() as conn:
+            rows = conn.execute("""
+                SELECT s.*, MAX(s.created_at, COALESCE((SELECT MAX(updated_at) FROM chat_requests r
+                    WHERE r.session_id=s.session_id), s.created_at), COALESCE((SELECT MAX(updated_at)
+                    FROM tasks t WHERE t.session_id=s.session_id), s.created_at)) AS updated_at,
+                    (SELECT COUNT(*) FROM chat_messages m WHERE m.session_id=s.session_id) AS message_count,
+                    (SELECT COUNT(*) FROM tasks t WHERE t.session_id=s.session_id) AS task_count,
+                    (SELECT substr(content,1,140) FROM chat_messages m
+                     WHERE m.session_id=s.session_id AND m.role='user'
+                     ORDER BY m.created_at DESC,m.message_id DESC LIMIT 1) AS preview,
+                    EXISTS(SELECT 1 FROM chat_requests r WHERE r.session_id=s.session_id
+                           AND r.status='processing') AS processing
+                FROM chat_sessions s
+                WHERE ?='' OR instr(lower(s.title),lower(?))>0 OR instr(s.session_id,?)>0
+                    OR EXISTS(SELECT 1 FROM chat_messages m WHERE m.session_id=s.session_id
+                              AND m.role='user' AND instr(lower(m.content),lower(?))>0)
+                ORDER BY updated_at DESC,s.session_id DESC LIMIT ? OFFSET ?
+                """, (query, query, query, query, limit + 1, offset)).fetchall()
+        return {"items": [dict(row) for row in rows[:limit]], "has_more": len(rows) > limit,
+                "offset": offset}
+
     def begin(self, session_id, request_id, content, task_id=None, require_quality=False, retry_of=None):
         payload = canonical({"content": content, "task_id": task_id, "require_quality": require_quality,
                              **({"retry_of": retry_of} if retry_of else {})})

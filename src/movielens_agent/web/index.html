@@ -7,6 +7,7 @@
   <title>MovieLens · 数据治理工作台</title>
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
+  <script src="/static/manage.js" defer></script>
 </head>
 <body class="notebook">
   <a class="skip-link" href="#results">跳到实验结果</a>
@@ -15,7 +16,11 @@
       <svg class="brand-icon" viewBox="0 0 36 36" fill="none" aria-hidden="true"><rect x="3" y="3" width="30" height="30" rx="8"/><path d="M10 25V11l8 9 8-9v14M10 7v2m8-2v2m8-2v2M10 27v2m8-2v2m8-2v2"/></svg>
       <span>MovieLens<small>数据实验室</small></span>
     </a>
-    <a class="header-assistant-link" href="#assistant">前往实验助手 <span aria-hidden="true">↗</span></a>
+    <nav class="header-actions" aria-label="工作台管理">
+      <button id="open-history" class="secondary" type="button" aria-haspopup="dialog">历史会话</button>
+      <button id="open-model-settings" class="secondary" type="button" aria-haspopup="dialog">模型设置</button>
+      <a class="header-assistant-link" href="#assistant">前往实验助手 <span aria-hidden="true">↗</span></a>
+    </nav>
   </header>
   <main class="workbench">
     <div class="page-heading">
@@ -76,11 +81,59 @@
         <div id="request-progress" class="request-progress hidden" role="status"><span class="pending-dot" aria-hidden="true"></span><span id="request-progress-text">正在读取模型与工具…</span></div>
         <div class="suggestions"><button id="suggest-run" type="button"><span aria-hidden="true">＋</span>清洗并评估</button><button id="suggest-explain" type="button"><span aria-hidden="true">↳</span>解释当前结果</button></div>
         <form id="chat-form"><label class="sr-only" for="prompt">输入实验需求</label><textarea id="prompt" rows="3" maxlength="6000" placeholder="提出一个问题，或发起一次清洗…"></textarea><div class="compose-footer"><span id="send-state">Ctrl / ⌘ + Enter 发送</span><button id="send" type="submit">发送<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 6-6 6 6M10 4v12"/></svg></button></div></form>
-        <div class="model-caption"><span id="model-state">读取模型配置…</span><span>配置状态</span></div>
+        <div class="model-caption"><span id="model-state">读取模型配置…</span><button id="open-model-settings-inline" class="text-button" type="button" aria-haspopup="dialog">配置与检测</button></div>
       </aside>
     </div>
     <footer><span>MovieLens 数据治理实验</span><span>原始数据只读 · 结果与解释分别记录</span></footer>
   </main>
+  <dialog id="model-dialog" class="management-dialog" aria-labelledby="model-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">工作台设置</p><h2 id="model-dialog-title">模型与连接</h2></div><button type="button" class="secondary dialog-close" data-close="model-dialog" aria-label="关闭模型设置">关闭</button></div>
+    <p class="dialog-description">配置对话使用的服务，也可以先检测再保存。已保存的密钥不会显示在页面中。</p>
+    <p id="model-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
+    <form id="model-form" autocomplete="off">
+      <fieldset id="model-fields" disabled>
+        <div class="settings-grid">
+          <label class="field">使用服务<select id="model-provider"><option value="auto">自动：优先主服务，失败尝试备用</option><option value="primary">仅主服务</option><option value="backup">仅备用服务</option></select></label>
+          <label class="field">请求超时（秒）<input id="model-timeout" type="number" min="1" max="180" step="any" required></label>
+          <label class="field">最大输出 tokens<input id="model-max-tokens" type="number" min="64" max="8192" step="1" required></label>
+        </div>
+        <div class="providers-grid">
+          <section class="provider-card" aria-labelledby="primary-title">
+            <div class="provider-heading"><h3 id="primary-title">主服务</h3><span id="primary-state" class="subtle-label"></span></div>
+            <label class="field">API 基础地址<input id="primary-url" type="url" maxlength="2048" placeholder="https://example.com/v1" spellcheck="false" autocomplete="off"></label>
+            <label class="field">模型名称<input id="primary-model" type="text" maxlength="200" placeholder="填写实际模型 ID" spellcheck="false" autocomplete="off"></label>
+            <label class="field">API Key<input id="primary-key" type="password" maxlength="8192" autocomplete="new-password" placeholder="尚未配置" aria-describedby="primary-key-help"></label>
+            <p id="primary-key-help" class="field-help">留空沿用已保存的密钥；更换地址需重新填写。</p>
+            <label class="check-field"><input id="primary-clear-key" type="checkbox">清除已保存密钥</label>
+            <div class="provider-actions"><button id="primary-models" class="secondary" type="button">获取模型列表</button><button id="primary-probe" class="secondary" type="button">检测连通性</button></div>
+            <div id="primary-model-options" class="hidden"><label class="field">选择服务返回的模型<select id="primary-model-list"><option value="">请选择</option></select></label></div>
+            <p id="primary-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
+          </section>
+          <section class="provider-card" aria-labelledby="backup-title">
+            <div class="provider-heading"><h3 id="backup-title">备用服务</h3><span id="backup-state" class="subtle-label"></span></div>
+            <label class="field">API 基础地址<input id="backup-url" type="url" maxlength="2048" placeholder="https://example.com/v1" spellcheck="false" autocomplete="off"></label>
+            <label class="field">模型名称<input id="backup-model" type="text" maxlength="200" placeholder="填写实际模型 ID" spellcheck="false" autocomplete="off"></label>
+            <label class="field">API Key<input id="backup-key" type="password" maxlength="8192" autocomplete="new-password" placeholder="尚未配置" aria-describedby="backup-key-help"></label>
+            <p id="backup-key-help" class="field-help">留空沿用已保存的密钥；更换地址需重新填写。</p>
+            <label class="check-field"><input id="backup-clear-key" type="checkbox">清除已保存密钥</label>
+            <div class="provider-actions"><button id="backup-models" class="secondary" type="button">获取模型列表</button><button id="backup-probe" class="secondary" type="button">检测连通性</button></div>
+            <div id="backup-model-options" class="hidden"><label class="field">选择服务返回的模型<select id="backup-model-list"><option value="">请选择</option></select></label></div>
+            <p id="backup-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+        <p class="field-help">检测会向所选服务发送一条简短工具调用，用于确认连接、模型名称与调用能力；不会运行清洗任务。</p>
+        <div class="dialog-footer"><span id="model-save-caption" class="field-help">保存后对新请求生效，进行中的回答沿用原配置。</span><button id="save-model-settings" type="submit">保存设置</button></div>
+      </fieldset>
+    </form>
+  </dialog>
+  <dialog id="history-dialog" class="management-dialog history-dialog" aria-labelledby="history-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">实验记录</p><h2 id="history-dialog-title">历史会话</h2></div><button type="button" class="secondary dialog-close" data-close="history-dialog" aria-label="关闭历史会话">关闭</button></div>
+    <p class="dialog-description">回到之前的提问、任务与结果，按最近活动排序。</p>
+    <form id="history-search" class="history-search"><label class="sr-only" for="history-query">搜索历史会话</label><input id="history-query" type="search" maxlength="100" placeholder="搜索标题、提问或会话编号"><button type="submit" class="secondary">查找</button></form>
+    <p id="history-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
+    <div id="history-list" class="history-list" aria-label="历史会话列表"></div>
+    <div class="history-footer"><button id="history-more" class="secondary hidden" type="button">加载更多</button></div>
+  </dialog>
   <nav class="mobile-nav" aria-label="手机快捷导航"><a href="#overview">查看结果</a><a href="#assistant">使用助手</a></nav>
 </body>
 </html>
