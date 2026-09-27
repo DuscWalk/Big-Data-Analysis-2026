@@ -12,6 +12,8 @@
 
 完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。 自动检查与云端部署见[华为云与 CI/CD](docs/deployment/README.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
 
+作业二、三负责人可从[迭代一作业素材](docs/homework/README.md)查阅实际问题、技术现状与证据；问题、决策和技术比较由两位同学衔接完成。
+
 - [项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。
 - [迭代一：Hadoop 数据清洗与 Agent 基础](docs/course/迭代一_Hadoop数据清洗与Agent基础.md)：数据检查方向、五维质量评分、Agent 工具与前端要求。
 - [迭代一：需求拆解与验收清单](docs/iterations/01-governance/需求拆解与验收清单.md)：交付范围、需求追踪、验收场景、开发顺序与待确定事项。
