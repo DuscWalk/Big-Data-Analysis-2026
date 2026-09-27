@@ -17,6 +17,43 @@ async function api(path, options = {}) {
   if (!response.ok) { const error = new Error(body.content || (typeof body.detail === "string" ? body.detail : body.detail?.message) || "请求未完成"); error.status = response.status; error.body = body; throw error; }
   return body;
 }
+function createDisclosure(button, view, expandedText, load) {
+  const collapsedText = button.textContent;
+  let loaded = false, loading = false, generation = 0;
+  button.type = "button";
+  button.setAttribute("aria-controls", view.id);
+  const setExpanded = expanded => {
+    button.setAttribute("aria-expanded", String(expanded));
+    button.textContent = expanded ? expandedText : collapsedText;
+    view.classList.toggle("hidden", !expanded);
+  };
+  const reset = () => {
+    // Ignore pending reads from the previous task or sample selection.
+    generation++; loaded = false; loading = false;
+    view.textContent = ""; view.setAttribute("aria-busy", "false");
+    setExpanded(false);
+  };
+  button.addEventListener("click", async () => {
+    const expanded = button.getAttribute("aria-expanded") !== "true";
+    setExpanded(expanded);
+    if (!expanded || loaded || loading) return;
+    const current = generation;
+    loading = true;
+    view.textContent = "正在读取…"; view.setAttribute("aria-busy", "true");
+    try {
+      const text = await load();
+      if (current !== generation || !button.isConnected) return;
+      view.textContent = text; loaded = true;
+    } catch (error) {
+      if (current !== generation || !button.isConnected) return;
+      setExpanded(false); notice(error.message);
+    } finally {
+      if (current === generation) { loading = false; view.setAttribute("aria-busy", "false"); }
+    }
+  });
+  reset();
+  return { reset };
+}
 const route = () => "/sessions/" + encodeURIComponent(state.session);
 function artifactRoute(ref) { return route() + "/artifacts/" + encodeURIComponent(ref.artifact_id) + "/versions/" + encodeURIComponent(ref.version); }
 function resetResult() {
@@ -26,7 +63,7 @@ function resetResult() {
     $("task-error").classList.add("hidden"); $("attempts-panel").classList.add("hidden");
   }
   $("quality").classList.add("hidden"); $("quality-empty").classList.remove("hidden");
-  $("sample").classList.add("hidden"); $("examples").classList.add("hidden");
+  sampleDisclosure.reset(); exampleDisclosure.reset();
   sectionLinks[1].href = "#quality-empty"; sectionLinks[2].href = "#quality-empty";
   for (const id of ["summary-retained", "summary-quarantined", "summary-files"]) $(id).textContent = "—";
   $("summary-input").textContent = "完成任务后显示";
@@ -89,16 +126,15 @@ async function loadMessages() {
     const usedModels = [...new Set((meta.model_calls || []).flatMap(c => c.attempts || []).filter(a => a.status === "completed").map(a => a.model + (a.provider === "backup" ? "（备用）" : "")))];
     if (usedModels.length) container.append(node("div", (meta.response_origin === "application_receipt" ? "任务回执 · 请求模型：" : meta.response_origin === "evidence_rendered" ? "报告事实 · 要点选择模型：" : "回答模型：") + usedModels.join("、"), "trace"));
     if (meta.tool_calls?.length || meta.model_calls?.length) {
-      const trace = node("button", "查看调用依据（工具 " + (meta.tool_calls?.length || 0) + " 次）", "secondary trace");
-      trace.addEventListener("click", async () => {
-        try {
-          const result = await api(route() + "/messages/" + encodeURIComponent(item.message_id) + "/calls");
-          let view = container.querySelector("pre");
-          if (!view) { view = node("pre"); container.append(view); }
-          view.textContent = JSON.stringify({ validation: meta.validation, tools: result.items.map(call => ({ ...call, requested_by: call.request_key?.startsWith("evidence:") ? "application" : "model" })), models: result.models }, null, 2); view.classList.toggle("hidden", false);
-        } catch (error) { notice(error.message); }
+      const suffix = "调用依据（工具 " + (meta.tool_calls?.length || 0) + " 次）";
+      const trace = node("button", "查看" + suffix, "secondary trace");
+      const view = node("pre", undefined, "hidden");
+      view.id = "call-evidence-" + item.message_id;
+      createDisclosure(trace, view, "收起" + suffix, async () => {
+        const result = await api("/sessions/" + encodeURIComponent(session) + "/messages/" + encodeURIComponent(item.message_id) + "/calls");
+        return JSON.stringify({ validation: meta.validation, tools: result.items.map(call => ({ ...call, requested_by: call.request_key?.startsWith("evidence:") ? "application" : "model" })), models: result.models }, null, 2);
       });
-      container.append(trace);
+      container.append(trace, view);
     }
     if (item.role === "user" && item.status === "processing") container.append(node("div", "正在读取工具与证据…", "trace"));
     box.append(container);
@@ -218,6 +254,7 @@ async function explain(taskId, attempt = 0) {
   if (session === state.session) await loadMessages();
 }
 function renderQuality(value, task) {
+  sampleDisclosure.reset(); exampleDisclosure.reset();
   $("quality-empty").classList.add("hidden"); $("quality").classList.remove("hidden"); $("metrics").replaceChildren();
   $("dispositions").replaceChildren();
   for (const table of ["users", "movies", "ratings"]) {
@@ -348,22 +385,18 @@ $("suggest-explain").addEventListener("click", () => { $("prompt").value = "请�
 $("new-session").addEventListener("click", () => newSession().catch(error => notice(error.message)));
 $("refresh").addEventListener("click", () => { state.qualityTask = null; refreshTasks(); loadMessages().catch(error => notice(error.message)); });
 $("task-select").addEventListener("change", () => { state.task = $("task-select").value || null; state.epoch++; resetResult(); if (state.task) loadTask().catch(error => notice(error.message)); });
-$("load-sample").addEventListener("click", async () => {
-  try {
-    const epoch = state.epoch, artifact = state.detail.artifacts.find(item => item.kind === "cleaned_dataset");
-    const value = await api(artifactRoute(artifact.ref) + "?mode=sample&limit=3&file_name=" + $("sample-table").value + ".jsonl");
-    if (epoch !== state.epoch) return;
-    $("sample").textContent = JSON.stringify(value.data.value, null, 2); $("sample").classList.remove("hidden");
-  } catch (error) { notice(error.message); }
+const sampleDisclosure = createDisclosure($("load-sample"), $("sample"), "收起样例", async () => {
+  const artifact = state.detail.artifacts.find(item => item.kind === "cleaned_dataset");
+  const value = await api(artifactRoute(artifact.ref) + "?mode=sample&limit=3&file_name=" + $("sample-table").value + ".jsonl");
+  return JSON.stringify(value.data.value, null, 2);
 });
-$("load-example").addEventListener("click", async () => {
-  try {
-    const epoch = state.epoch, artifact = state.detail.artifacts.find(item => item.kind === "quality_report");
-    const value = await api(artifactRoute(artifact.ref) + "?mode=examples&limit=3&reason=" + encodeURIComponent($("issue-rule").value));
-    if (epoch !== state.epoch) return;
-    $("examples").textContent = JSON.stringify(value.data.value, null, 2); $("examples").classList.remove("hidden");
-  } catch (error) { notice(error.message); }
+const exampleDisclosure = createDisclosure($("load-example"), $("examples"), "收起依据", async () => {
+  const artifact = state.detail.artifacts.find(item => item.kind === "quality_report");
+  const value = await api(artifactRoute(artifact.ref) + "?mode=examples&limit=3&reason=" + encodeURIComponent($("issue-rule").value));
+  return JSON.stringify(value.data.value, null, 2);
 });
+$("sample-table").addEventListener("change", sampleDisclosure.reset);
+$("issue-rule").addEventListener("change", exampleDisclosure.reset);
 (async () => {
   const status = await api("/status");
   $("model-state").textContent = status.model_configured ? "已配置 " + status.model_name + (status.model_provider === "backup" ? "（备用）" : "") : "模型尚未配置";
