@@ -4,7 +4,9 @@
 
 把普通检查迁移到 GitHub Actions，华为云按通过检查的提交更新，保持数据和模型配置跨版本不变。WSL 继续用于开发与轻量验证，不在部署准备时重复运行 Hadoop。
 
-2026-09-27 已通过本机 SSH 别名 `HuaweiCloud` 只读核查：Ubuntu 24.04、x86_64、2 核、约 1.7 GiB 内存，无 Swap，当时可用约 750 MiB。已有 Ceph、HDFS DataNode、Spark worker、Nginx 和另一个 Web 应用。现有 Hadoop 为其他实验的 3.3.6 / Java 11，未配置 YARN，不能直接作为本项目已验证的 Hadoop 3.5.0 / Java 17 执行环境。
+2026-09-27 已更换为 Ubuntu 24.04、x86_64、4 vCPU、16 GiB、100 GiB SSD 的新服务器，主机名 `ecs-7f2c-20a6`。本机 SSH 别名仍为 `HuaweiCloud`，使用 `duscwalk` 的公钥登录；旧主机指纹已备份并替换，新机密码登录已关闭。服务器管理使用 root，应用和 Hadoop 使用独立的普通账户 `movielens`。
+
+最初核查的旧实例为 2 核 / 2 GB，已有其他实验服务且无本项目 YARN 环境；新服务器容量已满足下面的建议，不需要清理旧实例的服务来腾出资源。
 
 当前开发分支为 `feat/iteration-01-foundation`，`main` 尚未合入本轮实现。部署目标必须显式指定分支与提交；本轮不自动合并主分支或创建发布标签。
 
@@ -19,7 +21,7 @@
 
 规格优先选择 **x86_64**。鲲鹏 ARM 的 4 核 / 16 GiB 容量也足够，但现有 Hadoop 下载校验文件及 Conda 平台锁是 x86_64，ARM 尚未适配和验证；不能直接套用下面的安装流程。Python 版本检查也不等于 ARM 架构检查。
 
-这些是按当前资源配置和课程规模给出的容量建议，不是云端压力测试结果。后续算法与并发增加时需要再量测。用户已说明旧服务不再需要，可以清理；实际清理与完整系统部署放在扩容安排确定后，避免先删除服务却仍无法运行新系统。
+这些是按当前资源配置和课程规模给出的容量建议，不是云端压力测试结果。后续算法与并发增加时需要再量测。
 
 ## CI
 
@@ -34,7 +36,7 @@ CI 明确清空 `MOVIELENS_HADOOP_RUNTIME`，不读取 `.env`，不运行真实 
 
 ## CD：服务器拉取通过检查的版本
 
-[交付器](../../scripts/deploy/pull_release.py)与 [systemd 模板](../../deploy/systemd/)已加入仓库，尚未在 HuaweiCloud 启用。使用独立普通用户 `movielens`，其主目录建议为 `/srv/movielens`：
+[交付器](../../scripts/deploy/pull_release.py)与 [systemd 模板](../../deploy/systemd/)使用独立普通用户 `movielens`，其主目录为 `/srv/movielens`：
 
 ```text
 /srv/movielens/
@@ -55,15 +57,15 @@ CI 明确清空 `MOVIELENS_HADOOP_RUNTIME`，不读取 `.env`，不运行真实 
 
 定时器每三分钟检查一次。仅接受目标仓库、指定分支、当前 SHA 的 `push` 事件，且 `.github/workflows/ci.yml` 已完成并成功；PR、其他工作流、旧提交或失败/取消的检查不能部署。公开 GitHub API 失败或限流时保持当前版本，下轮再查。当前仓库公开，本机没有 GitHub API 管理令牌，因此采用服务器拉取，无需把现有 SSH 私钥交给 GitHub。
 
-交付器先准备独立代码和虚拟环境，校验实际获取的 SHA，再安装锁定依赖。任务排队、运行或模型请求处理中时延后更新。停止 API 时允许已接受的 HTTP 请求正常结束，并在停止后再次查询任务状态；发现新工作则恢复旧 API。没有待执行工作时才停止 worker、备份 SQLite、切换链接和启动新服务。Hadoop 服务不随每次应用发布重启。
+交付器从 GitHub 官方 codeload 获取对应 SHA 的源码归档，校验顶层目录中的完整提交标识、解包路径、文件类型和大小，再准备独立虚拟环境并安装锁定依赖。任务排队、运行或模型请求处理中时延后更新。停止 API 时允许已接受的 HTTP 请求正常结束，并在停止后再次查询任务状态；发现新工作则恢复旧 API。没有待执行工作时才停止 worker、备份 SQLite、切换链接和启动新服务。Hadoop 服务不随每次应用发布重启。
 
 新 API 健康检查或服务状态检查失败时回到旧代码。数据库、产物与模型配置始终位于 `shared/`，回退不自动恢复旧数据库以免丢弃新写入；以后包含不兼容数据库迁移的版本需单独安排迁移与回退，不能只依赖代码切换。部署期间不要通过管理员 CLI 绕过 API 提交新任务。
 
 API、worker、Hadoop 和交付器分别设置内存与 CPU 上限。完整部署要求主机至少约 7 GiB 可见内存、交付时至少 512 MiB 可用，并已准备独立 Hadoop runtime、启动相应服务；现有 2 GB 机器会被部署预检拒绝。
 
-## 扩容后的落地顺序
+## 首次安装顺序
 
-以下步骤尚未在服务器执行。先确定扩容，再清理用户已确认不再需要的旧实验服务及其项目存储，随后安装本项目；不改写已有 Hadoop 集群的配置。系统、SSH 与华为云基础代理保留。
+以下步骤适用于符合资源要求的新服务器。Hadoop 使用本项目独立配置，系统、SSH 与华为云基础代理保留。
 
 1. 管理员安装 Git、Python 3.12 的 venv 支持、OpenJDK 17、curl 和 tar；建立普通用户 `movielens`，主目录 `/srv/movielens`，启用其 systemd 用户管理器与 linger。
 2. 将经过 CI 的代码放到该用户的临时 bootstrap 目录；创建 `bin`、`shared` 和 `~/.config/systemd/user`。复制交付器、`scripts/hadoop/local_cluster.py` 和五份 unit 模板到相应位置，所有开发及运行文件归该用户。交付器固定在 `bin`，应用版本切换不会自动替换它。

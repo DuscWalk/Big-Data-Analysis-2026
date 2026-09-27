@@ -1,9 +1,11 @@
 """Deployment policy and rollback checks without SSH, services or cloud load."""
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sqlite3
 import tempfile
+import tarfile
 import unittest
 from unittest.mock import call, patch
 
@@ -40,6 +42,31 @@ class DeploymentTests(unittest.TestCase):
                              ("head_repository", {"full_name": "untrusted/fork"})]:
             with self.subTest(field=field, value=value):
                 self.assertIsNone(accepted([run | {field: value}]))
+
+    def test_source_archive_must_match_commit_and_stay_inside_release(self):
+        for suffix, revision, kind in [("src/example.py", "b" * 40, tarfile.REGTYPE),
+                                       ("../../outside", "b" * 40, tarfile.REGTYPE),
+                                       ("src/example.py", "a" * 40, tarfile.REGTYPE),
+                                       ("src/link", "b" * 40, tarfile.SYMTYPE)]:
+            with self.subTest(suffix=suffix, revision=revision, kind=kind):
+                archive = self.base / "source.tar.gz"
+                with tarfile.open(archive, "w:gz") as stream:
+                    entry = tarfile.TarInfo("repository-" + revision + "/" + suffix)
+                    entry.type = kind
+                    if kind == tarfile.REGTYPE:
+                        entry.size = 7
+                        stream.addfile(entry, io.BytesIO(b"fixture"))
+                    else:
+                        entry.linkname = "/etc/passwd"
+                        stream.addfile(entry)
+                code = self.base / "extracted"
+                if suffix == "src/example.py" and revision == "b" * 40:
+                    deploy.unpack_source(archive, code, "owner/repository", "b" * 40)
+                    self.assertEqual((code / suffix).read_bytes(), b"fixture")
+                else:
+                    with self.assertRaises(ValueError):
+                        deploy.unpack_source(archive, code, "owner/repository", "b" * 40)
+                self.assertFalse((self.base / "outside").exists())
 
     def test_busy_tasks_or_model_requests_defer_without_changing_data(self):
         self.assertFalse(deploy.busy(self.base / "absent.sqlite3"))

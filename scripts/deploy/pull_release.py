@@ -6,12 +6,13 @@ from datetime import datetime, timezone
 import fcntl
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import sqlite3
 import subprocess
 import sys
+import tarfile
 import time
 from urllib.parse import quote, urlencode
 from urllib.request import Request, urlopen
@@ -78,6 +79,27 @@ def health(url, timeout=30):
     raise RuntimeError("New release did not pass the read-only API health check.")
 
 
+def unpack_source(archive, code, repository, sha):
+    expected = repository.split("/")[1] + "-" + sha
+    with tarfile.open(archive, "r:gz") as source:
+        entries = source.getmembers()
+        if len(entries) > 20000 or sum(item.size for item in entries) > 256 * 1024 * 1024:
+            raise ValueError("Source archive exceeds the release size limit.")
+        for item in entries:
+            parts = PurePosixPath(item.name).parts
+            if not parts or parts[0] != expected or ".." in parts or not (item.isdir() or item.isfile()):
+                raise ValueError("Source archive has an unexpected revision, path or file type.")
+        for item in entries:
+            target = code.joinpath(*PurePosixPath(item.name).parts[1:])
+            if item.isdir():
+                target.mkdir(parents=True, exist_ok=True)
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with source.extractfile(item) as incoming, target.open("xb") as output:
+                    shutil.copyfileobj(incoming, output)
+                target.chmod(0o700 if item.mode & 0o111 else 0o600)
+
+
 def prepare(base, sha, repository, python):
     release = base / "releases" / sha
     marker = release / ".prepared"
@@ -88,13 +110,17 @@ def prepare(base, sha, repository, python):
         shutil.rmtree(release)
     release.mkdir(parents=True)
     code = release / "code"
-    run("git", "init", "--quiet", code)
-    run("git", "-C", code, "fetch", "--quiet", "--depth=1",
-        "https://github.com/" + repository + ".git", sha)
-    run("git", "-C", code, "checkout", "--quiet", "--detach", "FETCH_HEAD")
-    actual = run("git", "-C", code, "rev-parse", "HEAD", capture_output=True, text=True).stdout.strip()
-    if actual != sha:
-        raise RuntimeError("Fetched revision differs from the CI-verified commit.")
+    archive = release / "source.tar.gz"
+    url = "https://codeload.github.com/" + repository + "/tar.gz/" + sha
+    deadline, received = time.monotonic() + 180, 0
+    with urlopen(url, timeout=30) as incoming, archive.open("xb") as output:
+        while chunk := incoming.read(256 * 1024):
+            received += len(chunk)
+            if received > 128 * 1024 * 1024 or time.monotonic() > deadline:
+                raise RuntimeError("Source download exceeded its size or time limit.")
+            output.write(chunk)
+    unpack_source(archive, code, repository, sha)
+    (release / ".source-sha").write_text(sha + "\n")
     run(python, "-m", "venv", release / "venv")
     executable = release / "venv/bin/python"
     run(executable, "-m", "pip", "install", "--only-binary=:all:", "setuptools", "wheel")
