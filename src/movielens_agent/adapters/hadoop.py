@@ -14,6 +14,26 @@ from ..contracts import Contract
 from ..jobs.worker import ExternalStateUnknown
 
 
+class JobProgress:
+    """Parse complete Hadoop log lines, including split reads and CR updates."""
+    def __init__(self, callback):
+        self.callback, self.pending, self.last = callback, "", None
+
+    def feed(self, chunk, final=False):
+        lines = re.split(r"[\r\n]", self.pending + chunk.decode("utf-8", errors="replace"))
+        self.pending = "" if final else lines.pop()[-8192:]
+        for line in lines:
+            match = re.search(r"\bmap\s+(\d{1,3})%\s+reduce\s+(\d{1,3})%(?!\d)", line)
+            if not match:
+                continue
+            values = tuple(map(int, match.groups()))
+            if all(0 <= value <= 100 for value in values) and values != self.last:
+                # Retries may lower Hadoop's reported percentage. Preserve the
+                # new observation, not a fabricated monotonic maximum.
+                self.callback(*values)
+                self.last = values
+
+
 class HadoopRuntime(Contract):
     hadoop_home: Path
     java_home: Path
@@ -81,7 +101,7 @@ class Hadoop:
                 "error": text[-1000:] if result.returncode else None}
 
     def run_job(self, *, task_id, stage, inputs, output, files, mapper, reducer,
-                log_path, on_identifier, reducers=1):
+                log_path, on_identifier, reducers=1, on_progress=None):
         command = self.command("hadoop", [
             "jar", self.streaming_jar,
             "-D", f"mapreduce.job.name=movielens-{task_id}-{stage}",
@@ -98,6 +118,7 @@ class Hadoop:
         Path(log_path).parent.mkdir(parents=True, exist_ok=True)
         applications, identifiers = set(), set()
         tail = ""
+        progress = JobProgress(on_progress) if on_progress else None
         with Path(log_path).open("xb") as log:
             log.write((json.dumps({"argv": command}, ensure_ascii=True) + "\n").encode())
             log.flush()
@@ -118,6 +139,8 @@ class Hadoop:
                                 continue
                             log.write(chunk)
                             log.flush()
+                            if progress:
+                                progress.feed(chunk)
                             tail = (tail + chunk.decode("utf-8", errors="replace"))[-8192:]
                             for identifier in re.findall(r"(?:application|job)_[0-9]+_[0-9]+", tail):
                                 if identifier not in identifiers:
@@ -125,6 +148,8 @@ class Hadoop:
                                     identifiers.add(identifier)
                                 if identifier.startswith("application_"):
                                     applications.add(identifier)
+                if progress:
+                    progress.feed(b"", final=True)
                 returncode = process.wait(timeout=10)
             except BaseException as error:
                 if process.poll() is None:

@@ -61,6 +61,7 @@ function resetResult(clearTask = false) {
   if (!state.task || clearTask) {
     $("task-status").replaceChildren(node("span", state.task ? "读取中" : "等待请求", "badge"), node("span", state.task ? "正在读取所选任务" : "任务受理后会自动刷新进展"));
     $("task-error").classList.add("hidden"); $("attempts-panel").classList.add("hidden");
+    $("attempts").replaceChildren(); $("attempts").dataset.task = "";
   }
   $("quality").classList.add("hidden"); $("quality-empty").classList.remove("hidden");
   sampleDisclosure.reset(); exampleDisclosure.reset();
@@ -245,7 +246,97 @@ async function refreshTasks(autoExplain = true) {
     if (state.task) await loadTask(autoExplain);
     if (session !== state.session) return;
     if (page.items.some(t => ["queued", "running"].includes(t.status))) state.timer = setTimeout(() => refreshTasks(autoExplain), 2000);
-  } catch (error) { if (session === state.session) notice(error.message); }
+  } catch (error) {
+    if (session === state.session) {
+      notice(error.message);
+      state.timer = setTimeout(() => refreshTasks(autoExplain), 4000);
+    }
+  }
+}
+function stageEntries(task) {
+  const attempts = task.attempts || [];
+  if (task.workflow !== "governance.v1") return attempts;
+  const result = Object.keys(stages).filter(stage => stage !== "published").flatMap(stage => {
+    const existing = attempts.filter(attempt => attempt.stage === stage);
+    return existing.length ? existing : [{ stage, status: "pending", external_ids: [] }];
+  });
+  return result.concat(attempts.filter(attempt => !(attempt.stage in stages)));
+}
+function progressText(metric) {
+  const { current, total, unit } = metric;
+  if (unit === "percent") return number(current) + "%";
+  if (unit === "bytes") {
+    const divisor = total >= 1024 * 1024 ? 1024 * 1024 : total >= 1024 ? 1024 : 1;
+    const suffix = divisor === 1 ? " B" : divisor === 1024 ? " KiB" : " MiB";
+    const format = value => (value / divisor).toLocaleString("zh-CN", { maximumFractionDigits: 2 });
+    return format(current) + " / " + format(total) + suffix;
+  }
+  return number(current) + " / " + number(total) + (unit === "rows" ? " 条" : " 个文件");
+}
+function renderStages(task) {
+  const list = $("attempts"), entries = stageEntries(task);
+  if (list.dataset.task !== task.task_id) { list.replaceChildren(); list.dataset.task = task.task_id; }
+  $("attempts-panel").classList.toggle("hidden", !entries.length);
+  const done = entries.filter(item => item.status === "succeeded").length;
+  $("attempts-summary").textContent = "查看执行阶段 · 已完成 " + done + " / " + entries.length;
+  $("attempts-note").textContent = ["queued", "running"].includes(task.status)
+    ? "每 2 秒刷新；处理量和 Map / Reduce 百分比来自后台实际记录。"
+    : "显示最后一次记录；阶段完成数不代表总耗时比例。";
+  const keep = new Set();
+  for (const [index, attempt] of entries.entries()) {
+    const key = attempt.stage + ":" + (attempt.sequence ?? index), title = stages[attempt.stage] || attempt.stage;
+    keep.add(key);
+    let item = [...list.children].find(child => child.dataset.key === key);
+    if (!item) {
+      item = node("li", undefined, "stage-item"); item.dataset.key = key; item.dataset.stage = attempt.stage;
+      const heading = node("div", undefined, "stage-heading");
+      heading.append(node("span", title, "stage-title"), node("span", undefined, "stage-state"));
+      item.append(heading, node("div", undefined, "stage-meters"), node("p", undefined, "stage-message"),
+        node("p", undefined, "stage-updated"), node("p", undefined, "stage-external footnote"));
+      list.insertBefore(item, list.children[index] || null);
+    }
+    item.dataset.status = attempt.status;
+    const status = attempt.status === "pending" ? (["failed", "unknown"].includes(task.status) ? "未执行" : "等待中") : statuses[attempt.status] || attempt.status;
+    item.querySelector(".stage-state").textContent = status;
+    const progress = attempt.progress;
+    let message = progress?.message || "";
+    if (attempt.status === "succeeded") message = progress ? "阶段完成" : "阶段已完成；历史任务未记录处理中计数。";
+    else if (attempt.status === "pending") message = task.status === "queued" ? "等待后台开始执行" : ["failed", "unknown"].includes(task.status) ? "前序任务停止，后续阶段未执行" : "等待前序阶段完成";
+    else if (attempt.status === "failed") message = "本阶段失败，进度停留在最后一次记录";
+    else if (attempt.status === "unknown") message = "执行状态待核查，进度停留在最后一次记录";
+    else if (!message) message = "正在执行，尚无可计量的进度";
+    item.querySelector(".stage-message").textContent = message;
+    const updated = progress?.updated_at;
+    item.querySelector(".stage-updated").textContent = updated ? "最近进度 " + new Date(updated).toLocaleTimeString("zh-CN") : "";
+    item.querySelector(".stage-external").textContent = (attempt.external_ids || []).join(" / ");
+    const meters = item.querySelector(".stage-meters");
+    const metrics = progress?.metrics?.length ? progress.metrics : [{ key: "state", label: status, fallback: true }];
+    const metricKeys = new Set(metrics.map(metric => metric.key));
+    for (const old of [...meters.children]) if (!metricKeys.has(old.dataset.key)) old.remove();
+    for (const metric of metrics) {
+      let row = [...meters.children].find(child => child.dataset.key === metric.key);
+      if (!row) {
+        row = node("div", undefined, "stage-meter"); row.dataset.key = metric.key;
+        const label = node("div", undefined, "stage-meter-label");
+        label.append(node("span", undefined, "meter-title"), node("span", undefined, "meter-value"));
+        const bar = node("progress", undefined, "stage-progress");
+        row.append(label, bar); meters.append(row);
+      }
+      const bar = row.querySelector("progress"), text = metric.fallback ? "" : progressText(metric);
+      row.querySelector(".meter-title").textContent = metric.label;
+      row.querySelector(".meter-value").textContent = text;
+      bar.setAttribute("aria-label", title + " · " + metric.label);
+      if (metric.fallback) {
+        bar.max = 1;
+        if (attempt.status === "running") { bar.removeAttribute("value"); bar.setAttribute("aria-valuetext", "进度待上报"); }
+        else { bar.value = attempt.status === "succeeded" ? 1 : 0; bar.setAttribute("aria-valuetext", status); }
+      } else {
+        bar.max = Math.max(1, metric.total); bar.value = metric.total === 0 ? 1 : metric.current;
+        bar.setAttribute("aria-valuetext", text);
+      }
+    }
+  }
+  for (const old of [...list.children]) if (!keep.has(old.dataset.key)) old.remove();
 }
 async function loadTask(autoExplain = true) {
   const epoch = state.epoch, taskId = state.task;
@@ -254,12 +345,7 @@ async function loadTask(autoExplain = true) {
   state.detail = task;
   $("task-status").replaceChildren(node("span", statuses[task.status], "badge " + task.status), node("span", stages[task.stage] || "等待后台 worker 认领"));
   $("task-error").textContent = task.error || ""; $("task-error").classList.toggle("hidden", !task.error);
-  $("attempts-panel").classList.toggle("hidden", !task.attempts.length); $("attempts").replaceChildren();
-  for (const attempt of task.attempts) {
-    const item = node("li", (stages[attempt.stage] || attempt.stage) + " · " + (statuses[attempt.status] || attempt.status));
-    if (attempt.external_ids.length) item.append(node("div", attempt.external_ids.join(" / "), "footnote"));
-    $("attempts").append(item);
-  }
+  renderStages(task);
   if (task.status !== "succeeded") { resetResult(); state.detail = task; return; }
   if (state.qualityTask !== taskId) {
     const result = await api(route() + "/tasks/" + taskId + "/quality");

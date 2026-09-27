@@ -94,7 +94,7 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
         # Execution paths and the full input manifest are available in the local
         # administration CLI, not needed in normal model context.
         view = {key: value[key] for key in ("task_id", "status", "stage", "error", "created_at", "updated_at")}
-        view["attempts"] = [{key: attempt[key] for key in ("stage", "status", "external_ids", "error")}
+        view["attempts"] = [{key: attempt[key] for key in ("stage", "status", "external_ids", "error", "progress")}
                             for attempt in value["attempts"]]
         view["artifacts"] = [{"ref": item["ref"], "kind": item["kind"],
                               "file_names": [file["name"] for file in item["files"]]} for item in value["artifacts"]]

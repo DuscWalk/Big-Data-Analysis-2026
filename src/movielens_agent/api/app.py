@@ -39,9 +39,9 @@ class RetryInput(Contract):
 
 
 def public_task(task):
-    result = {key: task[key] for key in ("task_id", "status", "stage", "error", "created_at", "updated_at")}
+    result = {key: task[key] for key in ("task_id", "workflow", "status", "stage", "error", "created_at", "updated_at")}
     result["attempts"] = [{key: item[key] for key in
-                          ("stage", "status", "external_ids", "error", "started_at", "ended_at")}
+                          ("sequence", "stage", "status", "external_ids", "error", "started_at", "ended_at", "progress")}
                          for item in task["attempts"]]
     result["artifacts"] = [
         {key: item[key] for key in ("ref", "kind", "state")} | {

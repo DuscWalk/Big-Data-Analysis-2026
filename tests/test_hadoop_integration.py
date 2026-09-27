@@ -51,6 +51,15 @@ class HadoopIntegrationTests(unittest.TestCase):
         for attempt in jobs:
             self.assertEqual(attempt["status"], "succeeded")
             self.assertTrue(any(identifier.startswith("application_") for identifier in attempt["external_ids"]))
+        self.assertEqual(len(task["attempts"]), 9)
+        for attempt in task["attempts"]:
+            self.assertIsNotNone(attempt["progress"], attempt["stage"])
+            for item in attempt["progress"]["metrics"]:
+                self.assertEqual(item["current"], item["total"], attempt["stage"])
+        self.assertEqual(task["attempts"][0]["progress"]["metrics"][0]["total"], 22)
+        self.assertEqual(task["attempts"][-1]["progress"]["metrics"][-1]["current"], 3)
+        for attempt in jobs:
+            self.assertEqual([item["key"] for item in attempt["progress"]["metrics"]], ["map", "reduce"])
         quality = next(artifact for artifact in task["artifacts"] if artifact["kind"] == "quality_report")
         evidence = registry.call("artifacts.get", {"artifact_ref": quality["ref"], "mode": "summary"}, context)
         self.assertEqual(evidence.status, "completed")

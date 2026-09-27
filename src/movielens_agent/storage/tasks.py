@@ -47,6 +47,11 @@ class TaskStore:
                     stage TEXT NOT NULL, status TEXT NOT NULL, log_path TEXT NOT NULL,
                     external_ids TEXT NOT NULL, error TEXT, started_at TEXT NOT NULL, ended_at TEXT,
                     PRIMARY KEY(task_id, sequence));
+                CREATE TABLE IF NOT EXISTS attempt_progress (
+                    task_id TEXT NOT NULL, sequence INTEGER NOT NULL,
+                    value TEXT NOT NULL, updated_at TEXT NOT NULL,
+                    PRIMARY KEY(task_id, sequence),
+                    FOREIGN KEY(task_id,sequence) REFERENCES attempts(task_id,sequence));
                 CREATE TABLE IF NOT EXISTS artifacts (
                     artifact_id TEXT NOT NULL, version TEXT NOT NULL,
                     task_id TEXT NOT NULL REFERENCES tasks(task_id), manifest TEXT NOT NULL,
@@ -85,8 +90,11 @@ class TaskStore:
             result["payload"] = json.loads(result["payload"])
             result["attempts"] = [dict(row) for row in conn.execute(
                 "SELECT * FROM attempts WHERE task_id=? ORDER BY sequence", (task_id,))]
+            progress = {row["sequence"]: json.loads(row["value"]) | {"updated_at": row["updated_at"]}
+                        for row in conn.execute("SELECT * FROM attempt_progress WHERE task_id=?", (task_id,))}
             for attempt in result["attempts"]:
                 attempt["external_ids"] = json.loads(attempt["external_ids"])
+                attempt["progress"] = progress.get(attempt["sequence"])
             result["artifacts"] = [json.loads(row[0]) for row in conn.execute(
                 "SELECT manifest FROM artifacts WHERE task_id=? ORDER BY artifact_id", (task_id,))]
             return result
@@ -134,6 +142,19 @@ class TaskStore:
                 ids.append(identifier)
                 conn.execute("UPDATE attempts SET external_ids=? WHERE task_id=? AND sequence=?",
                              (canonical(ids), task_id, sequence))
+
+    def update_progress(self, task_id, sequence, *, message, metrics=()):
+        """Persist measured work, never infer completion from elapsed time."""
+        from ..jobs.progress import StageProgress
+        value = StageProgress(message=message, metrics=list(metrics)).model_dump(mode="json")
+        with self.connect() as conn:
+            # A late callback must not revive a completed/interrupted attempt.
+            conn.execute("""INSERT INTO attempt_progress (task_id,sequence,value,updated_at)
+                SELECT ?,?,?,? WHERE EXISTS (
+                    SELECT 1 FROM attempts a JOIN tasks t ON a.task_id=t.task_id
+                    WHERE a.task_id=? AND a.sequence=? AND a.status='running' AND t.status='running')
+                ON CONFLICT(task_id,sequence) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at
+                """, (task_id, sequence, canonical(value), now(), task_id, sequence))
 
     def end_stage(self, task_id, sequence, status="succeeded", error=None):
         with self.connect() as conn:

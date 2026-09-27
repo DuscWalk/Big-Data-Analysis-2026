@@ -6,12 +6,14 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import time
 
 from ..adapters.hadoop import Hadoop
 from ..contracts import DatasetManifest
 from ..governance.config import GovernanceConfig, canonical, digest
 from ..governance.report import render_report, LIMITATIONS
 from ..jobs.worker import ExternalStateUnknown
+from ..jobs.progress import metric
 from ..storage.tasks import file_digest
 
 
@@ -25,19 +27,29 @@ def write_json(path, value):
     Path(path).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def read_jsonl(path):
-    with Path(path).open(encoding="utf-8") as stream:
-        for line in stream:
+def read_jsonl(path, on_progress=None):
+    total, consumed, last = Path(path).stat().st_size, 0, time.monotonic()
+    with Path(path).open("rb") as stream:
+        for index, line in enumerate(stream, 1):
             yield json.loads(line)
+            consumed += len(line)
+            if on_progress and index % 10000 == 0 and time.monotonic() - last >= 0.5:
+                on_progress(consumed, total)
+                last = time.monotonic()
+    if on_progress:
+        on_progress(consumed, total)
 
 
-def package_input(manifest, directory):
+def package_input(manifest, directory, on_progress=None):
     source = Path(manifest.source_directory).resolve()
     if directory.resolve().is_relative_to(source):
         raise ValueError("Task output must be outside the source dataset.")
     if {table.name for table in manifest.tables} != {"users", "movies", "ratings"} or len(manifest.tables) != 3:
         raise ValueError("Exactly three input tables are required.")
     snapshots, outputs = {}, {}
+    total, completed, last = sum(table.rows for table in manifest.tables), 0, time.monotonic()
+    if on_progress:
+        on_progress(0, total)
     for table in manifest.tables:
         if table.file_name != table.name + ".dat":
             raise ValueError("Unexpected raw dataset file name.")
@@ -55,9 +67,17 @@ def package_input(manifest, directory):
                     "raw_b64": base64.b64encode(raw).decode("ascii"),
                 }) + "\n")
                 offset += len(raw)
+                if on_progress and rows % 10000 == 0 and time.monotonic() - last >= 0.5:
+                    if completed + rows > total:
+                        raise ValueError("Registered source content changed; register a new version.")
+                    on_progress(completed + rows, total)
+                    last = time.monotonic()
         if checksum.hexdigest() != table.sha256 or offset != table.size_bytes or rows != table.rows:
             raise ValueError(f"Registered source content changed: {table.file_name}; register a new version.")
         outputs[table.name] = target
+        completed += rows
+        if on_progress:
+            on_progress(completed, total)
     for path, old in snapshots.items():
         new = path.stat()
         if (new.st_ino, new.st_size, new.st_mtime_ns, new.st_ctime_ns) != (
@@ -129,11 +149,22 @@ class GovernanceWorkflow:
             else:
                 self.store.end_stage(task_id, sequence)
 
-        with stage("prepare-inputs") as (_, log):
-            sources = package_input(manifest, root / "input")
+        with stage("prepare-inputs") as (sequence, log):
+            total_rows = sum(table.rows for table in manifest.tables)
+            def input_progress(completed, total):
+                self.store.update_progress(task_id, sequence, message="正在核对并封装原始数据", metrics=[
+                    metric("packaged", "已封装数据", completed, total, "rows"),
+                    metric("uploaded", "已上传输入", 0, 3, "files")])
+            sources = package_input(manifest, root / "input", on_progress=input_progress)
+            self.store.update_progress(task_id, sequence, message="正在上传输入至 HDFS", metrics=[
+                metric("packaged", "已封装数据", total_rows, total_rows, "rows"),
+                metric("uploaded", "已上传输入", 0, len(sources), "files")])
             self.hadoop.fs("-mkdir", "-p", remote + "/input")
-            for table, path in sources.items():
+            for count, (table, path) in enumerate(sources.items(), 1):
                 self.hadoop.put(path, remote + "/input/" + table + ".jsonl")
+                self.store.update_progress(task_id, sequence, message="正在上传输入至 HDFS", metrics=[
+                    metric("packaged", "已封装数据", total_rows, total_rows, "rows"),
+                    metric("uploaded", "已上传输入", count, len(sources), "files")])
             write_json(log, {"packaged_rows": {t.name: t.rows for t in manifest.tables},
                              "hdfs_directory": remote + "/input"})
 
@@ -154,10 +185,18 @@ class GovernanceWorkflow:
             output = remote + "/" + name
             local = root / "results" / (name + ".jsonl")
             with stage(name) as (sequence, log):
+                observed = []
+                self.store.update_progress(task_id, sequence, message="正在提交作业，等待 Hadoop 上报进度")
+                def job_progress(mapped, reduced):
+                    observed[:] = [metric("map", "Map", mapped, 100, "percent"),
+                                   metric("reduce", "Reduce", reduced, 100, "percent")]
+                    self.store.update_progress(task_id, sequence, message="Hadoop 作业处理中", metrics=observed)
                 ids = self.hadoop.run_job(
                     task_id=task_id, stage=name, inputs=inputs, output=output,
                     files=files, mapper=mapper, reducer=reducer, reducers=reducers,
-                    log_path=log, on_identifier=lambda value: self.store.external_id(task_id, sequence, value))
+                    log_path=log, on_identifier=lambda value: self.store.external_id(task_id, sequence, value),
+                    on_progress=job_progress)
+                self.store.update_progress(task_id, sequence, message="作业成功，正在下载结果", metrics=observed)
                 self.hadoop.fetch(output, local)
                 jobs.append({"stage": name, "external_ids": ids, "log_path": str(log),
                              "hdfs_output": output})
@@ -182,7 +221,13 @@ class GovernanceWorkflow:
         _, after_path = run("after-metrics",
             [after_groups_remote, clean_parents_remote, clean_ratings_remote], aggregate=True)
 
-        with stage("verify-and-export") as (_, log):
+        with stage("verify-and-export") as (sequence, log):
+            export_total = sum(path.stat().st_size for path in (clean_parents_output, clean_ratings_output))
+            def export_progress(completed, message="正在核对并导出记录", uploaded=0):
+                self.store.update_progress(task_id, sequence, message=message, metrics=[
+                    metric("exported", "已读取处理结果", completed, export_total, "bytes"),
+                    metric("uploaded", "已上传清洗数据", uploaded, 3, "files")])
+            export_progress(0, "正在检查指标与配置")
             before_items, after_items = list(read_jsonl(before_path)), list(read_jsonl(after_path))
             if len(before_items) != 1 or len(after_items) != 1:
                 raise ValueError("Expected exactly one complete quality result per phase.")
@@ -198,8 +243,9 @@ class GovernanceWorkflow:
                        for table in ("users", "movies", "ratings")}
             try:
                 with (published / "dispositions.jsonl").open("x", encoding="utf-8") as history:
+                    consumed = 0
                     for path in (clean_parents_output, clean_ratings_output):
-                        for item in read_jsonl(path):
+                        for item in read_jsonl(path, on_progress=lambda current, total: export_progress(consumed + current)):
                             kind, table = item["kind"], item["table"]
                             if kind == "record":
                                 data = item["data"]
@@ -216,9 +262,11 @@ class GovernanceWorkflow:
                             elif kind == "disposition":
                                 history.write(canonical(item) + "\n")
                                 dispositions[table][item["disposition"]] += 1
+                        consumed += path.stat().st_size
             finally:
                 for stream in streams.values():
                     stream.close()
+            export_progress(export_total, "正在核对行数守恒、外键和文件摘要")
             for table in manifest.tables:
                 disp = after["dispositions"][table.name]
                 output_rows = after["tables"][table.name]["rows"]
@@ -254,9 +302,11 @@ class GovernanceWorkflow:
             write_json(published / "quality.json", result)
             write_json(published / "dataset-manifest.json", cleaned)
             (published / "report.md").write_text(render_report(result), encoding="utf-8")
+            export_progress(export_total, "正在上传清洗数据至 HDFS")
             self.hadoop.fs("-mkdir", "-p", remote + "/dataset")
-            for table in streams:
+            for count, table in enumerate(streams, 1):
                 self.hadoop.put(published / (table + ".jsonl"), remote + "/dataset/" + table + ".jsonl")
+                export_progress(export_total, "正在上传清洗数据至 HDFS", uploaded=count)
             artifacts = [
                 cleaned,
                 make_artifact(task_id, "quality", "quality_report", [published / "quality.json"],
@@ -270,4 +320,5 @@ class GovernanceWorkflow:
             for path in published.iterdir():
                 path.chmod(0o444)
             write_json(log, {"conservation": "passed", "foreign_keys": "passed", "rows": dict(counts)})
+            export_progress(export_total, "核对与导出完成", uploaded=3)
         return artifacts
