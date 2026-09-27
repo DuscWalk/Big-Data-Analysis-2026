@@ -1,0 +1,2177 @@
+{
+  "date": "2026-09-25",
+  "timezone": "Asia/Shanghai",
+  "recorded_at": "2026-09-25T07:04:02.862562+00:00",
+  "requirements": [
+    "R07",
+    "R11",
+    "R16",
+    "R17"
+  ],
+  "status": "content_constraints_verified_with_provider_failures",
+  "all_first_attempt_requests_passed": false,
+  "successful_answers_passed_content_checks": true,
+  "plan_commit": "d9e534e",
+  "first_implementation_commit": "491cb7f",
+  "environment": {
+    "recorded_at": "2026-09-25T06:45:42.025959+00:00",
+    "source_commit": "9ca81e7c207283692bfc75fb82401610ebba5c2c",
+    "implementation_sha256": "sha256-a88f290f5f18dc951ecdabe976a0b592c84a3a65232e6fd65d0f79dfbb212e12",
+    "model_provider": "backup",
+    "model": "deepseek-v4-flash",
+    "max_tokens": 4096,
+    "timeout_seconds": 90.0,
+    "unit_tests": {
+      "discovered": 96,
+      "passed": 94,
+      "skipped_opt_in_hadoop": 2,
+      "seconds": 5.079
+    },
+    "task_id": "064523f8a8bf41a38f7c2193caf59930",
+    "session_id": "94c8e0627f004038b75fd28c94af2e37",
+    "pre_run_tasks": {
+      "succeeded": 3
+    },
+    "processing_messages": 0,
+    "hadoop_rerun": false
+  },
+  "producer": {
+    "source_commit": "20b55cc5d55b763abfd5ac8b8c094121069bde16",
+    "implementation_sha256": "sha256-fb44a805e7dbd945fe55fce3c554a5d57e7d178adf89ce742513f3e6c172bf39"
+  },
+  "task_id": "064523f8a8bf41a38f7c2193caf59930",
+  "session_id": "94c8e0627f004038b75fd28c94af2e37",
+  "quality_ref": {
+    "artifact_id": "064523f8a8bf41a38f7c2193caf59930.quality",
+    "version": "sha256-99270913bd23aa3024e2f1ad5044748379d72c7b4d0a6d6b24692511653d7038"
+  },
+  "hadoop_rerun": false,
+  "closeout": {
+    "checked_at": "2026-09-25T07:03:24.288604+00:00",
+    "tasks": {
+      "succeeded": 3
+    },
+    "processing_messages": 0,
+    "new_tasks": false,
+    "implementation_sha256": "sha256-a88f290f5f18dc951ecdabe976a0b592c84a3a65232e6fd65d0f79dfbb212e12",
+    "cleaned_ref": {
+      "artifact_id": "064523f8a8bf41a38f7c2193caf59930.cleaned",
+      "version": "sha256-a21c9360829ab79d631da78c23b3746dbb579cb8cef317826ab085daf47a11ac"
+    },
+    "cleaned_files": [
+      {
+        "file_name": "users.jsonl",
+        "sha256": "75ffd68716e6a04c0d1204434a3e0fd6753254e2378a8ac73f0ef66a3b00de64",
+        "bytes": 1652960,
+        "matches_manifest": true
+      },
+      {
+        "file_name": "movies.jsonl",
+        "sha256": "448076296a22bf9a1e9f79a4ff7e7fffc830c96517627738e154a562cdf87099",
+        "bytes": 1065359,
+        "matches_manifest": true
+      },
+      {
+        "file_name": "ratings.jsonl",
+        "sha256": "c48f79e61b3cb9bc86e5000c9095856e737e9788480586ed06a87d2e7c9dde0b",
+        "bytes": 251834151,
+        "matches_manifest": true
+      }
+    ],
+    "services_started": {
+      "api": 1607472,
+      "worker": 1607473,
+      "nodemanager": 1607474
+    }
+  },
+  "runtime": {
+    "api_model_provider": "backup",
+    "nodes": [
+      {
+        "id": "localhost:45605",
+        "state": "RUNNING"
+      },
+      {
+        "id": "localhost:45129",
+        "state": "LOST"
+      },
+      {
+        "id": "localhost:45859",
+        "state": "SHUTDOWN"
+      }
+    ],
+    "hdfs_live_datanodes": 1,
+    "hdfs_command_exit_code": 0
+  },
+  "initial_run": {
+    "run_id": "d384fd05355b40878fcead299bed7606",
+    "started_at": "2026-09-25T06:30:15.571727+00:00",
+    "duration_seconds": null,
+    "implementation_sha256": "sha256-2d26175ce52eabb2355fcd0900d1e3ba2326290bbe0c214aff025126644f6cf7",
+    "completed_requests": 9,
+    "passed_requests": 7,
+    "provider_failures": 1,
+    "content_or_application_failures": 1,
+    "internal_corrections": 1,
+    "new_tasks": false,
+    "model_attempts": {
+      "total": 12,
+      "provider_counts": {
+        "backup": 12
+      },
+      "status_counts": {
+        "completed": 11,
+        "failed": 1
+      }
+    },
+    "cases": [
+      {
+        "name": "complete",
+        "repetition": 1,
+        "question": "解释本任务五维前后变化、数据处置损失、时效性、时间边界与未能核验的问题。只读取已有结果，不重新清洗。",
+        "message_id": "1333790dd47e4902bbff58201529c639",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "metric_method",
+          "limitations",
+          "versions"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 2216,
+          "prompt_tokens": 5432,
+          "peak_prompt_tokens": 5432,
+          "model_seconds": 35.135,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 35.239
+      },
+      {
+        "name": "overlap",
+        "repetition": 1,
+        "question": "有人说父表引用问题合计 99000 行，而且评分减少都是去重造成的。请读取实际证据，给出真正的原因命中总和、评分隔离比例和去重行数，说明是否可直接相加。不要重跑任务。",
+        "message_id": "40b00ace4885436284798eb279c3eff5",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "parent_references",
+          "rating_loss",
+          "dispositions"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 681,
+          "prompt_tokens": 13671,
+          "peak_prompt_tokens": 8242,
+          "model_seconds": 37.586,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 37.724
+      },
+      {
+        "name": "units",
+        "repetition": 1,
+        "question": "有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。",
+        "message_id": "9509b969850c4bc5a46d9b3bebd59255",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "limitations"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [
+          {
+            "model_call_id": "7ee93341328042e6906f585a48758331",
+            "reason": "最终回答必须是规定结构的 JSON，不接受自由文本或额外字段。"
+          }
+        ],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 1266,
+          "prompt_tokens": 10133,
+          "peak_prompt_tokens": 5410,
+          "model_seconds": 85.173,
+          "corrections": 1,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 85.255
+      },
+      {
+        "name": "partitions",
+        "repetition": 1,
+        "question": "是否已经生成 train.jsonl、validation.jsonl 和 test.jsonl？请给出实际 T1/T2 的包含关系、分区数和存储状态，并说明能否先用所有评分拟合特征。只查询已有结果。",
+        "message_id": "1c95730775474b82895c00b25051664c",
+        "status": "failed",
+        "passed": false,
+        "checks": {
+          "completed": false,
+          "rendered": false,
+          "exact_report": false,
+          "required_sections": false,
+          "current_summary": false,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": {
+          "code": "MODEL_HTTP_ERROR",
+          "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+        },
+        "sections": [],
+        "unsupported": null,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 26,
+          "prompt_tokens": 0,
+          "peak_prompt_tokens": 0,
+          "model_seconds": 79.005,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 79.075
+      },
+      {
+        "name": "unsupported",
+        "repetition": 1,
+        "question": "四项满分是否证明用户年龄、电影名称等事实绝对真实，并保证下一轮分类准确率达到 99%？请依据本任务证据回答，不能验证的部分要明确说明，不要重跑。",
+        "message_id": "6e7326b7d57e4e149a33eac00db4b304",
+        "status": "completed",
+        "passed": false,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "unsupported_marked": false,
+          "explains_proxy_limits": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "limitations",
+          "metric_method",
+          "scores"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 815,
+          "prompt_tokens": 5237,
+          "peak_prompt_tokens": 5237,
+          "model_seconds": 7.881,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 7.933
+      },
+      {
+        "name": "example",
+        "repetition": 1,
+        "question": "请读取一个 ratings/R14_VALID_KEY_CONFLICT 的实际异常样例，保留原始行、处置结果和来源定位。只查看已有结果。",
+        "message_id": "cecb9004f5c848d2b4b2188a81d4ceb0",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "current_examples": true,
+          "requested_rule_and_count": true,
+          "sample_in_answer": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "examples:05c7766c47dc44339fa0f5d198eb0484"
+        ],
+        "unsupported": false,
+        "sample_checks": [
+          {
+            "section": "examples:05c7766c47dc44339fa0f5d198eb0484",
+            "count": 1,
+            "requested_count": 1,
+            "reason": "ratings/R14_VALID_KEY_CONFLICT",
+            "file_name": null,
+            "offset": 0
+          }
+        ],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 365,
+          "prompt_tokens": 13573,
+          "peak_prompt_tokens": 8207,
+          "model_seconds": 20.648,
+          "corrections": 0,
+          "application_tool_calls": 2
+        },
+        "duration_seconds": 20.788
+      },
+      {
+        "name": "concise",
+        "repetition": 1,
+        "question": "请依据本任务证据解释：为什么清洗后四项质量达到 100 分，时效性却仍然很低？这些分数能否证明数据真实？请简短回答，不要重新清洗。",
+        "message_id": "745833fa57504ee9a39817e4cf51169c",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "brief_length": true,
+          "brief_scope": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "freshness",
+          "metric_method",
+          "scores",
+          "limitations"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 585,
+          "prompt_tokens": 5028,
+          "peak_prompt_tokens": 5028,
+          "model_seconds": 17.458,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 17.54
+      },
+      {
+        "name": "complete",
+        "repetition": 2,
+        "question": "解释本任务五维前后变化、数据处置损失、时效性、时间边界与未能核验的问题。只读取已有结果，不重新清洗。",
+        "message_id": "8af94aa56d784771a932be908b668cb3",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "limitations"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 1486,
+          "prompt_tokens": 5318,
+          "peak_prompt_tokens": 5318,
+          "model_seconds": 20.725,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 20.807
+      },
+      {
+        "name": "overlap",
+        "repetition": 2,
+        "question": "有人说父表引用问题合计 99000 行，而且评分减少都是去重造成的。请读取实际证据，给出真正的原因命中总和、评分隔离比例和去重行数，说明是否可直接相加。不要重跑任务。",
+        "message_id": "04fef75618f242508ef3924a0c2683e4",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "parent_references",
+          "rating_loss"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 427,
+          "prompt_tokens": 5491,
+          "peak_prompt_tokens": 5491,
+          "model_seconds": 63.908,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 63.997
+      }
+    ],
+    "run_stopped_for_fixes": {
+      "at": "2026-09-25T06:37:19.120528+00:00",
+      "reason": "Stop initial live run to fix missing unsupported enforcement and irrelevant section selection; preserve original content failures and 504.",
+      "stopped_pids": [
+        1602360
+      ],
+      "interrupted_requests": [
+        {
+          "request_uid": "3dc2ca309a654d998f4e522f46b5961b",
+          "request_id": "regression:d384fd05355b40878fcead299bed7606:2:units"
+        }
+      ],
+      "completed_cases": 9,
+      "passed_cases": 7
+    },
+    "scope_review": {
+      "original_result_preserved": true,
+      "manual_scope_review": [
+        {
+          "repetition": 1,
+          "case": "units",
+          "message_id": "9509b969850c4bc5a46d9b3bebd59255",
+          "original_checks_passed": true,
+          "focused_sections": false,
+          "actual_sections": [
+            "scores",
+            "dispositions",
+            "rating_loss",
+            "freshness",
+            "time_splits",
+            "limitations"
+          ],
+          "note": "Original test checked required coverage but not exclusion of unrelated sections."
+        }
+      ]
+    }
+  },
+  "final_three_rounds": {
+    "run_id": "d28a977c03dd48c293e45ebfe022e7e6",
+    "started_at": "2026-09-25T06:45:42.248817+00:00",
+    "duration_seconds": 620.429,
+    "implementation_sha256": "sha256-a88f290f5f18dc951ecdabe976a0b592c84a3a65232e6fd65d0f79dfbb212e12",
+    "completed_requests": 21,
+    "passed_requests": 17,
+    "provider_failures": 4,
+    "content_or_application_failures": 0,
+    "internal_corrections": 2,
+    "new_tasks": false,
+    "model_attempts": {
+      "total": 25,
+      "provider_counts": {
+        "backup": 25
+      },
+      "status_counts": {
+        "completed": 21,
+        "failed": 4
+      }
+    },
+    "cases": [
+      {
+        "name": "complete",
+        "repetition": 1,
+        "question": "解释本任务五维前后变化、数据处置损失、时效性、时间边界与未能核验的问题。只读取已有结果，不重新清洗。",
+        "message_id": "13ffd280caec49f9986169907fdee399",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "limitations"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 1486,
+          "prompt_tokens": 5152,
+          "peak_prompt_tokens": 5152,
+          "model_seconds": 15.267,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 15.319
+      },
+      {
+        "name": "overlap",
+        "repetition": 1,
+        "question": "有人说父表引用问题合计 99000 行，而且评分减少都是去重造成的。请读取实际证据，给出真正的原因命中总和、评分隔离比例和去重行数，说明是否可直接相加。不要重跑任务。",
+        "message_id": "7a7e4fabb6b54bc0985d84ada05d7136",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "parent_references",
+          "rating_loss"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 427,
+          "prompt_tokens": 3565,
+          "peak_prompt_tokens": 3565,
+          "model_seconds": 32.483,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 32.822
+      },
+      {
+        "name": "units",
+        "repetition": 1,
+        "question": "有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。",
+        "message_id": "4011c6e6020f41c5a895800f9553c3b3",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "freshness"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 339,
+          "prompt_tokens": 3562,
+          "peak_prompt_tokens": 3562,
+          "model_seconds": 7.259,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 7.321
+      },
+      {
+        "name": "partitions",
+        "repetition": 1,
+        "question": "是否已经生成 train.jsonl、validation.jsonl 和 test.jsonl？请给出实际 T1/T2 的包含关系、分区数和存储状态，并说明能否先用所有评分拟合特征。只查询已有结果。",
+        "message_id": "b36832bf005a4d7f84bb65912aaaf5d9",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "time_splits"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 287,
+          "prompt_tokens": 3408,
+          "peak_prompt_tokens": 3408,
+          "model_seconds": 8.075,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 8.138
+      },
+      {
+        "name": "unsupported",
+        "repetition": 1,
+        "question": "四项满分是否证明用户年龄、电影名称等事实绝对真实，并保证下一轮分类准确率达到 99%？请依据本任务证据回答，不能验证的部分要明确说明，不要重跑。",
+        "message_id": "500f7f83960146eda6c83263182412b7",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "unsupported_marked": true,
+          "explains_proxy_limits": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "limitations",
+          "metric_method",
+          "scores"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 862,
+          "prompt_tokens": 3659,
+          "peak_prompt_tokens": 3659,
+          "model_seconds": 7.188,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 7.242
+      },
+      {
+        "name": "example",
+        "repetition": 1,
+        "question": "请读取一个 ratings/R14_VALID_KEY_CONFLICT 的实际异常样例，保留原始行、处置结果和来源定位。只查看已有结果。",
+        "message_id": "22c8698f331e4f5ab5412a809affc96a",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "current_examples": true,
+          "requested_rule_and_count": true,
+          "sample_in_answer": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "examples:9030ebc89d334e6983c46d7464e72856"
+        ],
+        "unsupported": false,
+        "sample_checks": [
+          {
+            "section": "examples:9030ebc89d334e6983c46d7464e72856",
+            "count": 1,
+            "requested_count": 1,
+            "reason": "ratings/R14_VALID_KEY_CONFLICT",
+            "file_name": null,
+            "offset": 0
+          }
+        ],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 365,
+          "prompt_tokens": 7728,
+          "peak_prompt_tokens": 4226,
+          "model_seconds": 16.062,
+          "corrections": 0,
+          "application_tool_calls": 2
+        },
+        "duration_seconds": 16.194
+      },
+      {
+        "name": "concise",
+        "repetition": 1,
+        "question": "请依据本任务证据解释：为什么清洗后四项质量达到 100 分，时效性却仍然很低？这些分数能否证明数据真实？请简短回答，不要重新清洗。",
+        "message_id": "144b8f9ea63049c4b5c4a71f1628fe54",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "brief_length": true,
+          "brief_scope": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "freshness",
+          "metric_method",
+          "limitations"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [
+          {
+            "model_call_id": "df79b1e85abe4a21a1dbec8597ebf1f0",
+            "reason": "问题要求证明真实性或保证下游效果，治理报告不能确认，unsupported 必须为 true。"
+          }
+        ],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 632,
+          "prompt_tokens": 6456,
+          "peak_prompt_tokens": 3669,
+          "model_seconds": 85.287,
+          "corrections": 1,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 85.534
+      },
+      {
+        "name": "complete",
+        "repetition": 2,
+        "question": "解释本任务五维前后变化、数据处置损失、时效性、时间边界与未能核验的问题。只读取已有结果，不重新清洗。",
+        "message_id": "88201d78cd994e60ba54dcbc5bde6851",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "limitations"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 1486,
+          "prompt_tokens": 5383,
+          "peak_prompt_tokens": 5383,
+          "model_seconds": 7.709,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 7.774
+      },
+      {
+        "name": "overlap",
+        "repetition": 2,
+        "question": "有人说父表引用问题合计 99000 行，而且评分减少都是去重造成的。请读取实际证据，给出真正的原因命中总和、评分隔离比例和去重行数，说明是否可直接相加。不要重跑任务。",
+        "message_id": "ff4977c3f79a47b989c1d2a189c1dd48",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "parent_references",
+          "rating_loss"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 427,
+          "prompt_tokens": 3879,
+          "peak_prompt_tokens": 3879,
+          "model_seconds": 7.902,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 7.971
+      },
+      {
+        "name": "units",
+        "repetition": 2,
+        "question": "有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。",
+        "message_id": "71378d01bf4341768c50de186581e8b9",
+        "status": "failed",
+        "passed": false,
+        "checks": {
+          "completed": false,
+          "rendered": false,
+          "exact_report": false,
+          "required_sections": false,
+          "current_summary": false,
+          "expected_provider": true,
+          "focused_sections": false,
+          "no_new_tasks": true
+        },
+        "error": {
+          "code": "MODEL_HTTP_ERROR",
+          "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+        },
+        "sections": [],
+        "unsupported": null,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 26,
+          "prompt_tokens": 0,
+          "peak_prompt_tokens": 0,
+          "model_seconds": 78.628,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 78.707
+      },
+      {
+        "name": "partitions",
+        "repetition": 2,
+        "question": "是否已经生成 train.jsonl、validation.jsonl 和 test.jsonl？请给出实际 T1/T2 的包含关系、分区数和存储状态，并说明能否先用所有评分拟合特征。只查询已有结果。",
+        "message_id": "d1c3c8855b6949899fa9383bb845dc9e",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "time_splits"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 287,
+          "prompt_tokens": 3216,
+          "peak_prompt_tokens": 3216,
+          "model_seconds": 9.109,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 9.199
+      },
+      {
+        "name": "unsupported",
+        "repetition": 2,
+        "question": "四项满分是否证明用户年龄、电影名称等事实绝对真实，并保证下一轮分类准确率达到 99%？请依据本任务证据回答，不能验证的部分要明确说明，不要重跑。",
+        "message_id": "852f688bcc054b33825cd895c77306a0",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "unsupported_marked": true,
+          "explains_proxy_limits": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "metric_method",
+          "limitations"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 862,
+          "prompt_tokens": 3471,
+          "peak_prompt_tokens": 3471,
+          "model_seconds": 6.609,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 6.678
+      },
+      {
+        "name": "example",
+        "repetition": 2,
+        "question": "请读取一个 ratings/R14_VALID_KEY_CONFLICT 的实际异常样例，保留原始行、处置结果和来源定位。只查看已有结果。",
+        "message_id": "1bd2ccb7c4ca45869e4adeb62412c92b",
+        "status": "failed",
+        "passed": false,
+        "checks": {
+          "completed": false,
+          "rendered": false,
+          "exact_report": false,
+          "required_sections": true,
+          "current_summary": false,
+          "expected_provider": true,
+          "current_examples": false,
+          "requested_rule_and_count": false,
+          "sample_in_answer": false,
+          "focused_sections": false,
+          "no_new_tasks": true
+        },
+        "error": {
+          "code": "MODEL_HTTP_ERROR",
+          "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+        },
+        "sections": [],
+        "unsupported": null,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 26,
+          "prompt_tokens": 0,
+          "peak_prompt_tokens": 0,
+          "model_seconds": 78.66,
+          "corrections": 0,
+          "application_tool_calls": 2
+        },
+        "duration_seconds": 78.761
+      },
+      {
+        "name": "concise",
+        "repetition": 2,
+        "question": "请依据本任务证据解释：为什么清洗后四项质量达到 100 分，时效性却仍然很低？这些分数能否证明数据真实？请简短回答，不要重新清洗。",
+        "message_id": "f69c99932270491b80395c86f01b6c9b",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "brief_length": true,
+          "brief_scope": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "freshness",
+          "limitations",
+          "metric_method",
+          "scores"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [
+          {
+            "model_call_id": "357a0fb72e304cafbc7bc6bbfa35f4a8",
+            "reason": "问题要求证明真实性或保证下游效果，治理报告不能确认，unsupported 必须为 true。"
+          }
+        ],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 632,
+          "prompt_tokens": 6108,
+          "peak_prompt_tokens": 3495,
+          "model_seconds": 20.806,
+          "corrections": 1,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 20.933
+      },
+      {
+        "name": "complete",
+        "repetition": 3,
+        "question": "解释本任务五维前后变化、数据处置损失、时效性、时间边界与未能核验的问题。只读取已有结果，不重新清洗。",
+        "message_id": "9ca162475a124ec28a5581073a5d804b",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "parent_references",
+          "freshness",
+          "time_splits",
+          "metric_method",
+          "limitations",
+          "warnings",
+          "reasons",
+          "versions"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 3539,
+          "prompt_tokens": 5222,
+          "peak_prompt_tokens": 5222,
+          "model_seconds": 9.48,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 9.54
+      },
+      {
+        "name": "overlap",
+        "repetition": 3,
+        "question": "有人说父表引用问题合计 99000 行，而且评分减少都是去重造成的。请读取实际证据，给出真正的原因命中总和、评分隔离比例和去重行数，说明是否可直接相加。不要重跑任务。",
+        "message_id": "9cf80496ab1e409dbe2ea59dbefca385",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "parent_references",
+          "rating_loss"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 427,
+          "prompt_tokens": 3885,
+          "peak_prompt_tokens": 3885,
+          "model_seconds": 24.934,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 24.998
+      },
+      {
+        "name": "units",
+        "repetition": 3,
+        "question": "有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。",
+        "message_id": "638f2fe1575e4961ac1424dc826f834d",
+        "status": "failed",
+        "passed": false,
+        "checks": {
+          "completed": false,
+          "rendered": false,
+          "exact_report": false,
+          "required_sections": false,
+          "current_summary": false,
+          "expected_provider": true,
+          "focused_sections": false,
+          "no_new_tasks": true
+        },
+        "error": {
+          "code": "MODEL_HTTP_ERROR",
+          "message": "模型服务返回 HTTP 502；本次模型回答未完成。"
+        },
+        "sections": [],
+        "unsupported": null,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 26,
+          "prompt_tokens": 0,
+          "peak_prompt_tokens": 0,
+          "model_seconds": 2.08,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 2.137
+      },
+      {
+        "name": "partitions",
+        "repetition": 3,
+        "question": "是否已经生成 train.jsonl、validation.jsonl 和 test.jsonl？请给出实际 T1/T2 的包含关系、分区数和存储状态，并说明能否先用所有评分拟合特征。只查询已有结果。",
+        "message_id": "99547fc39f3c401fa78f54760db376bc",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "time_splits"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 287,
+          "prompt_tokens": 3212,
+          "peak_prompt_tokens": 3212,
+          "model_seconds": 7.926,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 8.007
+      },
+      {
+        "name": "unsupported",
+        "repetition": 3,
+        "question": "四项满分是否证明用户年龄、电影名称等事实绝对真实，并保证下一轮分类准确率达到 99%？请依据本任务证据回答，不能验证的部分要明确说明，不要重跑。",
+        "message_id": "debddd1e6b934eefb6d7555901cf893c",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "unsupported_marked": true,
+          "explains_proxy_limits": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "limitations",
+          "metric_method",
+          "scores"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 862,
+          "prompt_tokens": 3475,
+          "peak_prompt_tokens": 3475,
+          "model_seconds": 34.713,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 34.8
+      },
+      {
+        "name": "example",
+        "repetition": 3,
+        "question": "请读取一个 ratings/R14_VALID_KEY_CONFLICT 的实际异常样例，保留原始行、处置结果和来源定位。只查看已有结果。",
+        "message_id": "cf89c0c7b99647608ce54e6a3e51e288",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "current_examples": true,
+          "requested_rule_and_count": true,
+          "sample_in_answer": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "examples:aae4377b41fe4fd39b60a3aee5055e1a"
+        ],
+        "unsupported": false,
+        "sample_checks": [
+          {
+            "section": "examples:aae4377b41fe4fd39b60a3aee5055e1a",
+            "count": 1,
+            "requested_count": 1,
+            "reason": "ratings/R14_VALID_KEY_CONFLICT",
+            "file_name": null,
+            "offset": 0
+          }
+        ],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 365,
+          "prompt_tokens": 7822,
+          "peak_prompt_tokens": 4315,
+          "model_seconds": 79.092,
+          "corrections": 0,
+          "application_tool_calls": 2
+        },
+        "duration_seconds": 79.252
+      },
+      {
+        "name": "concise",
+        "repetition": 3,
+        "question": "请依据本任务证据解释：为什么清洗后四项质量达到 100 分，时效性却仍然很低？这些分数能否证明数据真实？请简短回答，不要重新清洗。",
+        "message_id": "f114b5f131c244f8aea051b413a94cef",
+        "status": "failed",
+        "passed": false,
+        "checks": {
+          "completed": false,
+          "rendered": false,
+          "exact_report": false,
+          "required_sections": false,
+          "current_summary": false,
+          "expected_provider": true,
+          "focused_sections": false,
+          "brief_length": true,
+          "brief_scope": true,
+          "no_new_tasks": true
+        },
+        "error": {
+          "code": "MODEL_HTTP_ERROR",
+          "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+        },
+        "sections": [],
+        "unsupported": null,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 26,
+          "prompt_tokens": 0,
+          "peak_prompt_tokens": 0,
+          "model_seconds": 78.606,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 78.717
+      }
+    ]
+  },
+  "targeted_transport_recheck": {
+    "run_id": "4e78f2713dc14fd8abf670b065a8d4a3",
+    "started_at": "2026-09-25T06:57:34.820095+00:00",
+    "duration_seconds": 67.962,
+    "implementation_sha256": "sha256-a88f290f5f18dc951ecdabe976a0b592c84a3a65232e6fd65d0f79dfbb212e12",
+    "completed_requests": 3,
+    "passed_requests": 3,
+    "provider_failures": 0,
+    "content_or_application_failures": 0,
+    "internal_corrections": 1,
+    "new_tasks": false,
+    "model_attempts": {
+      "total": 5,
+      "provider_counts": {
+        "backup": 5
+      },
+      "status_counts": {
+        "completed": 5
+      }
+    },
+    "cases": [
+      {
+        "name": "units",
+        "repetition": 1,
+        "question": "有人把时效性写成 20208 / 935354 × 100 = 216 分。请读取本任务实际分子分母，说明正确公式、分数、百分比和历史窗口。不要重新清洗。",
+        "message_id": "5159fa3a287b4006a082a8653565df4e",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "freshness"
+        ],
+        "unsupported": false,
+        "sample_checks": [],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 1,
+          "answer_characters": 339,
+          "prompt_tokens": 3151,
+          "peak_prompt_tokens": 3151,
+          "model_seconds": 29.064,
+          "corrections": 0,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 29.133
+      },
+      {
+        "name": "example",
+        "repetition": 1,
+        "question": "请读取一个 ratings/R14_VALID_KEY_CONFLICT 的实际异常样例，保留原始行、处置结果和来源定位。只查看已有结果。",
+        "message_id": "09c1eff224e64cee8ed7f7c784ddd2d6",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "current_examples": true,
+          "requested_rule_and_count": true,
+          "sample_in_answer": true,
+          "focused_sections": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "examples:3997ac17d3bf484380038391e8013b60"
+        ],
+        "unsupported": true,
+        "sample_checks": [
+          {
+            "section": "examples:3997ac17d3bf484380038391e8013b60",
+            "count": 1,
+            "requested_count": 1,
+            "reason": "ratings/R14_VALID_KEY_CONFLICT",
+            "file_name": null,
+            "offset": 0
+          }
+        ],
+        "rejected_attempts": [],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 412,
+          "prompt_tokens": 7188,
+          "peak_prompt_tokens": 3995,
+          "model_seconds": 21.489,
+          "corrections": 0,
+          "application_tool_calls": 2
+        },
+        "duration_seconds": 21.64
+      },
+      {
+        "name": "concise",
+        "repetition": 1,
+        "question": "请依据本任务证据解释：为什么清洗后四项质量达到 100 分，时效性却仍然很低？这些分数能否证明数据真实？请简短回答，不要重新清洗。",
+        "message_id": "f3118daedb504df2bf0f03134ae124d0",
+        "status": "completed",
+        "passed": true,
+        "checks": {
+          "completed": true,
+          "rendered": true,
+          "exact_report": true,
+          "required_sections": true,
+          "current_summary": true,
+          "expected_provider": true,
+          "focused_sections": true,
+          "brief_length": true,
+          "brief_scope": true,
+          "no_new_tasks": true
+        },
+        "error": null,
+        "sections": [
+          "scores",
+          "freshness",
+          "metric_method",
+          "limitations"
+        ],
+        "unsupported": true,
+        "sample_checks": [],
+        "rejected_attempts": [
+          {
+            "model_call_id": "4c596ba570cf4382bdab5937215ce492",
+            "reason": "问题要求证明真实性或保证下游效果，治理报告不能确认，unsupported 必须为 true。"
+          }
+        ],
+        "metrics": {
+          "model_rounds": 2,
+          "answer_characters": 632,
+          "prompt_tokens": 6204,
+          "peak_prompt_tokens": 3543,
+          "model_seconds": 17.04,
+          "corrections": 1,
+          "application_tool_calls": 1
+        },
+        "duration_seconds": 17.171
+      }
+    ]
+  },
+  "baseline_comparisons": [
+    {
+      "case": "complete",
+      "baseline": {
+        "case": "complete",
+        "model_rounds": 3,
+        "model_seconds": 17.414,
+        "prompt_tokens": 19808,
+        "peak_prompt_tokens": 13601,
+        "answer_chars": 1486
+      },
+      "same_question_wording": false,
+      "completed_answers": 3,
+      "requests": 3,
+      "model_rounds": [
+        1,
+        1,
+        1
+      ],
+      "answer_characters": [
+        1486,
+        1486,
+        3539
+      ],
+      "prompt_tokens": [
+        5152,
+        5383,
+        5222
+      ],
+      "prompt_tokens_median": 5222,
+      "model_seconds": [
+        15.267,
+        7.709,
+        9.48
+      ],
+      "model_seconds_median": 9.48
+    },
+    {
+      "case": "concise",
+      "baseline": {
+        "case": "concise",
+        "model_rounds": 4,
+        "model_seconds": 32.619,
+        "prompt_tokens": 26282,
+        "peak_prompt_tokens": 14614,
+        "answer_chars": 3623
+      },
+      "same_question_wording": true,
+      "completed_answers": 2,
+      "requests": 3,
+      "model_rounds": [
+        2,
+        2
+      ],
+      "answer_characters": [
+        632,
+        632
+      ],
+      "prompt_tokens": [
+        6456,
+        6108
+      ],
+      "prompt_tokens_median": 6282.0,
+      "model_seconds": [
+        85.287,
+        20.806
+      ],
+      "model_seconds_median": 53.0465
+    },
+    {
+      "case": "overlap",
+      "baseline": {
+        "case": "overlap",
+        "model_rounds": 2,
+        "model_seconds": 18.375,
+        "prompt_tokens": 20561,
+        "peak_prompt_tokens": 15215,
+        "answer_chars": 681
+      },
+      "same_question_wording": true,
+      "completed_answers": 3,
+      "requests": 3,
+      "model_rounds": [
+        1,
+        1,
+        1
+      ],
+      "answer_characters": [
+        427,
+        427,
+        427
+      ],
+      "prompt_tokens": [
+        3565,
+        3879,
+        3885
+      ],
+      "prompt_tokens_median": 3879,
+      "model_seconds": [
+        32.483,
+        7.902,
+        24.934
+      ],
+      "model_seconds_median": 24.934
+    },
+    {
+      "case": "units",
+      "baseline": {
+        "case": "units",
+        "model_rounds": 3,
+        "model_seconds": 49.687,
+        "prompt_tokens": 29641,
+        "peak_prompt_tokens": 16862,
+        "answer_chars": 339
+      },
+      "same_question_wording": true,
+      "completed_answers": 1,
+      "requests": 3,
+      "model_rounds": [
+        1
+      ],
+      "answer_characters": [
+        339
+      ],
+      "prompt_tokens": [
+        3562
+      ],
+      "prompt_tokens_median": 3562,
+      "model_seconds": [
+        7.259
+      ],
+      "model_seconds_median": 7.259
+    },
+    {
+      "case": "partitions",
+      "baseline": {
+        "case": "partitions",
+        "model_rounds": 3,
+        "model_seconds": 30.757,
+        "prompt_tokens": 30417,
+        "peak_prompt_tokens": 17118,
+        "answer_chars": 287
+      },
+      "same_question_wording": true,
+      "completed_answers": 3,
+      "requests": 3,
+      "model_rounds": [
+        1,
+        1,
+        1
+      ],
+      "answer_characters": [
+        287,
+        287,
+        287
+      ],
+      "prompt_tokens": [
+        3408,
+        3216,
+        3212
+      ],
+      "prompt_tokens_median": 3216,
+      "model_seconds": [
+        8.075,
+        9.109,
+        7.926
+      ],
+      "model_seconds_median": 8.075
+    },
+    {
+      "case": "unsupported",
+      "baseline": {
+        "case": "unsupported",
+        "model_rounds": 2,
+        "model_seconds": 19.584,
+        "prompt_tokens": 22401,
+        "peak_prompt_tokens": 16134,
+        "answer_chars": 572
+      },
+      "same_question_wording": true,
+      "completed_answers": 3,
+      "requests": 3,
+      "model_rounds": [
+        1,
+        1,
+        1
+      ],
+      "answer_characters": [
+        862,
+        862,
+        862
+      ],
+      "prompt_tokens": [
+        3659,
+        3471,
+        3475
+      ],
+      "prompt_tokens_median": 3475,
+      "model_seconds": [
+        7.188,
+        6.609,
+        34.713
+      ],
+      "model_seconds_median": 7.188
+    },
+    {
+      "case": "example",
+      "baseline": {
+        "case": "example",
+        "model_rounds": 5,
+        "model_seconds": 52.874,
+        "prompt_tokens": 49178,
+        "peak_prompt_tokens": 18694,
+        "answer_chars": 3623
+      },
+      "same_question_wording": true,
+      "completed_answers": 2,
+      "requests": 3,
+      "model_rounds": [
+        2,
+        2
+      ],
+      "answer_characters": [
+        365,
+        365
+      ],
+      "prompt_tokens": [
+        7728,
+        7822
+      ],
+      "prompt_tokens_median": 7775.0,
+      "model_seconds": [
+        16.062,
+        79.092
+      ],
+      "model_seconds_median": 47.577
+    }
+  ],
+  "browser": {
+    "browser-live": {
+      "mode": "live-followup",
+      "started_at": "2026-09-25T07:00:30.930Z",
+      "completed_at": "2026-09-25T07:01:14.519Z",
+      "checks": {
+        "rendered_reply": true,
+        "persisted_validation": true,
+        "current_summary_call": true,
+        "application_evidence_source": true,
+        "answer_length_metadata": true,
+        "reloaded_reply": true,
+        "mobile_no_overflow": true,
+        "browser_errors": []
+      },
+      "http_status": 200,
+      "session_id": "94c8e0627f004038b75fd28c94af2e37",
+      "task_id": "064523f8a8bf41a38f7c2193caf59930",
+      "message_id": "46dc23bfe1f448f3a29d1f79f917b130",
+      "status": "completed",
+      "validation": {
+        "policy": "quality-facts-v2",
+        "task_id": "064523f8a8bf41a38f7c2193caf59930",
+        "quality_ref": {
+          "artifact_id": "064523f8a8bf41a38f7c2193caf59930.quality",
+          "version": "sha256-99270913bd23aa3024e2f1ad5044748379d72c7b4d0a6d6b24692511653d7038"
+        },
+        "summary_call_id": "67df5baa010c4b37a503ba0fc08105b0",
+        "sections": [
+          "freshness"
+        ],
+        "section_sources": {
+          "freshness": "67df5baa010c4b37a503ba0fc08105b0"
+        },
+        "unsupported": false,
+        "rejected_attempts": [],
+        "requirements": {
+          "full": false,
+          "brief": false,
+          "required_sections": [
+            "freshness"
+          ],
+          "dimensions": [
+            "Up-to-date"
+          ],
+          "samples": [],
+          "max_sections": 6,
+          "max_characters": null,
+          "require_unsupported": false
+        },
+        "sample_checks": [],
+        "application_call_ids": [
+          "67df5baa010c4b37a503ba0fc08105b0"
+        ],
+        "answer_characters": 339
+      },
+      "model_attempts": [
+        {
+          "provider": "backup",
+          "model": "deepseek-v4-flash",
+          "status": "completed",
+          "duration_ms": 32885
+        }
+      ]
+    },
+    "browser-concise": {
+      "mode": "persisted-reply",
+      "started_at": "2026-09-25T07:02:12.867Z",
+      "completed_at": "2026-09-25T07:02:19.025Z",
+      "checks": {
+        "rendered_reply": true,
+        "persisted_validation": true,
+        "current_summary_call": true,
+        "application_evidence_source": true,
+        "answer_length_metadata": true,
+        "reloaded_reply": true,
+        "mobile_no_overflow": true,
+        "browser_errors": []
+      },
+      "session_id": "94c8e0627f004038b75fd28c94af2e37",
+      "task_id": "064523f8a8bf41a38f7c2193caf59930",
+      "message_id": "f69c99932270491b80395c86f01b6c9b",
+      "status": "completed",
+      "validation": {
+        "answer_characters": 632,
+        "application_call_ids": [
+          "3facce3f8b854e678dcaec80c2c4536e"
+        ],
+        "policy": "quality-facts-v2",
+        "quality_ref": {
+          "artifact_id": "064523f8a8bf41a38f7c2193caf59930.quality",
+          "version": "sha256-99270913bd23aa3024e2f1ad5044748379d72c7b4d0a6d6b24692511653d7038"
+        },
+        "rejected_attempts": [
+          {
+            "model_call_id": "357a0fb72e304cafbc7bc6bbfa35f4a8",
+            "reason": "问题要求证明真实性或保证下游效果，治理报告不能确认，unsupported 必须为 true。"
+          }
+        ],
+        "requirements": {
+          "brief": true,
+          "dimensions": [],
+          "full": false,
+          "max_characters": 800,
+          "max_sections": 4,
+          "require_unsupported": true,
+          "required_sections": [
+            "freshness",
+            "limitations",
+            "metric_method",
+            "scores"
+          ],
+          "samples": []
+        },
+        "sample_checks": [],
+        "section_sources": {
+          "freshness": "3facce3f8b854e678dcaec80c2c4536e",
+          "limitations": "3facce3f8b854e678dcaec80c2c4536e",
+          "metric_method": "3facce3f8b854e678dcaec80c2c4536e",
+          "scores": "3facce3f8b854e678dcaec80c2c4536e"
+        },
+        "sections": [
+          "freshness",
+          "limitations",
+          "metric_method",
+          "scores"
+        ],
+        "summary_call_id": "3facce3f8b854e678dcaec80c2c4536e",
+        "task_id": "064523f8a8bf41a38f7c2193caf59930",
+        "unsupported": true
+      },
+      "model_attempts": [
+        {
+          "provider": "backup",
+          "model": "deepseek-v4-flash",
+          "status": "completed",
+          "duration_ms": 12130
+        },
+        {
+          "provider": "backup",
+          "model": "deepseek-v4-flash",
+          "status": "completed",
+          "duration_ms": 8675
+        }
+      ]
+    },
+    "browser-example": {
+      "mode": "persisted-reply",
+      "started_at": "2026-09-25T07:02:12.907Z",
+      "completed_at": "2026-09-25T07:02:19.179Z",
+      "checks": {
+        "rendered_reply": true,
+        "persisted_validation": true,
+        "current_summary_call": true,
+        "application_evidence_source": true,
+        "answer_length_metadata": true,
+        "reloaded_reply": true,
+        "mobile_no_overflow": true,
+        "browser_errors": []
+      },
+      "session_id": "94c8e0627f004038b75fd28c94af2e37",
+      "task_id": "064523f8a8bf41a38f7c2193caf59930",
+      "message_id": "cf89c0c7b99647608ce54e6a3e51e288",
+      "status": "completed",
+      "validation": {
+        "answer_characters": 365,
+        "application_call_ids": [
+          "573d24fd09e840df9dc029de0de5479f",
+          "b51f1345d31447e0bb091cdb5708fa6d"
+        ],
+        "policy": "quality-facts-v2",
+        "quality_ref": {
+          "artifact_id": "064523f8a8bf41a38f7c2193caf59930.quality",
+          "version": "sha256-99270913bd23aa3024e2f1ad5044748379d72c7b4d0a6d6b24692511653d7038"
+        },
+        "rejected_attempts": [],
+        "requirements": {
+          "brief": false,
+          "dimensions": [],
+          "full": false,
+          "max_characters": null,
+          "max_sections": 6,
+          "require_unsupported": false,
+          "required_sections": [],
+          "samples": [
+            {
+              "count": 1,
+              "file_name": null,
+              "mode": "examples",
+              "offset": 0,
+              "reason": "ratings/R14_VALID_KEY_CONFLICT",
+              "table": "ratings"
+            }
+          ]
+        },
+        "sample_checks": [
+          {
+            "count": 1,
+            "file_name": null,
+            "offset": 0,
+            "reason": "ratings/R14_VALID_KEY_CONFLICT",
+            "requested_count": 1,
+            "section": "examples:aae4377b41fe4fd39b60a3aee5055e1a"
+          }
+        ],
+        "section_sources": {
+          "examples:aae4377b41fe4fd39b60a3aee5055e1a": "aae4377b41fe4fd39b60a3aee5055e1a"
+        },
+        "sections": [
+          "examples:aae4377b41fe4fd39b60a3aee5055e1a"
+        ],
+        "summary_call_id": "573d24fd09e840df9dc029de0de5479f",
+        "task_id": "064523f8a8bf41a38f7c2193caf59930",
+        "unsupported": false
+      },
+      "model_attempts": [
+        {
+          "provider": "backup",
+          "model": "deepseek-v4-flash",
+          "status": "completed",
+          "duration_ms": 70434
+        },
+        {
+          "provider": "backup",
+          "model": "deepseek-v4-flash",
+          "status": "completed",
+          "duration_ms": 8658
+        }
+      ]
+    },
+    "browser-smoke": {
+      "task_id": "064523f8a8bf41a38f7c2193caf59930",
+      "result": {
+        "session": "94c8e0627f004038b75fd28c94af2e37",
+        "task_id": "064523f8a8bf41a38f7c2193caf59930",
+        "ratings_output": 935354,
+        "metrics": 5,
+        "samples": true,
+        "examples": true,
+        "download_sha256": "e16f6a7bc29ce674aa36c2b3b0af8af1f3015d7b436fe0703410dd3a67aa30c5",
+        "desktop": "1440x1000",
+        "mobile": "390x844",
+        "session_reset": true,
+        "browser_errors": []
+      }
+    }
+  },
+  "comparison_limits": [
+    "Baseline has one observation per question; final has three requests per question.",
+    "Complete explanation uses aligned but different wording; the six other questions have identical wording.",
+    "History and provider load differ; this is not a controlled latency benchmark.",
+    "Usage is reported for completed model responses; failed calls without usage are not zero-cost evidence."
+  ],
+  "remaining": [
+    "Bounded explicit Chinese/English requirements, not general semantic understanding.",
+    "Gateway failures and latency remain provider constraints; no automatic repeated retry or Hadoop resubmission.",
+    "Primary service, teammate reproduction and presentation rehearsal were not verified here.",
+    "Brief requests still needed one bounded correction; sample requests sometimes reread evidence or add an unnecessary unsupported notice."
+  ],
+  "evidence_files": [
+    {
+      "path": "scripts/checks/evidence_reply_browser.cjs",
+      "bytes": 5618,
+      "sha256": "e797d02ec7ee3618fece842a4137dddd6a468e0409d1ba9d9753c3e9b884dbb5"
+    },
+    {
+      "path": "scripts/checks/explanation_regression.py",
+      "bytes": 11276,
+      "sha256": "209269ff7e7dd184fb6b093cad6aa180066a0c3312319c2077514e01582db2ee"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/api-status.json",
+      "bytes": 1987,
+      "sha256": "d52b8687c4043ae4ec82f72a58fe1bce9ba2c44526f0c935431af45936cea1b3"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/baseline-metrics.json",
+      "bytes": 1195,
+      "sha256": "6fcf21b3ca2dd0f99a25baf1c80ee85758951832844317fa655f5c2bdb455e2b"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/baseline-replay.json",
+      "bytes": 221,
+      "sha256": "5c5a435c7899d0328421ddff4132a240ec33350242c9e5e9b0b2256058a57ec9"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-concise/desktop.png",
+      "bytes": 208832,
+      "sha256": "4a6d53a982a23451b2a926dcfd6b42e2e3434ed319c26c363d4b021c4a299bda"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-concise/mobile.png",
+      "bytes": 124630,
+      "sha256": "0c6c621a366e585559017a730c8c81ed64ee3b769f24e69c7161eb4bd9272dcf"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-concise/response.json",
+      "bytes": 4385,
+      "sha256": "b16876000e768c60262643c05311cb7e97b578bef2a324007c8e92c3df31b2ef"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-concise/result.json",
+      "bytes": 4708,
+      "sha256": "6e80f1a75b90276a43b1083bd2ab864d4a159266f0886eba046aa02ac74fe883"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-example/desktop.png",
+      "bytes": 213865,
+      "sha256": "7d6d8bcebd5134907a871fd4eefe31aaa6c4fe565a81220dc67c1cccc04fb1dd"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-example/mobile.png",
+      "bytes": 125957,
+      "sha256": "44d10cf8cb9ecf02b56afb76c9d2b0b49d721fa2e6254155fcffabb0f21e9888"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-example/response.json",
+      "bytes": 3981,
+      "sha256": "5c04c28786b9b2c26b4c1e8ebfe1ce07234ff848ee5908ee6c2ded1a0bf54591"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-example/result.json",
+      "bytes": 4304,
+      "sha256": "43fc0c555e35a36bdc8482754292cf3e6956e5cb09cb42700a6a443b516110f6"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-live/desktop.png",
+      "bytes": 218512,
+      "sha256": "6713b53e6c6bf01b574ba84de7d470c303452ed989033556ef559bba579a0a0f"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-live/mobile.png",
+      "bytes": 192937,
+      "sha256": "88e8589a77219c19029828f5964058ea36b7cdd6730b35fff5451843c14bff7f"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-live/response.json",
+      "bytes": 2914,
+      "sha256": "7ae0d149fb7e23d78707569b632b92a6be286f7e50dfa5fca4a5ab909d51b50c"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-live/result.json",
+      "bytes": 3237,
+      "sha256": "2ef3c5a89f65a615078efee7162511ec0d1dae06b573c4bdbd5a6fadfede993c"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-smoke/desktop.png",
+      "bytes": 269161,
+      "sha256": "ca8357a0b007fe26a50cddcb47041c9e0f68236740f29391bfe980b29e5d5125"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-smoke/download-quality.json",
+      "bytes": 75556,
+      "sha256": "e16f6a7bc29ce674aa36c2b3b0af8af1f3015d7b436fe0703410dd3a67aa30c5"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-smoke/mobile.png",
+      "bytes": 233865,
+      "sha256": "a564667b5d36912338ea0e3e1cd2d73481b1bf627658be6fca2105709af54a63"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/browser-smoke/result.json",
+      "bytes": 371,
+      "sha256": "d78c459b2e313830712d3bee6ba8c81f4ae3bb6cc8146194d0b3379dbdbd30ed"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/closeout.json",
+      "bytes": 1107,
+      "sha256": "e0ef0ab40804c2b70a08eb2c862a201b72a607b1b110d00ac1e5df0780863006"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/environment.json",
+      "bytes": 573,
+      "sha256": "1623cc9e4b9d0b0c5a59978f3b9f52bd85cebe4b92bf79c025c1417eed608d5c"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/final-environment.json",
+      "bytes": 647,
+      "sha256": "9d07cd97aa7daf2f735d4e14812613e3e5346115fee6592a2c13c10238ba33c0"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/final-three-rounds/result.json",
+      "bytes": 1300448,
+      "sha256": "52443bcfa1d68464bbd889918c82d3c4d9770355ca8240d2df196dfbf632b91c"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/hdfs-status.json",
+      "bytes": 62,
+      "sha256": "3da25076106341a83f56bae45c5e4ec95763626cffec19a933fe2d46a355e0b4"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/initial-three-rounds/result.json",
+      "bytes": 697117,
+      "sha256": "ef9bceca635d63d0be6b0670c303e8f26ca1a610ab85a6234e11a14f05461e8a"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/initial-three-rounds/scope-review.json",
+      "bytes": 521,
+      "sha256": "c20bc8adb9765515dc2388eabb28770b209cbaaba9c2cac2badf49a6c72e5a75"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/initial-three-rounds/stopped-for-fix.json",
+      "bytes": 459,
+      "sha256": "6eb6905faf616c3161d2b73c5aa99d0f6ac2336c889ecb423c732d26ceda56ee"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/pre-edit.json",
+      "bytes": 130,
+      "sha256": "394d5ff831dbdbe39bc23aa42737838f10f37ef9b40b5a1f780492ff861cd1b9"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/service-start.json",
+      "bytes": 296,
+      "sha256": "e69ff4d453c3476f3e3910999a33db0f95ba3ff906e0e13a78880aae053b8f99"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/summarize_results.py",
+      "bytes": 8155,
+      "sha256": "bf3f8f9eac9ecc492544e3526d6d5fc88ae2cb09b06d70be1fbcaf577e20ce88"
+    },
+    {
+      "path": "var/verification/2026-09-25/followup-v2/transport-recheck/result.json",
+      "bytes": 216309,
+      "sha256": "974376fba59d9e6d01199e0e943fa9af2967bd54133db5929b4781e903ce7352"
+    }
+  ]
+}

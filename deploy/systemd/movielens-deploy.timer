@@ -1,0 +1,10 @@
+[Unit]
+Description=Check for a tested MovieLens release every three minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=3min
+RandomizedDelaySec=20s
+
+[Install]
+WantedBy=timers.target

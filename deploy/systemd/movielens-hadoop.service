@@ -1,0 +1,17 @@
+[Unit]
+Description=Dedicated MovieLens HDFS and YARN cluster
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/bin/local_cluster.py serve --runtime %h/shared/hadoop --python /usr/bin/python3
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=90s
+MemoryHigh=4G
+MemoryMax=5G
+CPUQuota=300%
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

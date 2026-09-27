@@ -4,20 +4,31 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：仓库初始化完成。** 已整理项目总体要求与迭代一说明；实验代码、Agent 工具、前端和运行脚本尚未加入仓库。下文中的系统能力均为待实现目标。
+**当前进度：迭代一完成开发与交接整理，稳定代码和云端发布统一使用 `main`，本轮基线标签为 `iteration-01-v1.0`。** 已交付 Agent 共用架构、真实 Hadoop 治理、手记版页面、模型设置、历史会话和九阶段实际进度。课程全量结果来自已留证的本地实验，云端已验证 22 条边界样本的完整流程；完整清洗数据另以固定版本交接到云端。接手先看[迭代一交接说明](docs/iterations/01-governance/handoff/交接说明.md)，验收范围与限制见[收尾记录](docs/iterations/01-governance/reports/2026-09-27-收尾验收.md)。课程平台提交和 9 月 30 日汇报由负责人安排。
 
 ## 实验文档
 
-- [项目总体要求与汇报安排](docs/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。
-- [迭代一：Hadoop 数据清洗与 Agent 基础](docs/迭代一_Hadoop数据清洗与Agent基础.md)：数据检查方向、五维质量评分、Agent 工具与前端要求。
+首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；操作见[模型与页面指南](docs/development/app-and-model.md)。
 
-README 提供项目入口与准备说明，具体实验要求以以上课程文档为准。
+完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。 自动检查与云端部署见[华为云与 CI/CD](docs/deployment/README.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
+
+- [项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。
+- [迭代一：Hadoop 数据清洗与 Agent 基础](docs/course/迭代一_Hadoop数据清洗与Agent基础.md)：数据检查方向、五维质量评分、Agent 工具与前端要求。
+- [迭代一：需求拆解与验收清单](docs/iterations/01-governance/需求拆解与验收清单.md)：交付范围、需求追踪、验收场景、开发顺序与待确定事项。
+- [系统架构详解与图件](docs/architecture/系统架构详解.md)：面向初学者的系统总览、清洗与追问时序、七作业流程、存储和代码索引，附 SVG/PNG/PDF。
+- [Agent 整体架构与迭代边界](docs/architecture/Agent整体架构与迭代边界.md)：共用模块、工具与任务协议、版本化产物、后续接入方式及课件参考。
+- [迭代一：技术方案与接口约定](docs/iterations/01-governance/技术方案与接口约定.md)：首版选型建议、模块边界、工具与 HTTP 接口、任务状态及结果发布。
+- [迭代一：数据与评分约定](docs/iterations/01-governance/数据与评分约定.md)：三表输出格式、来源追踪、已实现的清洗规则、五维评分方法与时间划分。
+- [清洗数据交接与读取](docs/iterations/01-governance/handoff/清洗数据读取.md)：固定产物引用、哈希校验、T1/T2 分区与下一轮 Python 示例。
+- [迭代一：开发与交接计划](docs/iterations/01-governance/开发与交接计划.md)：W00—W09 工作项、依赖关系、运行验证和交接清单。
+
+README 提供项目入口与准备说明。课程要求以总体与各轮实验文档为准；需求清单和架构文档记录小组确定的交付目标、当前实现与扩展边界。
 
 ## 迭代计划
 
 | 迭代 | 目标与主要任务 | 主要产物 | 状态 |
 | --- | --- | --- | --- |
-| 一：数据治理 | Agent 调用 Hadoop，完成原始数据评分、清洗、清洗后评分与结果对比 | 清洗数据、数据与规则版本、任务标识、时间边界 `T1/T2`、评估报告 | 待实现 |
+| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | 开发与交接整理完成，基线 `iteration-01-v1.0`；课程提交与汇报另行完成 |
 | 二：机器学习分析 | 预测评分是否不低于 4 分；按历史观影偏好聚类用户；降维并比较聚类效果、信息保留与资源开销 | 分类模型、用户画像与群体、降维模型与坐标、参数及评价结果 | 待实现 |
 | 三：知识图谱与图分析 | 构建并校验电影领域知识图谱，在同一图谱版本或其图投影上完成推荐、电影社区挖掘与链接分析 | 带来源与版本的知识图谱、推荐结果、社区结构与节点排序结果 | 待实现 |
 
@@ -43,15 +54,25 @@ README 提供项目入口与准备说明，具体实验要求以以上课程文�
 .
 ├── README.md
 ├── .gitignore
-├── docs/                                      # 课程实验要求
-│   ├── 引言_项目总体要求与汇报安排.md
-│   └── 迭代一_Hadoop数据清洗与Agent基础.md
-├── ml-1m/                                     # 本地数据，已被 Git 忽略
-│   ├── README                                 # 数据集说明与使用条件
-│   ├── movies.dat
-│   ├── ratings.dat
-│   └── users.dat
-└── __MACOSX/                                  # 解压产生的元数据，不参与实验
+├── pyproject.toml                 # 包定义与依赖声明
+├── environment.yml                # AgentDev 环境声明
+├── requirements.lock              # 已验证的 Python 库版本
+├── environments/                  # 平台环境锁文件
+├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
+├── configs/governance/            # 规则、评分与时间配置
+├── scripts/                       # Hadoop、实际验收与交接读取示例
+├── .github/workflows/             # GitHub CI
+├── deploy/systemd/                # 云端应用、计算与交付服务
+├── tests/                         # 小型数据与框架行为验证
+├── docs/
+│   ├── README.md                  # 文档导航
+│   ├── course/                    # 课程原始要求
+│   ├── architecture/              # 三轮共用架构
+│   ├── iterations/01-governance/   # 迭代一需求、方案、计划与核查报告
+│   ├── development/               # 开发环境与 Git 协作指南
+│   └── deployment/                # 云端访问、持续交付与部署记录
+├── ml-1m/                         # 本地原始数据，Git 忽略
+└── slides/                        # 本地课件与预习资料，Git 忽略
 ```
 
 ## 获取仓库与准备数据
@@ -61,7 +82,10 @@ README 提供项目入口与准备说明，具体实验要求以以上课程文�
 ```bash
 git clone git@github.com:DuscWalk/Big-Data-Analysis-2026.git
 cd Big-Data-Analysis-2026
+git switch main
 ```
+
+后续开发从最新 `main` 创建自己的功能分支；需要固定迭代一源码时使用标签 `iteration-01-v1.0`，见 [Git 工作流](docs/development/git-workflow.md)。
 
 将课程提供的 `ml-1m.zip` 放到仓库根目录后解压。若 `ml-1m/` 已就位，无需重复解压。
 
@@ -75,9 +99,43 @@ unzip ml-1m.zip
 wc -l ml-1m/movies.dat ml-1m/ratings.dat ml-1m/users.dat
 ```
 
-`ml-1m/`不随 Git 同步。开展实验前，小组成员应确认使用的数据来源与版本一致，并保留原始数据，另行存放清洗产物。
+`ml-1m/` 与 `slides/` 不随 Git 同步。开展实验前，小组成员应确认使用的数据来源与版本一致，并保留原始数据，另行存放清洗产物。
 
-目前以上步骤仅完成仓库与数据准备。Hadoop、Agent 和前端的技术选型、依赖版本、部署方式及启动命令将在对应实现加入后补充。
+以上步骤完成仓库与数据准备；实际执行见下文及开发指南。
+
+## 本地开发与已实现命令
+
+使用 `duscwalk` 用户的 Conda 环境 **`AgentDev`**，当前已验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
+
+```bash
+source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
+conda activate AgentDev
+python -m pip install -r requirements.lock
+python -m pip install --no-deps --no-build-isolation -e .
+python -m movielens_agent profile --data-dir ml-1m
+python -m unittest discover -s tests -v
+```
+
+核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
+
+日常开发使用小样本检查，Hadoop 计算和集成验收集中在[华为云环境](docs/deployment/README.md)。本机 WSL 曾因计算负载失稳，不把完整 Hadoop 作为开发前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
+
+```bash
+python -m movielens_agent submit --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578 --request-id governance-001
+python -m movielens_agent worker --once
+python -m movielens_agent task --task-id TASK_ID
+```
+
+版本使用 profile 的实际输出，TASK_ID 使用 submit 返回值。去重、失败核查、报告及样例查询见 [任务与工具指南](docs/development/tasks-and-tools.md)。全量运行保留 935,354 条评分，前后分数、处置损失与作业记录见 [2026-09-24 Hadoop 治理实测](docs/iterations/01-governance/reports/2026-09-24-Hadoop治理实测.md)。
+
+应用入口与模型配置见 [Agent、模型与页面指南](docs/development/app-and-model.md)。准备好 `.env` 后，在 worker 和 Hadoop 运行期间启动：
+
+```bash
+python -m movielens_agent model-probe
+python -m movielens_agent serve --port 8765
+```
+
+本地开发页面为 <http://127.0.0.1:8765>；云端演示通过 SSH 隧道访问 <http://127.0.0.1:18765/>，步骤见[演示说明](docs/iterations/01-governance/demo/演示说明.md)。模型解释失败时仍可读取实际产物；“受理”与“计算完成”是不同状态。应用监听回环地址，云端借助 SSH 控制接入；模型配置与历史会话在当前可信小组环境中共享。
 
 ## 数据集说明
 
@@ -89,7 +147,7 @@ MovieLens 1M 由明尼苏达大学 GroupLens Research 发布。官方原始数�
 | `ratings.dat` | `UserID::MovieID::Rating::Timestamp` | 1,000,209 | 1,150,241 |
 | `users.dat` | `UserID::Gender::Age::Occupation::Zip-code` | 6,040 | 6,946 |
 
-本地行数于 **2026-09-24** 核对，与官方原始规模不同，仅用于说明初始化时的数据副本。行数不等于有效记录数，差异原因需在迭代一通过实际检查确认，不能直接据此认定存在某类错误。更换数据后应重新核验并登记版本。
+本地行数于 **2026-09-24** 核对，与官方原始规模不同，仅用于说明初始化时的数据副本。行数不等于有效记录数；实际核查已发现格式、值域、重复与冲突等问题，具体统计和局限见本轮核查报告。更换数据后应重新核验并登记版本。
 
 解析时需注意：
 
@@ -103,6 +161,7 @@ MovieLens 1M 由明尼苏达大学 GroupLens Research 发布。官方原始数�
 
 ## 实验实现约定
 
+- **架构复用：** 第一轮实现共用的工具注册、任务执行、会话证据、产物登记与前端入口；第二、三轮通过独立算法工具、工作流和结果视图扩展。
 - **复用与版本管理：** 后续迭代复用前一轮已登记的成果；数据、清洗规则、模型、知识图谱和评价结果均记录版本，避免混用不同版本的产物。
 - **统一时间边界：** 迭代一确定 `T1/T2`。`T1` 为训练期截止时间，`T2` 为验证期截止时间，测试数据位于 `T2` 之后；不得使用验证期或测试期信息构造训练输入。
 - **实际执行：** Hadoop 承担迭代一的实际清洗与评分计算；Agent 组织任务、调用工具并解释结果。前端展示实际状态、证据与异常，失败或未完成时如实说明。
@@ -123,7 +182,7 @@ MovieLens 1M 由明尼苏达大学 GroupLens Research 发布。官方原始数�
 
 每轮必须提交对应的**源码与相关文档**，包括 Agent 工具、前端、配置与运行脚本，以及运行方法、工具接口、数据和模型版本、实验配置、评价结果与已知限制。提交内容应与汇报展示的系统版本一致。
 
-PPT、演示视频及其他汇报材料为可选项；可使用预录视频替代现场系统操作展示。具体安排见[项目总体要求与汇报安排](docs/引言_项目总体要求与汇报安排.md)。
+PPT、演示视频及其他汇报材料为可选项；可使用预录视频替代现场系统操作展示。具体安排见[项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)。
 
 ## 数据引用
 

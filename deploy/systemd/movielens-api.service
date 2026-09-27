@@ -1,0 +1,19 @@
+[Unit]
+Description=MovieLens API and browser UI
+
+[Service]
+Type=simple
+WorkingDirectory=%h/current/code
+ExecStart=%h/current/venv/bin/python -m movielens_agent serve --port 8765 --env-file %h/shared/.env --catalog %h/shared/catalog.sqlite3 --config %h/current/code/configs/governance/default.json
+Restart=on-failure
+RestartSec=5
+# Allow an existing model request to finish before a deployment stops the API.
+TimeoutStopSec=30min
+MemoryHigh=256M
+MemoryMax=512M
+CPUQuota=100%
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

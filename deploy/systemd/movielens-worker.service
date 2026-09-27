@@ -1,0 +1,20 @@
+[Unit]
+Description=MovieLens durable workflow worker
+After=movielens-hadoop.service
+Requires=movielens-hadoop.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/current/code
+ExecStart=%h/current/venv/bin/python -m movielens_agent worker --catalog %h/shared/catalog.sqlite3 --runtime %h/shared/hadoop/runtime.json --run-root %h/shared/runs
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30s
+MemoryHigh=768M
+MemoryMax=1G
+CPUQuota=200%
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

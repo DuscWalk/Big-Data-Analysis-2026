@@ -1,0 +1,311 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1980" viewBox="0 0 2000 1980" role="img" aria-labelledby="figure-title figure-description">
+<title id="figure-title">MovieLens 数据治理 Agent 详细架构</title><desc id="figure-description">当前实现的浏览器、单进程 API 与 Agent、外部模型、共享持久化存储、独立 worker、Hadoop，以及待实现的后续迭代。红色为任务控制，绿色为数据证据，灰色为模块调用。</desc>
+<defs>
+<marker id="arrow-red" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#ad352c"/></marker>
+<marker id="arrow-green" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#52756b"/></marker>
+<marker id="arrow-grey" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#788078"/></marker>
+<marker id="arrow-model" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M0 0 L9 4.5 L0 9 Z" fill="#71809a"/></marker>
+</defs><rect width="2000" height="1980" fill="#faf9f6"/>
+<g font-family="Noto Sans CJK SC, Microsoft YaHei, sans-serif">
+<text x="60" y="66" font-size="38" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="60" dy="0">MovieLens 数据治理 Agent</tspan>
+</text>
+<text x="60" y="106" font-size="19" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="60" dy="0">系统架构  /  迭代一已实现  /  2026-09-27  /  实现基线 9732d72</tspan>
+</text>
+<path d="M60,143 L106,143" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)"/>
+<text x="122" y="150" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="122" dy="0">任务提交与发布</tspan>
+</text>
+<path d="M350,143 L396,143" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<text x="412" y="150" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="412" dy="0">数据与证据</tspan>
+</text>
+<path d="M620,143 L666,143" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<text x="682" y="150" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="682" dy="0">模块调用与状态</tspan>
+</text>
+<path d="M940,143 L986,143" fill="none" stroke="#71809a" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-model)"/>
+<text x="1002" y="150" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1002" dy="0">外部模型协议</tspan>
+</text>
+<text x="1940" y="145" font-size="17" font-weight="400" fill="#656a62" text-anchor="end">
+<tspan x="1940" dy="0">实线框：当前实现   ·   虚线框：待实现</tspan>
+</text>
+<g id="browser"><rect x="60" y="180" width="1420" height="160" rx="14" fill="#f1f0eb" stroke="#d4d6ce" stroke-width="1.5"/></g>
+<text x="84" y="217" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">浏览器  /  手记版工作台</tspan>
+</text>
+<g id="browser-chat" class="module"><rect x="90" y="240" width="620" height="75" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="108" y="272" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="108" dy="0">实验助手</tspan>
+</text>
+<text x="108" y="303" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="108" dy="0">自然语言请求 / 会话与任务选择 / 连续追问 / 显式重试</tspan>
+</text>
+</g>
+<g id="browser-results" class="module"><rect x="760" y="240" width="690" height="75" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="778" y="272" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="778" dy="0">结果与证据</tspan>
+</text>
+<text x="778" y="303" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="778" dy="0">状态 / 五维质量 / 数据处置 / 时间划分 / 来源样例 / 下载</tspan>
+</text>
+</g>
+<g id="external-model" class="module"><rect x="1560" y="180" width="380" height="210" rx="8" fill="#edf0f4" stroke="#a5afbe" stroke-width="1.5"/>
+<text x="1578" y="212" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1578" dy="0">外部模型服务</tspan>
+</text>
+<text x="1578" y="243" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1578" dy="0">支持 primary / backup / auto 路由</tspan>
+<tspan x="1578" dy="29">返回工具调用或解释计划</tspan>
+<tspan x="1578" dy="29">仅接收所需上下文与有界证据</tspan>
+<tspan x="1578" dy="29">不直接访问原始文件或 Hadoop</tspan>
+</text>
+</g>
+<g id="api-process"><rect x="60" y="410" width="1420" height="635" rx="14" fill="#fcf5f1" stroke="#cb9a8e" stroke-width="1.5"/></g>
+<text x="84" y="447" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">应用进程 A  /  FastAPI + Agent  /  127.0.0.1:8765</tspan>
+</text>
+<g id="http-api" class="module"><rect x="90" y="473" width="1360" height="80" rx="8" fill="#f8e8e2" stroke="#c48b7b" stroke-width="1.5"/>
+<text x="108" y="505" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="108" dy="0">HTTP 接口与会话范围检查</tspan>
+</text>
+<text x="108" y="536" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="108" dy="0">POST messages / retry / explanation     ·     GET messages / calls / tasks / quality / artifacts / download</tspan>
+</text>
+</g>
+<g id="agent-service" class="module"><rect x="90" y="621" width="520" height="125" rx="8" fill="#fffefa" stroke="#ad352c" stroke-width="1.5"/>
+<text x="108" y="653" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="108" dy="0">AgentService · 会话协调</tspan>
+</text>
+<text x="108" y="684" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="108" dy="0">请求去重 / 当前任务绑定 / 有界历史</tspan>
+<tspan x="108" dy="26">工具循环 / 真实任务回执 / 调用审计</tspan>
+</text>
+</g>
+<g id="report-answer" class="module"><rect x="660" y="621" width="510" height="125" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="678" y="653" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="678" dy="0">ReportAnswer · 已发布任务追问</tspan>
+</text>
+<text x="678" y="684" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="678" dy="0">问题范围与样例位置 → 本轮取证</tspan>
+<tspan x="678" dy="26">模型解释计划校验 → 按报告事实生成回答</tspan>
+</text>
+</g>
+<g id="model-router" class="module"><rect x="1220" y="621" width="230" height="125" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1238" y="653" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1238" dy="0">RoutedModel</tspan>
+</text>
+<text x="1238" y="684" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1238" dy="0">主备路由 / 超时</tspan>
+<tspan x="1238" dy="26">协议适配 / 上下文</tspan>
+</text>
+</g>
+<g id="tool-registry"><rect x="90" y="810" width="1360" height="200" rx="14" fill="#f9eee8" stroke="#cda397" stroke-width="1.5"/></g>
+<text x="114" y="847" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="114" dy="0">ToolRegistry  /  参数与结果校验；报告解释路径只允许查询</tspan>
+</text>
+<g id="job-tool" class="module"><rect x="115" y="875" width="415" height="100" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="133" y="907" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="133" dy="0">计算工具 · governance.run</tspan>
+</text>
+<text x="133" y="938" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="133" dy="0">固定输入、配置与实现哈希</tspan>
+<tspan x="133" dy="24">写入 queued，返回 task_id</tspan>
+</text>
+</g>
+<g id="query-tools" class="module"><rect x="570" y="875" width="855" height="100" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="588" y="907" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="588" dy="0">查询工具</tspan>
+</text>
+<text x="588" y="938" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="588" dy="0">datasets.describe / tasks.get / artifacts.list / artifacts.get</tspan>
+<tspan x="588" dy="24">元数据 / 报告摘要 / 清洗样例 / 异常来源</tspan>
+</text>
+</g>
+<g id="persistence"><rect x="60" y="1120" width="1020" height="340" rx="14" fill="#f0f4f0" stroke="#94aba0" stroke-width="1.5"/></g>
+<text x="84" y="1157" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">持久化存储  /  同一个数据库 + 本机文件</tspan>
+</text>
+<g id="sqlite" class="module"><rect x="90" y="1190" width="500" height="230" rx="8" fill="#fffefa" stroke="#94aba0" stroke-width="1.5"/>
+<text x="108" y="1222" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="108" dy="0">SQLite · 元数据与调用证据</tspan>
+</text>
+<text x="108" y="1253" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="108" dy="0">var/catalog.sqlite3</tspan>
+<tspan x="108" dy="29">DatasetCatalog：原始数据版本与清单</tspan>
+<tspan x="108" dy="29">TaskStore：任务 / 阶段 / 产物</tspan>
+<tspan x="108" dy="29">ConversationStore：会话 / 消息 / 调用</tspan>
+<tspan x="108" dy="29">请求去重 / 配置快照 / 精确版本引用</tspan>
+</text>
+</g>
+<g id="raw-data" class="module"><rect x="620" y="1190" width="430" height="90" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="638" y="1222" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="638" dy="0">只读原始文件</tspan>
+</text>
+<text x="638" y="1253" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="638" dy="0">ml-1m/ · users / movies / ratings</tspan>
+</text>
+</g>
+<g id="run-files" class="module"><rect x="620" y="1310" width="430" height="110" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="638" y="1342" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="638" dy="0">任务专属文件</tspan>
+</text>
+<text x="638" y="1373" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="638" dy="0">var/runs/{task_id}/</tspan>
+<tspan x="638" dy="25">input / results / logs / published</tspan>
+</text>
+</g>
+<g id="worker-process"><rect x="1140" y="1120" width="800" height="440" rx="14" fill="#f0f3f3" stroke="#9daeb0" stroke-width="1.5"/></g>
+<text x="1164" y="1157" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1164" dy="0">应用进程 B  /  独立 worker  /  同一 catalog 单实例</tspan>
+</text>
+<g id="worker" class="module"><rect x="1170" y="1190" width="740" height="80" rx="8" fill="#fffefa" stroke="#718c92" stroke-width="1.5"/>
+<text x="1188" y="1222" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1188" dy="0">Worker · 从数据库领取任务</tspan>
+</text>
+<text x="1188" y="1253" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1188" dy="0">事务领取 queued → running；更新阶段与状态</tspan>
+</text>
+</g>
+<g id="workflow" class="module"><rect x="1170" y="1310" width="740" height="90" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1188" y="1342" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1188" dy="0">GovernanceWorkflow · governance.v1</tspan>
+</text>
+<text x="1188" y="1373" font-size="17" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1188" dy="0">版本核对 → 来源封装 → 七个 Hadoop 作业 → 核对与导出</tspan>
+</text>
+</g>
+<g id="verify" class="module"><rect x="1170" y="1450" width="350" height="80" rx="8" fill="#fffefa" stroke="#718c92" stroke-width="1.5"/>
+<text x="1188" y="1482" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1188" dy="0">发布前核对</tspan>
+</text>
+<text x="1188" y="1513" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1188" dy="0">守恒 / 外键 / 分区 / SHA-256</tspan>
+</text>
+</g>
+<g id="hadoop-adapter" class="module"><rect x="1570" y="1450" width="340" height="80" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1588" y="1482" font-size="20" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1588" dy="0">Hadoop 适配器</tspan>
+</text>
+<text x="1588" y="1513" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1588" dy="0">提交作业 / HDFS 读写 / 日志</tspan>
+</text>
+</g>
+<g id="future"><rect x="60" y="1540" width="1020" height="220" rx="14" fill="#f5f4ef" stroke="#a9aaa0" stroke-width="1.5" stroke-dasharray="10 7"/></g>
+<text x="84" y="1577" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="84" dy="0">后续迭代  /  待实现</tspan>
+</text>
+<text x="86" y="1620" font-size="21" font-weight="500" fill="#262722" text-anchor="start">
+<tspan x="86" dy="0">迭代二：分类 / 聚类 / 降维</tspan>
+</text>
+<text x="86" y="1661" font-size="21" font-weight="500" fill="#262722" text-anchor="start">
+<tspan x="86" dy="0">迭代三：知识图谱 / 推荐 / 社区挖掘 / 链接分析</tspan>
+</text>
+<text x="86" y="1705" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="86" dy="0">接入新的算法工具、工作流、产物类型与专用视图。</tspan>
+<tspan x="86" dy="28">复用上方的会话、注册、任务、证据及版本机制。</tspan>
+</text>
+<g id="hadoop-runtime"><rect x="1140" y="1610" width="800" height="275" rx="14" fill="#e8efee" stroke="#94aaa6" stroke-width="1.5"/></g>
+<text x="1164" y="1647" font-size="24" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1164" dy="0">Hadoop 运行环境  /  本机单节点 · 真实批处理</tspan>
+</text>
+<g id="yarn" class="module"><rect x="1170" y="1680" width="215" height="165" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1188" y="1712" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1188" dy="0">YARN</tspan>
+</text>
+<text x="1188" y="1743" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1188" dy="0">ResourceManager</tspan>
+<tspan x="1188" dy="28">NodeManager</tspan>
+<tspan x="1188" dy="28">资源与容器调度</tspan>
+</text>
+</g>
+<g id="streaming" class="module"><rect x="1415" y="1680" width="240" height="165" rx="8" fill="#fffefa" stroke="#718c92" stroke-width="1.5"/>
+<text x="1433" y="1712" font-size="19" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1433" dy="0">Hadoop Streaming</tspan>
+</text>
+<text x="1433" y="1743" font-size="15" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1433" dy="0">Python Mapper / Reducer</tspan>
+<tspan x="1433" dy="28">分组 / 规则 / 五维评分</tspan>
+<tspan x="1433" dy="28">七个 MapReduce 作业</tspan>
+</text>
+</g>
+<g id="hdfs" class="module"><rect x="1685" y="1680" width="225" height="165" rx="8" fill="#fffefa" stroke="#d4d6ce" stroke-width="1.5"/>
+<text x="1703" y="1712" font-size="21" font-weight="600" fill="#262722" text-anchor="start">
+<tspan x="1703" dy="0">HDFS</tspan>
+</text>
+<text x="1703" y="1743" font-size="15" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1703" dy="0">NameNode / DataNode</tspan>
+<tspan x="1703" dy="28">/movielens/tasks/{id}/</tspan>
+<tspan x="1703" dy="28">输入 / 输出 / 清洗副本</tspan>
+</text>
+</g>
+<path d="M350,340 L350,410" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)" marker-start="url(#arrow-red)"/>
+<text x="365" y="386" font-size="17" font-weight="400" fill="#ad352c" text-anchor="start">
+<tspan x="365" dy="0">提出请求 / 回答与状态</tspan>
+</text>
+<path d="M1040,340 L1040,410" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)"/>
+<text x="1055" y="386" font-size="17" font-weight="400" fill="#52756b" text-anchor="start">
+<tspan x="1055" dy="0">轮询 / 查看 / 下载</tspan>
+</text>
+<path d="M350,553 L350,621" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<text x="365" y="595" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="365" dy="0">会话请求</tspan>
+</text>
+<path d="M540,621 L540,587 L1335,587 L1335,621" fill="none" stroke="#71809a" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-model)" marker-start="url(#arrow-model)"/>
+<text x="800" y="579" font-size="16" font-weight="400" fill="#71809a" text-anchor="start">
+<tspan x="800" dy="0">模型请求与回复</tspan>
+</text>
+<path d="M610,685 L660,685" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M1450,685 L1520,685 L1520,295 L1560,295" fill="none" stroke="#71809a" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-model)" marker-start="url(#arrow-model)"/>
+<path d="M350,746 L350,810" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<text x="365" y="786" font-size="16" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="365" dy="0">结构化工具调用</tspan>
+</text>
+<path d="M850,746 L850,810" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<text x="865" y="786" font-size="16" font-weight="400" fill="#52756b" text-anchor="start">
+<tspan x="865" dy="0">先读本轮精确证据</tspan>
+</text>
+<path d="M320,975 L320,1120" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)"/>
+<text x="337" y="1089" font-size="17" font-weight="400" fill="#ad352c" text-anchor="start">
+<tspan x="337" dy="0">提交任务与固定配置</tspan>
+</text>
+<path d="M850,975 L850,1120" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)"/>
+<text x="868" y="1089" font-size="17" font-weight="400" fill="#52756b" text-anchor="start">
+<tspan x="868" dy="0">读取状态、报告与样例</tspan>
+</text>
+<path d="M1450,510 L1493,510 L1493,1070 L1040,1070 L1040,1120" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)"/>
+<text x="1180" y="1061" font-size="16" font-weight="400" fill="#52756b" text-anchor="start">
+<tspan x="1180" dy="0">GET 状态 / 文件下载</tspan>
+</text>
+<path d="M1080,1230 L1140,1230" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)" marker-start="url(#arrow-red)"/>
+<path d="M1080,1355 L1140,1355" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)"/>
+<path d="M1530,1270 L1530,1310" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M1345,1400 L1345,1450" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<text x="1165" y="1434" font-size="15" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="1165" dy="0">全部作业结束后</tspan>
+</text>
+<path d="M1740,1400 L1740,1450" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M1170,1490 L1100,1490 L1100,1380 L1080,1380" fill="none" stroke="#ad352c" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-red)"/>
+<text x="1068" y="1495" font-size="17" font-weight="400" fill="#ad352c" text-anchor="end">
+<tspan x="1068" dy="0">产物登记与 succeeded 原子发布</tspan>
+</text>
+<path d="M1740,1530 L1740,1610" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)"/>
+<text x="1757" y="1590" font-size="16" font-weight="400" fill="#52756b" text-anchor="start">
+<tspan x="1757" dy="0">实际计算 / 文件读写</tspan>
+</text>
+<path d="M1385,1765 L1415,1765" fill="none" stroke="#788078" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-grey)"/>
+<path d="M1655,1765 L1685,1765" fill="none" stroke="#52756b" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow-green)" marker-start="url(#arrow-green)"/>
+<text x="60" y="1815" font-size="18" font-weight="400" fill="#656a62" text-anchor="start">
+<tspan x="60" dy="0">阅读提示：大框表示运行分组；内部矩形表示逻辑模块。</tspan>
+<tspan x="60" dy="31">API 和 worker 通过 SQLite 任务记录衔接；报告、样例与下载可直接读取。</tspan>
+<tspan x="60" dy="31">解释失败保留已发布产物；外部作业状态不明时，任务标记 unknown 待核查。</tspan>
+</text>
+<text x="60" y="1942" font-size="18" font-weight="500" fill="#262722" text-anchor="start">
+<tspan x="60" dy="0">已实现：会话 → 工具 → 持久任务 → Hadoop → 版本化产物 → 证据解释</tspan>
+</text>
+<text x="1940" y="1942" font-size="17" font-weight="400" fill="#656a62" text-anchor="end">
+<tspan x="1940" dy="0">详见：系统架构详解.md</tspan>
+</text>
+</g></svg>

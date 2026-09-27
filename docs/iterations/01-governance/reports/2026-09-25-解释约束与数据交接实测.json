@@ -1,0 +1,559 @@
+{
+  "date": "2026-09-25",
+  "timezone": "Asia/Shanghai",
+  "requirements": [
+    "R05",
+    "R07",
+    "R09",
+    "R10",
+    "R11",
+    "R18"
+  ],
+  "explanation_code_commit": "cbb4a987149a5014f4b855c8011dec5d557d39ff",
+  "implementation_sha256": "sha256-fb44a805e7dbd945fe55fce3c554a5d57e7d178adf89ce742513f3e6c172bf39",
+  "governance_producer_commit": "f996feabf7d5a8c89248587dbb4f3e2ddf64434c",
+  "hadoop_rerun": false,
+  "session_id": "0db6090d62ba443595980aad6b2d0eab",
+  "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+  "quality_ref": {
+    "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+    "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+  },
+  "cleaned_ref": {
+    "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.cleaned",
+    "version": "sha256-b64d8d8e78e93a796ac86342e19a3a3b2d9316a6c89f3e930defe190375f1213"
+  },
+  "unit_tests": {
+    "discovered": 81,
+    "passed": 79,
+    "skipped_opt_in_hadoop": 2
+  },
+  "live_runs": [
+    {
+      "name": "explanation-facts-v1",
+      "run_id": "32040f86d1e8484d9d96db14ca39b033",
+      "implementation_sha256": "sha256-e66c64a694feeb815a361d59975c4c45332b90a95713a0d9a9fe6291066e345f",
+      "passed": false,
+      "no_new_tasks": true,
+      "cases": [
+        {
+          "name": "complete",
+          "passed": false,
+          "checks": {
+            "completed": false,
+            "rendered": false,
+            "exact_report": false,
+            "required_sections": false
+          },
+          "error": {
+            "code": "MODEL_HTTP_ERROR",
+            "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+          },
+          "message_id": "4577beaa497c4dffbb18abb41af4053c",
+          "duration_seconds": 94.32
+        },
+        {
+          "name": "overlap",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "827a663e00b14bd0bc3749ad01b20faf",
+          "duration_seconds": 69.77
+        },
+        {
+          "name": "units",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "93de78ea25004ef79d169c8cd546fd31",
+          "duration_seconds": 24.382
+        },
+        {
+          "name": "partitions",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "eafa4ed69a33428794ca9f4b175971ec",
+          "duration_seconds": 30.396
+        },
+        {
+          "name": "unsupported",
+          "passed": false,
+          "checks": {
+            "completed": false,
+            "rendered": false,
+            "exact_report": false,
+            "required_sections": true,
+            "unsupported_marked": false,
+            "explains_proxy_limits": false
+          },
+          "error": {
+            "code": "MODEL_TRUNCATED",
+            "message": "模型输出被截断，未执行不完整的工具调用。"
+          },
+          "message_id": "c07e71cbbe354e748b60be43158293c9",
+          "duration_seconds": 87.357
+        },
+        {
+          "name": "example",
+          "passed": false,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true,
+            "current_examples": false
+          },
+          "error": null,
+          "message_id": "c4d74b05de8b4f968567c3314e15720b",
+          "duration_seconds": 34.23
+        }
+      ]
+    },
+    {
+      "name": "explanation-facts-final",
+      "run_id": "2076b201e96a46a8b6a952ddc61069a1",
+      "implementation_sha256": "sha256-fb44a805e7dbd945fe55fce3c554a5d57e7d178adf89ce742513f3e6c172bf39",
+      "passed": false,
+      "no_new_tasks": true,
+      "cases": [
+        {
+          "name": "complete",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "bcf4b61e47594b10af94781a174b4454",
+          "duration_seconds": 59.869
+        },
+        {
+          "name": "overlap",
+          "passed": false,
+          "checks": {
+            "completed": false,
+            "rendered": false,
+            "exact_report": false,
+            "required_sections": false
+          },
+          "error": {
+            "code": "MESSAGE_INTERRUPTED",
+            "message": "模型回答未完成。"
+          },
+          "message_id": "91455f84b9064f35a7dfe9d9eedd9ce1",
+          "duration_seconds": 39.059
+        },
+        {
+          "name": "units",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "a6b661022df64e909765f6c0583ce6ec",
+          "duration_seconds": 53.18
+        },
+        {
+          "name": "partitions",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "8869dc0e925e4221b2ad8b05125cfcba",
+          "duration_seconds": 48.109
+        },
+        {
+          "name": "unsupported",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true,
+            "unsupported_marked": true,
+            "explains_proxy_limits": true
+          },
+          "error": null,
+          "message_id": "4a09bc1445c54a359f668ff137fd2d37",
+          "duration_seconds": 63.157
+        },
+        {
+          "name": "example",
+          "passed": false,
+          "checks": {
+            "completed": false,
+            "rendered": false,
+            "exact_report": false,
+            "required_sections": true,
+            "current_examples": false
+          },
+          "error": {
+            "code": "MODEL_HTTP_ERROR",
+            "message": "模型服务返回 HTTP 502；本次模型回答未完成。"
+          },
+          "message_id": "cddcb1619a5a4ee89e23e8cd4728b4a8",
+          "duration_seconds": 47.746
+        }
+      ]
+    },
+    {
+      "name": "explanation-facts-retry",
+      "run_id": "250d45e4fead40529b8ee931a0636e4b",
+      "implementation_sha256": "sha256-fb44a805e7dbd945fe55fce3c554a5d57e7d178adf89ce742513f3e6c172bf39",
+      "passed": true,
+      "no_new_tasks": true,
+      "cases": [
+        {
+          "name": "overlap",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true
+          },
+          "error": null,
+          "message_id": "1081b12ee0f04396a08240d585566548",
+          "duration_seconds": 25.567
+        },
+        {
+          "name": "example",
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "rendered": true,
+            "exact_report": true,
+            "required_sections": true,
+            "current_examples": true
+          },
+          "error": null,
+          "message_id": "c51b47e98a4d435ba11a8395f92fe363",
+          "duration_seconds": 57.034
+        }
+      ]
+    }
+  ],
+  "final_case_coverage": {
+    "complete": {
+      "message_id": "bcf4b61e47594b10af94781a174b4454",
+      "duration_seconds": 59.869,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "1a5ae6f7624c442893d259a4c5428b39",
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "parent_references",
+          "freshness",
+          "time_splits",
+          "metric_method",
+          "limitations",
+          "warnings"
+        ],
+        "section_sources": {
+          "scores": "1a5ae6f7624c442893d259a4c5428b39",
+          "dispositions": "1a5ae6f7624c442893d259a4c5428b39",
+          "rating_loss": "1a5ae6f7624c442893d259a4c5428b39",
+          "parent_references": "1a5ae6f7624c442893d259a4c5428b39",
+          "freshness": "1a5ae6f7624c442893d259a4c5428b39",
+          "time_splits": "1a5ae6f7624c442893d259a4c5428b39",
+          "metric_method": "1a5ae6f7624c442893d259a4c5428b39",
+          "limitations": "1a5ae6f7624c442893d259a4c5428b39",
+          "warnings": "1a5ae6f7624c442893d259a4c5428b39"
+        },
+        "unsupported": false,
+        "rejected_attempts": []
+      }
+    },
+    "units": {
+      "message_id": "a6b661022df64e909765f6c0583ce6ec",
+      "duration_seconds": 53.18,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "6c4abe9d887c4c5c92144b3106e9fee7",
+        "sections": [
+          "scores",
+          "dispositions",
+          "rating_loss",
+          "freshness",
+          "time_splits",
+          "limitations"
+        ],
+        "section_sources": {
+          "scores": "6c4abe9d887c4c5c92144b3106e9fee7",
+          "dispositions": "6c4abe9d887c4c5c92144b3106e9fee7",
+          "rating_loss": "6c4abe9d887c4c5c92144b3106e9fee7",
+          "freshness": "6c4abe9d887c4c5c92144b3106e9fee7",
+          "time_splits": "6c4abe9d887c4c5c92144b3106e9fee7",
+          "limitations": "6c4abe9d887c4c5c92144b3106e9fee7"
+        },
+        "unsupported": false,
+        "rejected_attempts": []
+      }
+    },
+    "partitions": {
+      "message_id": "8869dc0e925e4221b2ad8b05125cfcba",
+      "duration_seconds": 48.109,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "35a73d6a211c486dabbe5703eea7c4cb",
+        "sections": [
+          "time_splits",
+          "limitations"
+        ],
+        "section_sources": {
+          "time_splits": "35a73d6a211c486dabbe5703eea7c4cb",
+          "limitations": "35a73d6a211c486dabbe5703eea7c4cb"
+        },
+        "unsupported": false,
+        "rejected_attempts": []
+      }
+    },
+    "unsupported": {
+      "message_id": "4a09bc1445c54a359f668ff137fd2d37",
+      "duration_seconds": 63.157,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true,
+        "unsupported_marked": true,
+        "explains_proxy_limits": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "0873cc340a594261bfdfe70af3f03492",
+        "sections": [
+          "metric_method",
+          "scores",
+          "limitations",
+          "warnings"
+        ],
+        "section_sources": {
+          "metric_method": "0873cc340a594261bfdfe70af3f03492",
+          "scores": "0873cc340a594261bfdfe70af3f03492",
+          "limitations": "0873cc340a594261bfdfe70af3f03492",
+          "warnings": "0873cc340a594261bfdfe70af3f03492"
+        },
+        "unsupported": true,
+        "rejected_attempts": []
+      }
+    },
+    "overlap": {
+      "message_id": "1081b12ee0f04396a08240d585566548",
+      "duration_seconds": 25.567,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "531078a40e7646cb8f19e9bc6354e7de",
+        "sections": [
+          "parent_references",
+          "rating_loss",
+          "dispositions"
+        ],
+        "section_sources": {
+          "parent_references": "531078a40e7646cb8f19e9bc6354e7de",
+          "rating_loss": "531078a40e7646cb8f19e9bc6354e7de",
+          "dispositions": "531078a40e7646cb8f19e9bc6354e7de"
+        },
+        "unsupported": false,
+        "rejected_attempts": []
+      }
+    },
+    "example": {
+      "message_id": "c51b47e98a4d435ba11a8395f92fe363",
+      "duration_seconds": 57.034,
+      "checks": {
+        "completed": true,
+        "rendered": true,
+        "exact_report": true,
+        "required_sections": true,
+        "current_examples": true
+      },
+      "validation": {
+        "policy": "quality-facts-v1",
+        "task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+        "quality_ref": {
+          "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.quality",
+          "version": "sha256-131c9621366b44863bae2dff9cfb6b673104e19cc1de67739bc05b8b64d55d38"
+        },
+        "summary_call_id": "4231985e8dd04b85bbc64059bfc442bf",
+        "sections": [
+          "examples:d6534c35ec2040df9fb8faa554161a8a",
+          "reasons",
+          "dispositions"
+        ],
+        "section_sources": {
+          "examples:d6534c35ec2040df9fb8faa554161a8a": "d6534c35ec2040df9fb8faa554161a8a",
+          "reasons": "4231985e8dd04b85bbc64059bfc442bf",
+          "dispositions": "4231985e8dd04b85bbc64059bfc442bf"
+        },
+        "unsupported": false,
+        "rejected_attempts": []
+      }
+    }
+  },
+  "cleaned_reader": {
+    "ref": {
+      "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.cleaned",
+      "version": "sha256-b64d8d8e78e93a796ac86342e19a3a3b2d9316a6c89f3e930defe190375f1213"
+    },
+    "checks": "passed",
+    "counts": {
+      "train": {
+        "rows": 746139,
+        "timestamp_min": 956703932,
+        "timestamp_max": 975628787
+      },
+      "validation": {
+        "rows": 100814,
+        "timestamp_min": 975628815,
+        "timestamp_max": 978306201
+      },
+      "test": {
+        "rows": 88401,
+        "timestamp_min": 978307665,
+        "timestamp_max": 1046454590
+      },
+      "users": {
+        "rows": 5895
+      },
+      "movies": {
+        "rows": 3836
+      }
+    },
+    "seconds": 12.484
+  },
+  "browser": {
+    "persisted_reply": {
+      "mode": "persisted-reply",
+      "message_id": "c51b47e98a4d435ba11a8395f92fe363",
+      "checks": {
+        "rendered_reply": true,
+        "persisted_validation": true,
+        "current_summary_call": true,
+        "reloaded_reply": true,
+        "mobile_no_overflow": true,
+        "browser_errors": []
+      }
+    },
+    "new_live_request": {
+      "http_status": 503,
+      "message_id": "e8d46fe21ce0416f886cff8a0a89b311",
+      "error": {
+        "code": "MODEL_HTTP_ERROR",
+        "message": "模型服务返回 HTTP 504；本次模型回答未完成。"
+      }
+    }
+  },
+  "evidence_files": [
+    {
+      "path": "var/verification/2026-09-25/explanation-facts-v1/result.json",
+      "sha256": "fc39b12375b5c1f1209ab62ba88488bc340c161567adda504cb5f4259733680d"
+    },
+    {
+      "path": "var/verification/2026-09-25/explanation-facts-final/result.json",
+      "sha256": "455f2e7fa18b74a1e62147165f996ffd0fdb95deae3fc871bdcbe546820cbb36"
+    },
+    {
+      "path": "var/verification/2026-09-25/explanation-facts-retry/result.json",
+      "sha256": "c8a76442534f1d894aeec6c2f9e508e1626e933d466f237e716187bab516f1a0"
+    },
+    {
+      "path": "var/verification/2026-09-25/cleaned-handoff/result.json",
+      "sha256": "171ccec392d45999f8e9e2b199661673b330805637fb30c0deb8c1301eca5233"
+    },
+    {
+      "path": "var/verification/2026-09-25/cleaned-handoff/example-train.json",
+      "sha256": "ee0b5c450cae77c28f1a15f7d2b459d82d3b540958544cbd81ddeec31b806d9f"
+    },
+    {
+      "path": "var/verification/2026-09-25/evidence-reply-browser/response.json",
+      "sha256": "0be16f785a96e47da79e48d6d702fde5af0b393f34bfc1a179bd4549a7ca0782"
+    },
+    {
+      "path": "var/verification/2026-09-25/evidence-reply-browser-persisted/result.json",
+      "sha256": "2ee9706af506c040db03269ccbb7bb86ec35a9ef5c6735058191869f54bc40d2"
+    }
+  ],
+  "remaining": [
+    "Teammate environment reproduction",
+    "Rehearse approximately 10-minute presentation",
+    "Provider availability and latency remain variable",
+    "Review relevance and completeness of selected explanation sections"
+  ]
+}
