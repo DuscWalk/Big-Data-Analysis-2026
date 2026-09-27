@@ -65,7 +65,8 @@ const path = require("node:path");
     const v2 = ["quality-facts-v2", "quality-facts-v3"].includes(trace.validation.policy);
     if (v2) {
       assert.equal(trace.validation.answer_characters, [...result.response.content].length);
-      assert.ok(trace.validation.application_call_ids.length > 0);
+      assert.ok(trace.tools.some(item => item.call_id === trace.validation.summary_call_id
+        && ["application", "model"].includes(item.requested_by)));
       for (const id of trace.validation.application_call_ids) {
         assert.ok(trace.tools.some(item => item.call_id === id && item.requested_by === "application"));
       }

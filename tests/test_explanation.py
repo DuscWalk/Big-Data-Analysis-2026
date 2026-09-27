@@ -101,7 +101,7 @@ class ExplanationLoopTests(unittest.TestCase):
         def correction(payload):
             self.assertEqual(payload["tool_choice"], "none")
             return answer(plan(self.ref, ["rating_loss"]))
-        agent = f.agent([answer("评分全被修复，1 / 3 = 99%"), correction])
+        agent = f.agent([self.summary(), answer("评分全被修复，1 / 3 = 99%"), correction])
         result = agent.respond(f.session, "correct", "解释评分损失", self.task)
         self.assertEqual(result["status"], "completed")
         self.assertEqual(result["response_origin"], "evidence_rendered")
@@ -109,7 +109,7 @@ class ExplanationLoopTests(unittest.TestCase):
         self.assertNotIn("99%", result["content"])
         self.assertEqual(len(result["validation"]["rejected_attempts"]), 1)
         self.assertEqual(result, agent.respond(f.session, "correct", "解释评分损失", self.task))
-        self.assertEqual(len(f.model.requests), 2)
+        self.assertEqual(len(f.model.requests), 3)
         messages = f.chats.messages(f.session)
         self.assertNotIn("99%", json.dumps(messages))
         self.assertIn("99%", json.dumps(f.chats.model_calls(f.session, result["message_id"])))
@@ -117,14 +117,14 @@ class ExplanationLoopTests(unittest.TestCase):
 
     def test_persistent_invalid_plan_fails_honestly_after_two_attempts(self):
         f = self.f
-        agent = f.agent([answer("2 / 3 = 99%"), answer("2 / 3 = 99%")])
+        agent = f.agent([self.summary(), answer("2 / 3 = 99%"), answer("2 / 3 = 99%")])
         result = agent.respond(f.session, "invalid", "解释", self.task)
         self.assertEqual(result["error"]["code"], "EXPLANATION_PLAN_INVALID")
         self.assertNotIn("99%", result["content"])
         self.assertEqual(len(result["validation"]["rejected_attempts"]), 2)
         self.assertEqual(f.tasks.get(self.task, f.session)["status"], "succeeded")
 
-    def test_application_prepares_current_summary_before_model_despite_old_history(self):
+    def test_model_selects_current_summary_despite_old_history(self):
         f = self.f
         prior, _ = f.chats.begin(f.session, "old", "解释", self.task)
         f.chats.finish(prior["request_uid"], "旧回答说评分全被修复。")
@@ -134,21 +134,22 @@ class ExplanationLoopTests(unittest.TestCase):
             self.assertEqual(tools[0]["arguments"]["artifact_ref"], self.ref)
             self.assertEqual(tools[0]["arguments"]["mode"], "summary")
             self.assertEqual(tools[0]["status"], "completed")
-            self.assertTrue(tools[0]["request_key"].startswith("evidence:"))
-            self.assertIn("explanation_sections", payload["messages"][1]["content"])
-            self.assertNotIn('"before":', payload["messages"][1]["content"])
+            self.assertTrue(tools[0]["request_key"].startswith("chat:"))
+            self.assertIn("explanation_sections", payload["messages"][-1]["content"])
+            self.assertNotIn('"before":', payload["messages"][-1]["content"])
             return answer(plan(self.ref, ["rating_loss"]))
-        result = f.agent([choose]).respond(f.session, "new", "解释评分损失", self.task)
+        result = f.agent([self.summary(), choose]).respond(f.session, "new", "解释评分损失", self.task)
         self.assertEqual(result["status"], "completed")
         self.assertIn("隔离 8 行", result["content"])
-        self.assertEqual(len(f.model.requests), 1)
-        self.assertIn(result["validation"]["summary_call_id"], result["validation"]["application_call_ids"])
+        self.assertEqual(len(f.model.requests), 2)
+        self.assertEqual(result["validation"]["summary_call_id"], result["tool_calls"][0]["call_id"])
+        self.assertEqual(result["validation"]["application_call_ids"], [])
 
     def test_report_from_other_task_does_not_satisfy_selected_task_evidence(self):
         f = self.f
         _, other, _ = publish(f, "other")
-        f.settings.max_rounds = 2
-        agent = f.agent([self.summary(other), answer(plan(other, ["scores"]))])
+        f.settings.max_rounds = 3
+        agent = f.agent([self.summary(), self.summary(other), answer(plan(other, ["scores"]))])
         result = agent.respond(f.session, "wrong", "解释", self.task)
         self.assertEqual(result["error"]["code"], "EXPLANATION_PLAN_INVALID")
 
@@ -167,10 +168,10 @@ class ExplanationLoopTests(unittest.TestCase):
             self.assertEqual(payload["messages"][-1]["role"], "system")
             key = re.findall(r'"(examples:[a-f0-9]+)"\s*:', json.dumps(payload, ensure_ascii=False).replace('\\"', '"'))[0]
             return answer(plan(self.ref, [key]))
-        agent = f.agent([answer(plan(self.ref, ["rating_loss"])), finish])
+        agent = f.agent([self.summary(), answer(plan(self.ref, ["rating_loss"])), finish])
         result = agent.respond(f.session, "preserve-question", question, self.task)
         self.assertEqual(result["status"], "completed")
-        self.assertEqual(len(f.model.requests), 2)
+        self.assertEqual(len(f.model.requests), 3)
         self.assertEqual(len(result["validation"]["rejected_attempts"]), 1)
         self.assertEqual(result["validation"]["sample_checks"][0]["count"], 1)
 
@@ -192,15 +193,15 @@ class ExplanationLoopTests(unittest.TestCase):
     def test_only_current_source_linked_examples_can_be_selected(self):
         f = self.f
         def choose(payload):
-            key = re.findall(r'"(examples:[a-f0-9]+)"\s*:', payload["messages"][1]["content"])[0]
+            key = re.findall(r'"(examples:[a-f0-9]+)"\s*:', payload["messages"][-1]["content"])[0]
             return answer(plan(self.ref, [key]))
-        result = f.agent([choose]).respond(f.session, "example", "给出一个评分去重样例", self.task)
+        result = f.agent([self.summary(), choose]).respond(f.session, "example", "给出一个评分去重样例", self.task)
         self.assertEqual(result["status"], "completed")
         self.assertIn('原始行：01::1::05::975628799', result["content"])
         self.assertIn('"line":2', result["content"])
         self.assertEqual(len(result["validation"]["section_sources"]), 1)
         self.assertEqual(result["validation"]["sample_checks"][0]["reason"], "ratings/R15_DUPLICATE")
-        self.assertEqual(len(f.model.requests), 1)
+        self.assertEqual(len(f.model.requests), 2)
 
 
 if __name__ == "__main__":

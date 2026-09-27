@@ -5,7 +5,7 @@ from pydantic import Field, StrictBool, ValidationError
 
 from ..contracts import ArtifactRef, Contract
 from ..governance.explanation import answer_sections
-from ..governance.questions import FULL_SECTIONS, explicit_governance_run, question_requirements
+from ..governance.questions import FULL_SECTIONS, question_requirements
 
 POLICY = "quality-facts-v3"
 
@@ -34,12 +34,6 @@ class ReportAnswer:
         self.excerpts = {}
         self.summary_call_id = None
         self.application_calls = []
-
-    @classmethod
-    def for_request(cls, task_id, quality_ref, *, full=False, question="", previous=None, requirements=None):
-        if requirements is None and not full and explicit_governance_run(question):
-            return None
-        return cls(task_id, quality_ref, full=full, question=question, previous=previous, requirements=requirements)
 
     @property
     def ready(self):

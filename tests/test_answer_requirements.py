@@ -180,45 +180,48 @@ class PreparedEvidenceTests(unittest.TestCase):
         self.f = AgentFixture(Path(temp.name))
         self.task, self.ref, self.report = publish(self.f)
 
-    def test_changed_published_report_fails_before_any_model_call(self):
+    def summary(self):
+        return call("artifacts_get", {"artifact_ref": self.ref, "mode": "summary"})
+
+    def test_explicit_full_explanation_checks_report_before_model(self):
         path = self.f.root / self.task / "quality.json"
         path.write_text("tampered")
-        result = self.f.agent([]).respond(self.f.session, "invalid-report", "解释本任务", self.task)
+        result = self.f.agent([]).respond(self.f.session, "invalid-report", "解释本任务", self.task, require_quality=True)
         self.assertEqual(result["error"]["code"], "EVIDENCE_UNAVAILABLE")
         self.assertEqual(self.f.model.requests, [])
         calls = self.f.chats.calls(self.f.session, result["message_id"])
         self.assertEqual(calls[0]["result"]["error"]["code"], "ARTIFACT_INVALID")
 
-    def test_current_sample_without_model_retrieval_and_no_raw_text_in_prompt(self):
+    def test_current_sample_prepared_after_model_selects_report_without_raw_prompt(self):
         f = self.f
         def choose(payload):
             text = "\n".join(m.get("content") or "" for m in payload["messages"])
             self.assertNotIn("01::1::05::975628799", text)
             self.assertIn('"count":1', text)
             return choose_examples(self.ref)(payload)
-        result = f.agent([choose]).respond(f.session, "sample", "给出一条 ratings/R15_DUPLICATE 样例", self.task)
+        result = f.agent([self.summary(), choose]).respond(f.session, "sample", "给出一条 ratings/R15_DUPLICATE 样例", self.task)
         self.assertEqual(result["status"], "completed")
         self.assertEqual(len(result["tool_calls"]), 2)
-        self.assertEqual(len(result["model_calls"]), 1)
+        self.assertEqual(len(result["model_calls"]), 2)
         self.assertEqual(result, f.agent([]).respond(f.session, "sample", "给出一条 ratings/R15_DUPLICATE 样例", self.task))
 
     def test_unknown_rule_empty_result_and_explicit_quantity_limit(self):
         f = self.f
-        result = f.agent([choose_examples(self.ref, unsupported=True)]).respond(
+        result = f.agent([self.summary(), choose_examples(self.ref, unsupported=True)]).respond(
             f.session, "empty", "读取一个 ratings/R99_NOT_IN_REPORT 样例", self.task)
         self.assertEqual(result["status"], "completed")
         self.assertTrue(result["validation"]["unsupported"])
-        invalid = f.agent([]).respond(f.session, "too-many", "给出21条样例", self.task)
+        invalid = f.agent([self.summary()]).respond(f.session, "too-many", "给出21条样例", self.task)
         self.assertEqual(invalid["error"]["code"], "EXPLANATION_REQUEST_UNSUPPORTED")
-        self.assertEqual(f.model.requests, [])
+        self.assertEqual(len(f.model.requests), 1)
 
     def test_preparation_respects_call_budget_and_new_job_receipts_still_work(self):
         f = self.f
         f.settings.max_calls = 1
-        result = f.agent([]).respond(f.session, "budget", "给出评分去重样例", self.task)
+        result = f.agent([self.summary()]).respond(f.session, "budget", "给出评分去重样例", self.task)
         self.assertEqual(result["error"]["code"], "TOOL_CALL_LIMIT")
         self.assertEqual(len(result["tool_calls"]), 1)
-        self.assertEqual(f.model.requests, [])
+        self.assertEqual(len(f.model.requests), 1)
         f.settings.max_calls = 12
         # A new run must not depend on the old report remaining readable.
         (f.root / self.task / "quality.json").write_text("old report missing or corrupted")
@@ -243,9 +246,9 @@ class PreparedEvidenceTests(unittest.TestCase):
             self.assertNotIn("旧问题0", text)
             self.assertIn("旧问题3", text)
             self.assertIn("历史答复已节略", text)
-            self.assertEqual(payload["messages"][-1]["content"], "解释评分损失")
+            self.assertEqual([m["content"] for m in payload["messages"] if m["role"] == "user"][-1], "解释评分损失")
             return answer(plan(self.ref, ["rating_loss"]))
-        result = f.agent([choose]).respond(f.session, "current", "解释评分损失", self.task)
+        result = f.agent([self.summary(), choose]).respond(f.session, "current", "解释评分损失", self.task)
         self.assertEqual(result["status"], "completed")
         historical = f.chats.messages(f.session)[1]["content"]
         self.assertEqual(historical, "历史长回答" * 300)

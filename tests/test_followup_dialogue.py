@@ -112,8 +112,11 @@ class DialogueRetryTests(unittest.TestCase):
         self.f=AgentFixture(Path(temp.name)); self.task,self.ref=publish_samples(self.f)
 
     def ask(self, key, question, *, responses=None, task=None):
-        agent=self.f.agent(responses if responses is not None else [select_prepared])
-        return agent.respond(self.f.session,key,question,task or self.task)
+        selected = self.f.tasks.get(task or self.task, self.f.session)
+        ref = next(a["ref"] for a in selected["artifacts"] if a["kind"] == "quality_report")
+        agent = self.f.agent([call("artifacts_get", {"artifact_ref": ref, "mode": "summary"}),
+                              *(responses if responses is not None else [select_prepared])])
+        return agent.respond(self.f.session, key, question, task or self.task)
 
     def test_next_samples_use_returned_count_and_current_sources(self):
         first=self.ask('one','给两条 ratings/R15_DUPLICATE 样例')
@@ -129,7 +132,7 @@ class DialogueRetryTests(unittest.TestCase):
         self.assertTrue(empty['validation']['unsupported'])
         exhausted=self.ask('exhausted','再给一个',responses=[])
         self.assertEqual(exhausted['response_origin'],'application_clarification')
-        self.assertEqual(self.f.model.requests,[])
+        self.assertEqual(len(self.f.model.requests),1)
 
     def test_ambiguous_sources_clarify_then_explicit_scope_continues(self):
         self.ask('two','给两条 ratings/R15_DUPLICATE 样例和一个 users/R15_DUPLICATE 样例')
@@ -168,7 +171,7 @@ class DialogueRetryTests(unittest.TestCase):
         self.assertEqual(result['status'],'completed')
         records=self.f.chats.calls(self.f.session,result['message_id'])
         self.assertEqual(records[-1]['result']['error']['code'],'READ_ONLY_EXPLANATION')
-        self.assertNotIn('governance_run',[x['function']['name'] for x in self.f.model.requests[0]['tools']])
+        self.assertNotIn('governance_run',[x['function']['name'] for x in self.f.model.requests[1]['tools']])
         with self.f.tasks.connect() as conn:self.assertEqual(conn.execute('SELECT count(*) FROM tasks').fetchone()[0],1)
 
     def test_retry_accepts_persisted_v2_failure_without_rewriting_it(self):
@@ -198,7 +201,8 @@ class DialogueRetryTests(unittest.TestCase):
             self.assertEqual(conn.execute('SELECT count(*) FROM tasks').fetchone()[0], 1)
 
     def test_retry_http_scope_original_task_report_and_old_failure_remain(self):
-        model=ScriptedModel(self.f.settings,[ModelError('MODEL_TIMEOUT','测试替身超时'),select_prepared])
+        model=ScriptedModel(self.f.settings,[call("artifacts_get", {"artifact_ref": self.ref, "mode": "summary"}),
+                                                ModelError('MODEL_TIMEOUT','测试替身超时'),select_prepared])
         with TestClient(create_app(self.f.settings,model)) as client:
             root='/api/v1/sessions/'+self.f.session
             failed=client.post(root+'/messages',json={'request_id':'outage','content':'给一个评分重复样例','task_id':self.task})

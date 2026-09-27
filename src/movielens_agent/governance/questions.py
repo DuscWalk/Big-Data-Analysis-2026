@@ -226,14 +226,3 @@ def question_requirements(question, full=False, previous=None):
     max_characters = max(800, len(topics) * 160 + sum(s.count for s in samples) * 400) if brief else None
     require_unsupported = has(r"(?:证明|保证|承诺|核验).*(?:真实|准确率|分类效果|预测效果|下游效果)|(?:prove|guarantee).*(?:true|truth|accuracy|performance)")
     return AnswerRequirements(full, brief, tuple(sorted(topics)), dimensions, tuple(samples), max_sections, max_characters, require_unsupported, continuation)
-
-
-def explicit_governance_run(question):
-    """Recognize explicit new-run commands; exclusions and questions stay queries."""
-    text = positive_clauses(question).strip()
-    if re.match(r"^(?:请)?(?:解释|说明|查看|查询|为什么|为何)", text):
-        return False
-    return bool(re.search(
-        r"(?:重新|再次)(?:执行)?清洗|重跑(?:一次)?(?:任务|治理|清洗)|再跑(?:一次)?(?:治理|清洗)|"
-        r"(?:开始|执行|启动|发起)(?:一次|数据)?(?:清洗|治理)|"
-        r"^(?:请(?:你)?(?:帮我)?)?(?:(?:使用|用)(?:已登记|默认)?(?:规则|配置))?清洗(?!后|结果|规则|依据)", text))

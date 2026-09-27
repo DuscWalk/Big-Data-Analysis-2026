@@ -117,13 +117,17 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 - `api/app.py` 管理 HTTP、同源检查、会话范围、产物下载与静态页面；`web/` 位于 Python 包内，随包安装。
 - 新算法通过 `tools/` 注册参数与结果协议，通过 `workflows/`、`adapters/` 接入实际执行。模型自动获得工具 schema；专用结果视图按需要添加，公共会话与任务机制继续复用。
 
-绑定任务的回答至少要求本轮读取该任务的证据。对已完成且有质量报告的治理追问，应用在第一次模型请求前，通过相同注册表读取本轮精确 summary；明确的异常规则、清洗文件、样例数和位置也会形成预读查询。每次预读重新校验文件哈希和会话范围，完整返回写入工具审计；`request_key` 以 `evidence:` 标明应用取证，模型请求工具沿用 `chat:`。新清洗任务的明确指令沿用原任务受理路径，不依赖旧报告可读。
+选中任务只提供上下文。普通消息先交给模型，由模型选择直接回答、澄清、查询任务状态、读取报告或提交清洗；应用不按“你好”“谢谢”等关键词分流，也不因为会话有任务就强制取证。问候、使用帮助和一般概念问答可直接回复，状态查询使用 `tasks.get`，新清洗由模型选择 `governance.run`，均不依赖旧报告可读。
 
-当前解释策略为 `quality-facts-v3`。模型输入只保留解释需要的事实要点、样例描述和本轮调用 ID，完整结构化指标和原始样例留在审计与产物中；样例原始行不作为系统指令进入模型。中文使用正常 Unicode，避免让模型处理字面量 Unicode 转义。绑定任务仅带入最近两组同任务历史，过长历史答复节略至 600 字符，原记录不变。
+需要报告时，模型可用可信上下文中的 `quality_report_ref` 调用 `artifacts.get(mode=summary)`。应用在实际读取治理报告或清洗样例时才启用 `ReportAnswer`：解析原问题的主题、数量、来源和连续样例位置，复用本轮已读摘要和匹配样例，只补齐缺失证据；这些调用共享同一预算。进入报告解释后仅允许查询工具，最终仍校验精确版本、必要主题和样例来源。显式完整解释与失败重试已经表达报告意图，可以直接准备证据。
+
+每次工具读取都检查文件哈希和会话范围，完整返回写入审计。`request_key` 的 `chat:` 标明模型请求，`evidence:` 标明应用补读；仅需摘要时，应用补读次数可以是零。普通对话没有报告校验标记；不能把它当成已核验的报告事实。模型是否正确选择工具仍需真实服务验收，提示词不能保证所有开放表达都被正确理解。
+
+当前解释策略为 `quality-facts-v3`。模型输入只保留解释需要的事实要点、样例描述和本轮调用 ID，完整结构化指标和原始样例留在审计与产物中；样例原始行不作为系统指令进入模型。中文使用正常 Unicode，避免让模型处理字面量 Unicode 转义。进入报告解释后仅保留最近两组同任务历史；普通对话保留有界会话历史，过长历史答复节略至 600 字符，原记录不变。
 
 模型最终返回 `quality_ref`、`sections`、`unsupported` 的 JSON 计划；提示中的示例随本题必要要点与无法确认标记生成，避免固定示例与当前要求冲突。应用除校验精确引用和本轮证据，还检查明确问题要求的主题、样例规则/文件/数量/位置及来源字段。已识别的明确主题只允许选择本题所需要点及必要依据，单一公式或样例问题不能扩展为报告概述；模型输入也按此范围裁剪。明确要求证明事实真实性或保证下游效果时，必须标记 `unsupported=true`。明确简短的回答默认至多 4 个要点、800 字符；复合主题或多条样例的必要预算会在 `requirements` 中明确增加，不能靠截断删除证据。完整解释仍覆盖评分、处置、时效、划分和局限；无匹配样例须明确无法满足，不能推断总体没有异常。
 
-不符合要求时仅允许一次格式或覆盖修正，仍不满足则返回 `EXPLANATION_PLAN_INVALID`。应用取证失败返回 `EVIDENCE_UNAVAILABLE`，超过工具数量/位置限制返回 `EXPLANATION_REQUEST_UNSUPPORTED`。样例数量分配或指代不明确时，应用直接返回 `application_clarification`，不调用模型或查询工具。已绑定报告的解释及重试仅允许查询工具，执行层也拒绝 job 工具；明确的新清洗请求继续走任务受理流程。证据反馈与修正是 system 应用反馈，原始用户问题继续保留。
+不符合要求时仅允许一次格式或覆盖修正，仍不满足则返回 `EXPLANATION_PLAN_INVALID`。应用取证失败返回 `EVIDENCE_UNAVAILABLE`，超过工具数量/位置限制返回 `EXPLANATION_REQUEST_UNSUPPORTED`。样例数量分配或指代不明确时，应用返回 `application_clarification`，不继续取证或调用模型；普通消息在此之前已有一次模型选择工具的请求。已绑定报告的解释及重试仅允许查询工具，执行层也拒绝 job 工具；明确的新清洗请求继续走任务受理流程。证据反馈与修正是 system 应用反馈，原始用户问题继续保留。
 
 成功回答的 `response_origin=evidence_rendered`，页面显示“报告事实 · 要点选择模型”。`validation` 保存策略版本、精确报告、本轮摘要调用、要点来源、应用取证调用、问题要求、样例检查、实际字符数和被拒绝尝试。调用依据区分别标记 `application` 和 `model`，不把应用预读写成模型自主选择。来源样例由应用按工具原始返回生成，不能推算总体。
 
@@ -140,6 +144,14 @@ API 重启将未完成回答标为中断；若工具受理后尚未来得及记�
 上一轮[追问优化实测](../iterations/01-governance/reports/2026-09-25-追问可靠性优化实测.md)保留 v2 的三轮 17/21 及网关故障；更早的[备用服务实测](../iterations/01-governance/reports/2026-09-25-备用模型全链路实测.md)保留 v1 的样例遗漏与冗长问题，不能用新策略覆盖旧运行记录。
 
 历史错误回答和缓存请求保持原样。新逻辑不会重写旧消息，也不会让同一 `explain:{tid}` 请求重新执行；阅读旧任务时，可通过新消息重新提问；符合条件的旧失败也可点击“重新解释此问题”，生成新的“报告事实”回答。汇报仍需核对采用的代码、报告与回答版本。
+
+普通对话与报告入口的修正及真实浏览器验证见[2026-09-27 对话入口实测](../iterations/01-governance/reports/2026-09-27-对话入口与报告取证实测.md)。对已完成任务执行下列检查，会通过页面发送问候、概念、状态、报告和连续样例问题，不提交清洗任务：
+
+```bash
+MOVIELENS_SESSION_ID=<已有会话> MOVIELENS_TASK_ID=<该会话已完成任务> \
+  MOVIELENS_BROWSER_OUTPUT=var/verification/conversation-browser \
+  NODE_PATH="$PWD/var/browser-check/node_modules" node scripts/checks/conversation_browser.cjs
+```
 
 注册扩展示例位于 [catalog_versions.py](../../scripts/examples/catalog_versions.py)。它新增读取真实 catalog 的 `datasets.versions`，更新工具 schema 快照，复用原分发器、会话记录和页面调用依据，无需修改核心分发逻辑：
 
@@ -165,7 +177,7 @@ var/browser-check/node_modules/.bin/playwright install chromium
 NODE_PATH="$PWD/var/browser-check/node_modules" MOVIELENS_SESSION_ID=local-cli node scripts/checks/browser_smoke.cjs
 ```
 
-可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。页面打开已完成任务时可能调用真实模型解释，因此检查前配置好服务。
+可通过 `MOVIELENS_TASK_ID` 选择具体任务，`MOVIELENS_BASE_URL` 更换本地端口。脚本验证页面、手机宽度、样例、下载校验和新会话清空；截图与结果保存在被忽略的 `var/verification/browser/`。打开历史任务不自动生成新解释；涉及发送消息的检查需要配置好模型服务。
 
 
 仅回归已有任务的真实模型解释时，先停止 API 和其他独立 Agent 脚本，再执行：
