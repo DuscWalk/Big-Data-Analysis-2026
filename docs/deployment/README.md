@@ -1,5 +1,7 @@
 # 华为云部署与持续交付
 
+当前云端环境已启动，SSH、模型工具调用、22 条样本的七作业流程与页面回读已验证，见[首次部署记录](reports/2026-09-27-华为云首次部署.md)。
+
 ## 目标与已知环境
 
 把普通检查迁移到 GitHub Actions，华为云按通过检查的提交更新，保持数据和模型配置跨版本不变。WSL 继续用于开发与轻量验证，不在部署准备时重复运行 Hadoop。
@@ -94,6 +96,38 @@ systemctl --user enable --now movielens-deploy.timer
 
 功能分支合并后，可通过 `movielens-deploy.service` 的 `ExecStart` 显式改为 `--branch main`，重新加载用户 unit。不要把服务器上的源码目录作为其他成员的开发工作区；成员提交分支、CI 通过，再按团队选定的发布分支交付。
 
-当前应用只接受本机地址，尚无用户身份认证。部署初期可通过 SSH 隧道访问回环端口；若要提供公网协作入口，需要对接经过身份认证的 HTTPS 入口，不能直接开放模型配置与任务 API。
+## 访问与日常管理
+
+本机先确认 `ssh HuaweiCloud` 能通过公钥连接新服务器。在一个终端保持隧道：
+
+```bash
+ssh -N -L 127.0.0.1:18765:127.0.0.1:8765 HuaweiCloud
+```
+
+浏览器打开 <http://127.0.0.1:18765/>。本机旧服务使用 8765，因此这里选择 18765 避免冲突。已有同端口隧道时直接使用，不要重复启动。关闭隧道不影响云端计算任务。
+
+新机 UFW 默认拒绝入站、允许出站，只放行 TCP 22。API、HDFS 与 YARN 管理界面使用回环地址；Hadoop 的 Shuffle/AM 部分内部端口会监听所有网卡，由主机防火墙限制外部访问。不要为演示开放 Hadoop 端口。之后启用经过认证的 HTTPS 入口时再按需放行 443。
+
+查看服务器运行版本：
+
+```bash
+ssh HuaweiCloud cat /srv/movielens/deployed.json
+```
+
+连接服务器后，以应用账户查看服务。以下 UID 是本次安装的 996，换机器以 `id -u movielens` 的实际值为准：
+
+```bash
+runuser -u movielens -- env XDG_RUNTIME_DIR=/run/user/996 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/996/bus systemctl --user status movielens-api movielens-worker movielens-hadoop movielens-deploy.timer
+```
+
+交付日志由 systemd 保存，管理员可用 `journalctl _SYSTEMD_USER_UNIT=movielens-deploy.service --since today` 查询。`deployed.json` 保存当前提交、上一版本和通过的 CI 地址。定时器失败不影响正在运行的应用；检查网络、CI 状态和部署日志后再触发。
+
+当前应用只接受本机地址，尚无用户身份认证。其他成员使用各自 SSH 公钥建立同样的隧道；若要提供公网协作入口，需要对接经过身份认证的 HTTPS 入口，不能直接开放模型配置与任务 API。成员公钥接入和公网域名未在本次配置。
+
+## 自动检查记录
+
+首次 CI 因 checkout 只保留一个提交，格式检查把整个仓库当作新文件，误报课程原文的历史换行。改为保留父提交后通过，课程原文未改写；Actions 使用当前 Node 24 运行时版本。随后针对云端 Git HTTPS 拉取超时，交付器改为官方提交归档下载。
+
+[归档修正后的 CI](https://github.com/DuscWalk/Big-Data-Analysis-2026/actions/runs/36311402290)在 Python 3.11、3.12 上均通过。交付策略的 8 项小型测试覆盖精确 SHA/分支/工作流、繁忙延后、停止 API 时新任务到达、服务停止异常、成功切换、健康失败回退、首次失败及归档路径与版本校验。本地包构建检查也通过；真实云端运行见[首次部署记录](reports/2026-09-27-华为云首次部署.md)。
 
 返回[文档导航](../README.md)。
