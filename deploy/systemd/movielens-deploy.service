@@ -1,0 +1,12 @@
+[Unit]
+Description=Pull the current branch only after successful GitHub CI
+
+[Service]
+Type=oneshot
+# Controller is installed separately; application releases cannot replace it.
+ExecStart=/usr/bin/python3 %h/bin/pull_release.py --base %h --branch feat/iteration-01-foundation --apply
+TimeoutStartSec=45min
+MemoryMax=512M
+CPUQuota=100%
+UMask=0077
+NoNewPrivileges=true

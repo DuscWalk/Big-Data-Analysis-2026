@@ -8,6 +8,7 @@
 | `architecture/` | 当前系统图解、模块职责和跨三轮扩展边界 | [系统架构详解与图件](architecture/系统架构详解.md)、[Agent 整体架构](architecture/Agent整体架构与迭代边界.md) |
 | `iterations/01-governance/` | 第一轮需求、接口、数据规则、开发计划和实际报告 | [迭代一导航](iterations/01-governance/README.md)、[数据交接](iterations/01-governance/handoff/清洗数据读取.md) |
 | `development/` | 环境复现与协作方法 | [开发环境](development/environment.md)、[Hadoop](development/hadoop-local.md)、[任务与工具](development/tasks-and-tools.md)、[Agent、模型设置与历史会话](development/app-and-model.md)、[Git 工作流](development/git-workflow.md) |
+| `deployment/` | 华为云环境、CI 与持续交付 | [华为云部署与 CI/CD](deployment/README.md) |
 
 第一次接触项目可先阅读[系统架构详解](architecture/系统架构详解.md)，从总览图进入任务执行、报告追问和 Hadoop 七作业流程。进一步查阅时，建议依次阅读课程要求、整体架构、当前迭代的需求和技术方案。核查或运行报告放在该迭代的 `reports/` 中，代码、模型和大规模运行产物通过报告中的版本与位置引用。
 
