@@ -25,13 +25,15 @@ jobs:
       MOVIELENS_HADOOP_RUNTIME: ""
       PIP_DISABLE_PIP_VERSION_CHECK: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v7.0.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: requirements.lock
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.0.0
         with:
           node-version: "22"
       - name: Install locked dependencies
@@ -56,14 +58,14 @@ jobs:
           python scripts/checks/check_wheel.py dist/*.whl
       - name: Save test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: test-results-${{ github.sha }}-py${{ matrix.python-version }}
           path: var/ci/unittest.log
           if-no-files-found: ignore
           retention-days: 14
       - name: Save application package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: application-${{ github.sha }}-py${{ matrix.python-version }}
           path: dist/*.whl
