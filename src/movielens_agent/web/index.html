@@ -89,7 +89,6 @@
   <dialog id="model-dialog" class="management-dialog" aria-labelledby="model-dialog-title">
     <div class="dialog-heading"><div><p class="eyebrow">工作台设置</p><h2 id="model-dialog-title">模型与连接</h2></div><button type="button" class="secondary dialog-close" data-close="model-dialog" aria-label="关闭模型设置">关闭</button></div>
     <p class="dialog-description">配置对话使用的服务，也可以先检测再保存。已保存的密钥不会显示在页面中。</p>
-    <p id="model-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
     <form id="model-form" autocomplete="off">
       <fieldset id="model-fields" disabled>
         <div class="settings-grid">
@@ -103,7 +102,7 @@
             <label class="field">API 基础地址<input id="primary-url" type="url" maxlength="2048" placeholder="https://example.com/v1" spellcheck="false" autocomplete="off"></label>
             <label class="field">模型名称<input id="primary-model" type="text" maxlength="200" placeholder="填写实际模型 ID" spellcheck="false" autocomplete="off"></label>
             <label class="field">API Key<input id="primary-key" type="password" maxlength="8192" autocomplete="new-password" placeholder="尚未配置" aria-describedby="primary-key-help"></label>
-            <p id="primary-key-help" class="field-help">留空沿用已保存的密钥；更换地址需重新填写。</p>
+            <p id="primary-key-help" class="field-help">密钥留空沿用；更换为新地址需重新填写或勾选清除。地址与模型名称可以清空保存，清空地址不会删除密钥。</p>
             <label class="check-field"><input id="primary-clear-key" type="checkbox">清除已保存密钥</label>
             <div class="provider-actions"><button id="primary-models" class="secondary" type="button">获取模型列表</button><button id="primary-probe" class="secondary" type="button">检测连通性</button></div>
             <div id="primary-model-options" class="hidden"><label class="field">选择服务返回的模型<select id="primary-model-list"><option value="">请选择</option></select></label></div>
@@ -114,7 +113,7 @@
             <label class="field">API 基础地址<input id="backup-url" type="url" maxlength="2048" placeholder="https://example.com/v1" spellcheck="false" autocomplete="off"></label>
             <label class="field">模型名称<input id="backup-model" type="text" maxlength="200" placeholder="填写实际模型 ID" spellcheck="false" autocomplete="off"></label>
             <label class="field">API Key<input id="backup-key" type="password" maxlength="8192" autocomplete="new-password" placeholder="尚未配置" aria-describedby="backup-key-help"></label>
-            <p id="backup-key-help" class="field-help">留空沿用已保存的密钥；更换地址需重新填写。</p>
+            <p id="backup-key-help" class="field-help">密钥留空沿用；更换为新地址需重新填写或勾选清除。地址与模型名称可以清空保存，清空地址不会删除密钥。</p>
             <label class="check-field"><input id="backup-clear-key" type="checkbox">清除已保存密钥</label>
             <div class="provider-actions"><button id="backup-models" class="secondary" type="button">获取模型列表</button><button id="backup-probe" class="secondary" type="button">检测连通性</button></div>
             <div id="backup-model-options" class="hidden"><label class="field">选择服务返回的模型<select id="backup-model-list"><option value="">请选择</option></select></label></div>
@@ -122,7 +121,7 @@
           </section>
         </div>
         <p class="field-help">检测会向所选服务发送一条简短工具调用，用于确认连接、模型名称与调用能力；不会运行清洗任务。</p>
-        <div class="dialog-footer"><span id="model-save-caption" class="field-help">保存后对新请求生效，进行中的回答沿用原配置。</span><button id="save-model-settings" type="submit">保存设置</button></div>
+        <div class="dialog-footer"><div><p id="model-save-caption" class="field-help">保存后对新请求生效，进行中的回答沿用原配置。</p><p id="model-feedback" class="panel-feedback" role="status" aria-live="polite"></p></div><button id="save-model-settings" type="submit">保存设置</button></div>
       </fieldset>
     </form>
   </dialog>

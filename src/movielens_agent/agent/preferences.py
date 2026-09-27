@@ -101,7 +101,9 @@ class ModelPreferences:
                 previous = self.settings.for_provider(name)
                 if entry.clear_key and entry.api_key is not None:
                     raise ValueError("不能同时填写和清除同一服务的密钥。")
-                if (entry.url.rstrip("/") != previous.model_url and entry.api_key is None
+                # Empty URL disables the endpoint; it cannot receive a retained
+                # key. A later nonempty replacement still needs an explicit key.
+                if (entry.url and entry.url.rstrip("/") != previous.model_url and entry.api_key is None
                         and not entry.clear_key and previous.model_api_key.get_secret_value()):
                     raise ValueError("更换服务地址时，请重新填写 API Key 或勾选清除已保存密钥。")
                 key = SecretStr("") if entry.clear_key else entry.api_key or previous.model_api_key

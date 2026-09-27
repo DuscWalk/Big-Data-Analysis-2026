@@ -68,7 +68,7 @@
       if (generation !== modelGeneration) return;
       populate(result);
       feedback("model-feedback", "已保存，新请求将使用这份设置。", "success");
-    } catch (error) { if (generation === modelGeneration) feedback("model-feedback", error.message, "error"); }
+    } catch (error) { if (generation === modelGeneration) feedback("model-feedback", "未保存：" + error.message, "error"); }
     finally { if (generation === modelGeneration) { modelBusy = false; $("model-fields").disabled = false; } }
   });
   const checkErrors = {

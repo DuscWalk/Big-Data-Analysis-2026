@@ -69,6 +69,80 @@ class PreferencesApiTests(unittest.TestCase):
         self.assertFalse(response.json()["primary"]["key_configured"])
         self.assertEqual(ModelPreferences(self.f.settings).snapshot().model_api_key.get_secret_value(), "")
 
+    def test_cleared_provider_fields_persist_without_falling_back_to_startup(self):
+        edit = self.edit()
+        edit["backup"] = {"url": "https://backup.invalid/v1", "model": "test-backup",
+                          "api_key": "test-backup-secret"}
+        self.assertEqual(self.client.put("/api/v1/model-settings", json=edit).status_code, 200)
+        # A fresh process will see these same nonempty values in its startup config.
+        startup = self.app.state.agent.settings
+        before = self.client.get("/api/v1/model-settings").json()
+        for role in ("primary", "backup"):
+            with self.subTest(role=role):
+                edit = self.edit()
+                edit[role].update(url="  ", model="  ")
+                response = self.client.put("/api/v1/model-settings", json=edit)
+                self.assertEqual(response.status_code, 200)
+                expected = {"url": "", "model": "", "key_configured": True, "configured": False}
+                self.assertEqual(response.json()[role], expected)
+                self.assertEqual(self.client.get("/api/v1/model-settings").json()[role], expected)
+                reloaded = ModelPreferences(startup)
+                self.assertEqual(reloaded.public()[role], expected)
+                self.assertEqual(reloaded.path.stat().st_mode & 0o777, 0o600)
+                old = startup.for_provider(role)
+                current = reloaded.snapshot().for_provider(role)
+                self.assertEqual(current.model_api_key, old.model_api_key)
+                self.assertNotIn(old.model_api_key.get_secret_value(), response.text)
+                if role == "primary":
+                    self.assertEqual(response.json()["backup"], before["backup"])
+                    self.assertTrue(reloaded.snapshot().configured)
+        self.assertFalse(self.client.get("/api/v1/status").json()["model_configured"])
+        self.assertFalse(ModelPreferences(startup).snapshot().configured)
+
+    def test_clearing_one_field_keeps_the_other_field_and_explicit_key_clear_works(self):
+        original = self.edit()["primary"]
+        edit = self.edit()
+        edit["primary"]["model"] = ""
+        response = self.client.put("/api/v1/model-settings", json=edit)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["primary"]["url"], original["url"])
+        self.assertEqual(response.json()["primary"]["model"], "")
+        edit = self.edit()
+        edit["primary"].update(url="", model=original["model"])
+        response = self.client.put("/api/v1/model-settings", json=edit)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["primary"]["url"], "")
+        self.assertEqual(response.json()["primary"]["model"], original["model"])
+        self.assertTrue(response.json()["primary"]["key_configured"])
+        edit = self.edit()
+        edit["primary"].update(url="", model="", clear_key=True)
+        response = self.client.put("/api/v1/model-settings", json=edit)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["primary"]["key_configured"])
+        self.assertEqual(ModelPreferences(self.f.settings).snapshot().model_api_key.get_secret_value(), "")
+
+    def test_refilling_cleared_url_cannot_reuse_an_old_key_at_a_new_endpoint(self):
+        edit = self.edit()
+        edit["primary"].update(url="", model="")
+        self.assertEqual(self.client.put("/api/v1/model-settings", json=edit).status_code, 200)
+        edit = self.edit()
+        edit["primary"].update(url="https://other.invalid/v1", model="other-model")
+        self.assertEqual(self.client.put("/api/v1/model-settings", json=edit).status_code, 422)
+        self.assertEqual(self.client.get("/api/v1/model-settings").json()["primary"]["url"], "")
+        # Lists and probes must reject the same draft before making network calls.
+        with patch("movielens_agent.api.app.list_models") as models, patch("movielens_agent.api.app.tool_probe") as probe:
+            for action in ("models", "probe"):
+                response = self.client.post("/api/v1/model-settings/" + action,
+                    json={"provider": "primary", "configuration": edit})
+                self.assertEqual(response.status_code, 422)
+            models.assert_not_called()
+            probe.assert_not_called()
+        edit["primary"]["api_key"] = "new-endpoint-secret"
+        response = self.client.put("/api/v1/model-settings", json=edit)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["primary"]["url"], "https://other.invalid/v1")
+        self.assertNotIn("new-endpoint-secret", response.text)
+
     def test_invalid_fields_do_not_echo_submitted_credentials(self):
         secret = "private-validation-secret"
         for field, value in (("url", "https://" + secret + "@example.invalid/v1"),
