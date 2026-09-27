@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `course/` | 课程提供的任务与汇报要求 | [总体要求](course/引言_项目总体要求与汇报安排.md)、[迭代一原始要求](course/迭代一_Hadoop数据清洗与Agent基础.md) |
 | `architecture/` | 当前系统图解、模块职责和跨三轮扩展边界 | [系统架构详解与图件](architecture/系统架构详解.md)、[Agent 整体架构](architecture/Agent整体架构与迭代边界.md) |
-| `iterations/01-governance/` | 第一轮需求、接口、数据规则、开发计划和实际报告 | [迭代一导航](iterations/01-governance/README.md)、[数据交接](iterations/01-governance/handoff/清洗数据读取.md) |
+| `iterations/01-governance/` | 第一轮需求、接口、数据规则、交接和实际报告 | [迭代一导航](iterations/01-governance/README.md)、[交接说明](iterations/01-governance/handoff/交接说明.md)、[收尾验收](iterations/01-governance/reports/2026-09-27-收尾验收.md) |
 | `development/` | 环境复现与协作方法 | [开发环境](development/environment.md)、[Hadoop](development/hadoop-local.md)、[任务与工具](development/tasks-and-tools.md)、[Agent、模型设置与历史会话](development/app-and-model.md)、[Git 工作流](development/git-workflow.md) |
 | `deployment/` | 华为云环境、CI 与持续交付 | [华为云部署与 CI/CD](deployment/README.md) |
 

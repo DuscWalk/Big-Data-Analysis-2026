@@ -1,6 +1,6 @@
 # 华为云部署与持续交付
 
-当前云端环境已启动，SSH、模型工具调用、22 条样本的七作业流程与页面回读已验证，见[首次部署记录](reports/2026-09-27-华为云首次部署.md)。
+当前云端环境已启动，SSH、模型工具调用、22 条样本的七作业流程与页面回读已验证，见[首次部署记录](reports/2026-09-27-华为云首次部署.md)。迭代一收尾后发布目标统一为 `main`，固定基线为 `iteration-01-v1.0`；完整数据包和验收边界见[交接说明](../iterations/01-governance/handoff/交接说明.md)。
 
 ## 目标与已知环境
 
@@ -10,7 +10,7 @@
 
 最初核查的旧实例为 2 核 / 2 GB，已有其他实验服务且无本项目 YARN 环境；新服务器容量已满足下面的建议，不需要清理旧实例的服务来腾出资源。
 
-当前开发分支为 `feat/iteration-01-foundation`，`main` 尚未合入本轮实现。部署目标必须显式指定分支与提交；本轮不自动合并主分支或创建发布标签。
+当前集成与发布分支为 `main`。脚本默认值和安装的 systemd unit 均指定该分支；个人功能分支只运行 CI，经评审合入 `main` 后才进入云端发布。实际运行提交及其 CI 地址以服务器 `deployed.json` 为准，首次部署报告中的功能分支信息属于当时记录。
 
 ## 资源选择
 
@@ -52,6 +52,7 @@ CI 明确清空 `MOVIELENS_HADOOP_RUNTIME`，不读取 `.env`，不运行真实 
 │   ├── data/             # 原始数据，登记时使用这里的稳定绝对路径
 │   ├── hadoop/           # 本项目独立的 Hadoop 配置和存储
 │   ├── runs/             # 工作流运行与正式产物
+│   ├── handoff/          # 已校验的固定全量数据交接包，独立于会话目录
 │   └── backups/          # 切换前的 SQLite 备份
 ├── deploy.lock
 └── deployed.json         # 已部署 SHA、上一版本与 CI 地址
@@ -83,8 +84,8 @@ python3 bin/local_cluster.py status --runtime shared/hadoop --python /usr/bin/py
 4. 准备 `shared/.env`（0600）。先运行交付器的只读检查，确认 SHA 与 CI 地址；随后首次启用应用部署，再启用三分钟定时检查。
 
 ```bash
-python3 bin/pull_release.py --base /srv/movielens
-python3 bin/pull_release.py --base /srv/movielens --apply
+python3 bin/pull_release.py --base /srv/movielens --branch main
+python3 bin/pull_release.py --base /srv/movielens --branch main --apply
 systemctl --user enable movielens-api.service movielens-worker.service
 systemctl --user enable --now movielens-deploy.timer
 ```
@@ -94,7 +95,9 @@ systemctl --user enable --now movielens-deploy.timer
 
 首次安装需要设置正确的 `XDG_RUNTIME_DIR` 和 `DBUS_SESSION_BUS_ADDRESS` 才能从管理员切换身份操作用户服务。这些值由实际 UID 决定；交付器运行时会自动设置。
 
-功能分支合并后，可通过 `movielens-deploy.service` 的 `ExecStart` 显式改为 `--branch main`，重新加载用户 unit。不要把服务器上的源码目录作为其他成员的开发工作区；成员提交分支、CI 通过，再按团队选定的发布分支交付。
+本轮收尾已将控制脚本默认分支和 `movielens-deploy.service` 的 `ExecStart` 切换为 `main`。日后修改这些控制文件时，先通过 CI，暂停定时器并确认没有正在执行的交付，备份后显式安装新脚本和 unit、重新加载用户配置，完成只读检查和一次实际交付后再恢复定时器。应用代码更新不自动完成这些步骤。
+
+成员从最新 `main` 建自己的分支，经 PR 评审合并；共享环境不直接编辑源码，也没有自动的功能分支预览环境。协作步骤见[Git 工作流](../development/git-workflow.md)。
 
 ## 访问与日常管理
 
@@ -122,7 +125,7 @@ runuser -u movielens -- env XDG_RUNTIME_DIR=/run/user/996 DBUS_SESSION_BUS_ADDRE
 
 交付日志由 systemd 保存，管理员可用 `journalctl _SYSTEMD_USER_UNIT=movielens-deploy.service --since today` 查询。`deployed.json` 保存当前提交、上一版本和通过的 CI 地址。定时器失败不影响正在运行的应用；检查网络、CI 状态和部署日志后再触发。
 
-当前应用只接受本机地址，尚无用户身份认证。其他成员使用各自 SSH 公钥建立同样的隧道；若要提供公网协作入口，需要对接经过身份认证的 HTTPS 入口，不能直接开放模型配置与任务 API。成员公钥接入和公网域名未在本次配置。
+当前应用只接受本机地址，尚无用户身份认证。其他成员使用各自 SSH 公钥和独立账号建立隧道；成员公钥接入和公网域名尚未配置。模型设置、数据目录和历史会话共享，修改模型设置前先对齐；会话 ID 不构成用户安全边界。只需页面访问时可配置仅限端口转发的账号；取得数据包需要另行配置只读文件权限或由负责人提供，不能把隧道权限当作文件权限。若需要公网协作，再配置有身份认证的 HTTPS 入口。
 
 ## 自动检查记录
 

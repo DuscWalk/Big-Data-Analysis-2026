@@ -187,7 +187,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", type=Path, required=True)
     parser.add_argument("--repository", default="DuscWalk/Big-Data-Analysis-2026")
-    parser.add_argument("--branch", default="feat/iteration-01-foundation")
+    parser.add_argument("--branch", default="main")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--health-url", default="http://127.0.0.1:8765/api/v1/status")
     parser.add_argument("--apply", action="store_true", help="Prepare and activate; otherwise check CI only")

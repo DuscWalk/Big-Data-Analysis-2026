@@ -4,7 +4,7 @@
 
 项目目标是让用户通过简易前端输入自然语言请求，由 Agent 调用实际的数据处理工具，返回任务状态、分析结果及其依据，并支持围绕结果继续提问。
 
-**当前进度：Agent、页面、持久会话和真实 Hadoop 治理已接通，数量解析、连续样例追问与失败重新解释已完成本轮验证。** [最新实测](docs/iterations/01-governance/reports/2026-09-25-追问解析与重试实测.md)记录修正后原七题 7/7 通过、14 项变体与多轮检查首测 13/14 通过（含两项应用澄清）；唯一的网关 504 单独补测一次通过。真实页面的新追问和历史失败重试均通过。服务仍有时延与可用性波动，已记录原始失败、内部修正和解析边界。此前的[备用模型全链路实测](docs/iterations/01-governance/reports/2026-09-25-备用模型全链路实测.md)保留七作业、下载、分区读取与重启证据，固定数据读取见[说明](docs/iterations/01-governance/handoff/清洗数据读取.md)。
+**当前进度：迭代一完成开发与交接整理，稳定代码和云端发布统一使用 `main`，本轮基线标签为 `iteration-01-v1.0`。** 已交付 Agent 共用架构、真实 Hadoop 治理、手记版页面、模型设置、历史会话和九阶段实际进度。课程全量结果来自已留证的本地实验，云端已验证 22 条边界样本的完整流程；完整清洗数据另以固定版本交接到云端。接手先看[迭代一交接说明](docs/iterations/01-governance/handoff/交接说明.md)，验收范围与限制见[收尾记录](docs/iterations/01-governance/reports/2026-09-27-收尾验收.md)。课程平台提交和 9 月 30 日汇报由负责人安排。
 
 ## 实验文档
 
@@ -28,7 +28,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 | 迭代 | 目标与主要任务 | 主要产物 | 状态 |
 | --- | --- | --- | --- |
-| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | Agent、页面和 Hadoop 已实现；验证与交接见本轮报告 |
+| 一：Agent 基础与数据治理 | 建设可复用的 Agent 框架，并通过 Hadoop 完成清洗前评分、清洗、清洗后评分与对比 | 工具/任务/产物协议与共用框架、清洗数据、版本与任务记录、`T1/T2`、报告及接入说明 | 开发与交接整理完成，基线 `iteration-01-v1.0`；课程提交与汇报另行完成 |
 | 二：机器学习分析 | 预测评分是否不低于 4 分；按历史观影偏好聚类用户；降维并比较聚类效果、信息保留与资源开销 | 分类模型、用户画像与群体、降维模型与坐标、参数及评价结果 | 待实现 |
 | 三：知识图谱与图分析 | 构建并校验电影领域知识图谱，在同一图谱版本或其图投影上完成推荐、电影社区挖掘与链接分析 | 带来源与版本的知识图谱、推荐结果、社区结构与节点排序结果 | 待实现 |
 
@@ -61,13 +61,16 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
 ├── configs/governance/            # 规则、评分与时间配置
 ├── scripts/                       # Hadoop、实际验收与交接读取示例
+├── .github/workflows/             # GitHub CI
+├── deploy/systemd/                # 云端应用、计算与交付服务
 ├── tests/                         # 小型数据与框架行为验证
 ├── docs/
 │   ├── README.md                  # 文档导航
 │   ├── course/                    # 课程原始要求
 │   ├── architecture/              # 三轮共用架构
 │   ├── iterations/01-governance/   # 迭代一需求、方案、计划与核查报告
-│   └── development/               # 开发环境与 Git 协作指南
+│   ├── development/               # 开发环境与 Git 协作指南
+│   └── deployment/                # 云端访问、持续交付与部署记录
 ├── ml-1m/                         # 本地原始数据，Git 忽略
 └── slides/                        # 本地课件与预习资料，Git 忽略
 ```
@@ -79,10 +82,10 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ```bash
 git clone git@github.com:DuscWalk/Big-Data-Analysis-2026.git
 cd Big-Data-Analysis-2026
-git switch feat/iteration-01-foundation
+git switch main
 ```
 
-当前实现位于上述功能分支，正式交付合并后再以主分支和交付标签为准。
+后续开发从最新 `main` 创建自己的功能分支；需要固定迭代一源码时使用标签 `iteration-01-v1.0`，见 [Git 工作流](docs/development/git-workflow.md)。
 
 将课程提供的 `ml-1m.zip` 放到仓库根目录后解压。若 `ml-1m/` 已就位，无需重复解压。
 
@@ -115,7 +118,7 @@ python -m unittest discover -s tests -v
 
 核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
 
-继续运行治理任务：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
+日常开发使用小样本检查，Hadoop 计算和集成验收集中在[华为云环境](docs/deployment/README.md)。本机 WSL 曾因计算负载失稳，不把完整 Hadoop 作为开发前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
 
 ```bash
 python -m movielens_agent submit --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578 --request-id governance-001
@@ -132,7 +135,7 @@ python -m movielens_agent model-probe
 python -m movielens_agent serve --port 8765
 ```
 
-打开 <http://127.0.0.1:8765>，用自然语言发起清洗，再查看自动更新的任务、五维对比、异常样例与报告。模型解释失败时仍可读取实际产物；“受理”与“计算完成”是不同状态。应用仅面向可信本机使用。
+本地开发页面为 <http://127.0.0.1:8765>；云端演示通过 SSH 隧道访问 <http://127.0.0.1:18765/>，步骤见[演示说明](docs/iterations/01-governance/demo/演示说明.md)。模型解释失败时仍可读取实际产物；“受理”与“计算完成”是不同状态。应用监听回环地址，云端借助 SSH 控制接入；模型配置与历史会话在当前可信小组环境中共享。
 
 ## 数据集说明
 

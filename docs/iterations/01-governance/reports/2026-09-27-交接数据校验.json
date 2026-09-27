@@ -1,0 +1,62 @@
+{
+  "archive": "iteration-01-handoff.tar.gz",
+  "archive_size_bytes": 18456977,
+  "archive_sha256": "27eb003327d6cf385bfd7117be22f8d9f128bebde5b71ba8a940902425a44811",
+  "dataset_ref": {
+    "artifact_id": "33ce0c793b6e4d92acb6400cd96b3faa.cleaned",
+    "version": "sha256-b64d8d8e78e93a796ac86342e19a3a3b2d9316a6c89f3e930defe190375f1213"
+  },
+  "producer_task_id": "33ce0c793b6e4d92acb6400cd96b3faa",
+  "files": [
+    {
+      "name": "dataset-manifest.json",
+      "size_bytes": 2853,
+      "sha256": "96f9736f29b22863d14595f55eb528eb02d8fb42b83154b48cecf64b1275a12b"
+    },
+    {
+      "name": "users.jsonl",
+      "size_bytes": 1652960,
+      "sha256": "75ffd68716e6a04c0d1204434a3e0fd6753254e2378a8ac73f0ef66a3b00de64"
+    },
+    {
+      "name": "movies.jsonl",
+      "size_bytes": 1065359,
+      "sha256": "448076296a22bf9a1e9f79a4ff7e7fffc830c96517627738e154a562cdf87099"
+    },
+    {
+      "name": "ratings.jsonl",
+      "size_bytes": 251834151,
+      "sha256": "c48f79e61b3cb9bc86e5000c9095856e737e9788480586ed06a87d2e7c9dde0b"
+    },
+    {
+      "name": "quality.json",
+      "size_bytes": 75556,
+      "sha256": "7bc50d47076a67579197f2747c63755a366fb98e065ec79c75c19d57be87f6ed"
+    },
+    {
+      "name": "report.md",
+      "size_bytes": 4668,
+      "sha256": "7b154e4982fee777fc3e63f1825a565f8bed6a8f653dff711798799426599966"
+    },
+    {
+      "name": "dataset-reference.json",
+      "size_bytes": 1726,
+      "sha256": "a6c61458869ac09f1a08ef56552070bdd38298ff1f6fa913dc4cb44f7e471115"
+    }
+  ],
+  "validated_at": "2026-09-27T11:55:02.538926+00:00",
+  "reader_code_commit": "5acf41bde99e891abd14eefe8b9990797db0b420",
+  "rows": {
+    "users": 5895,
+    "movies": 3836,
+    "ratings": 935354
+  },
+  "splits": {
+    "train": 746139,
+    "validation": 100814,
+    "test": 88401
+  },
+  "remote_directory": "/srv/movielens/shared/handoff/iteration-01",
+  "catalog_imported": false,
+  "hadoop_rerun": false
+}

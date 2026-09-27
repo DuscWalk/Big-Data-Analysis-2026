@@ -89,7 +89,7 @@ python -m movielens_agent evidence --artifact-id ARTIFACT_ID --version ARTIFACT_
 python -m movielens_agent evidence --artifact-id CLEANED_ARTIFACT_ID --version ARTIFACT_VERSION --mode sample --file-name ratings.jsonl --limit 3
 ```
 
-包含多个文件的产物须指定 file-name。JSONL 样例每次最多 20 行，返回 offset、has_more 和来源；完整处置与清洗数据不放进模型上下文。评分摘要取已发布 quality.json 中的真实事实。其他会话不能读取任务或产物；原始数据清单目前是项目公共数据。
+包含多个文件的产物须指定 file-name。JSONL 样例每次最多 20 行，返回 offset、has_more 和来源；完整处置与清洗数据不放进模型上下文。评分摘要取已发布 quality.json 中的真实事实。工具查询按当前会话范围校验任务和产物；原始数据清单是项目公共数据。应用没有用户身份认证，历史入口可切换会话，因此这种查询范围校验不构成成员间的权限隔离。
 
 ## 下一轮的扩展位置
 

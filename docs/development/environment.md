@@ -56,6 +56,8 @@ Hadoop 安装与启动见 [Hadoop 指南](hadoop-local.md)。任务提交、后�
 
 ## 验证
 
+日常开发使用下方的小样本检查。Hadoop 计算与集成验收统一放到[华为云](../deployment/README.md)，不要求每位成员启动本地集群；本机 WSL 已出现过计算负载导致的失稳。读取[交接数据](../iterations/01-governance/handoff/清洗数据读取.md)也不需要模型或 Hadoop。
+
 ```bash
 python -m unittest discover -s tests -v
 ```
