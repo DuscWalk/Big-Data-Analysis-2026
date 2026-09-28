@@ -8,6 +8,7 @@ import shlex
 import shutil
 import signal
 import subprocess
+import sys
 import time
 import xml.etree.ElementTree as ET
 
@@ -140,13 +141,13 @@ def main():
                         default=Path.home() / ".local/opt/hadoop-3.5.0")
     parser.add_argument("--java-home", type=Path, default=Path("/usr/lib/jvm/java-17-openjdk-amd64"))
     parser.add_argument("--python", type=Path,
-                        default=Path.home() / "miniconda3/envs/AgentDev/bin/python")
+                        default=Path(sys.executable))
     args = parser.parse_args()
     if os.geteuid() == 0:
         parser.error("Run as the normal development user, not root.")
     runtime, installation = args.runtime.resolve(), args.hadoop_home.resolve()
     if not (installation / "bin/hadoop").is_file() or not args.python.is_file():
-        parser.error("Install Hadoop and the AgentDev interpreter first.")
+        parser.error("Install Hadoop and activate the project Python environment first.")
     if args.command == "init":
         env = configure(runtime, installation, args.java_home.resolve(), args.python.resolve())
         name_dir = runtime / "data/name"

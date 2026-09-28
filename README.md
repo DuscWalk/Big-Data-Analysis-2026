@@ -57,7 +57,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── README.md
 ├── .gitignore
 ├── pyproject.toml                 # 包定义与依赖声明
-├── environment.yml                # AgentDev 环境声明
+├── environment.yml                # 项目 Conda 环境声明
 ├── requirements.lock              # 已验证的 Python 库版本
 ├── environments/                  # 平台环境锁文件
 ├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
@@ -79,7 +79,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 ## 获取仓库与准备数据
 
-以下命令适用于 Linux / WSL，需要 Git 和 `unzip`。使用 SSH 克隆前需配置 GitHub SSH 认证；已有本地仓库可跳过克隆步骤。
+以下命令适用于 Linux 开发环境，需要 Git 和 `unzip`。使用 SSH 克隆前需配置 GitHub SSH 认证；已有本地仓库可跳过克隆步骤。
 
 ```bash
 git clone git@github.com:DuscWalk/Big-Data-Analysis-2026.git
@@ -107,11 +107,10 @@ wc -l ml-1m/movies.dat ml-1m/ratings.dat ml-1m/users.dat
 
 ## 本地开发与已实现命令
 
-使用 `duscwalk` 用户的 Conda 环境 **`AgentDev`**，当前已验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
+在已激活的项目 Python 环境中运行，示例环境名为 **`movielens-agent`**；当前验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
 
 ```bash
-source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
-conda activate AgentDev
+conda activate movielens-agent
 python -m pip install -r requirements.lock
 python -m pip install --no-deps --no-build-isolation -e .
 python -m movielens_agent profile --data-dir ml-1m
@@ -120,7 +119,7 @@ python -m unittest discover -s tests -v
 
 核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
 
-日常开发使用小样本检查，Hadoop 计算和集成验收集中在[华为云环境](docs/deployment/README.md)。本机 WSL 曾因计算负载失稳，不把完整 Hadoop 作为开发前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
+日常开发使用小样本检查，Hadoop 计算和集成验收集中在[云端环境](docs/deployment/README.md)。不把完整 Hadoop 作为每个开发环境的前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
 
 ```bash
 python -m movielens_agent submit --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578 --request-id governance-001

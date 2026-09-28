@@ -3519,12 +3519,11 @@
     "web_sha256": "304797ef60503115776b47e91714d11339977bc18b667042d0cfd6ac0a0ae262",
     "api_status": 200,
     "processes": [
-      "1620474 /home/duscwalk/miniconda3/envs/AgentDev/bin/python -m movielens_agent serve --port 8765",
-      "1620476 /home/duscwalk/miniconda3/envs/AgentDev/bin/python -m movielens_agent worker"
+      "python -m movielens_agent serve --port 8765",
+      "python -m movielens_agent worker"
     ],
     "controlled_fixture_stopped": true,
     "env_mode": "0o600",
-    "system_user": "duscwalk",
     "hadoop": {
       "exit_code": 0,
       "one_live_datanode": true,

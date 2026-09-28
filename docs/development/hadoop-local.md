@@ -1,26 +1,26 @@
-# 本机 Hadoop：安装、运行与排错
+# 本地 Hadoop：安装、运行与排错
 
-当前采用 Hadoop **3.5.0 + OpenJDK 17 + AgentDev Python 3.11.16**，真实 HDFS/YARN Streaming 验证见[开发计划](../iterations/01-governance/开发与交接计划.md)。Apache 的 [Java 兼容说明](https://cwiki.apache.org/confluence/display/HADOOP/Hadoop+Java+Versions)规定 3.5 服务端使用 JDK 17；[发行页面](https://hadoop.apache.org/releases.html)列明该版本于 2026-04-02 发布。
+当前采用 Hadoop **3.5.0 + OpenJDK 17 + Python 3.11**，真实 HDFS/YARN Streaming 验证见[开发计划](../iterations/01-governance/开发与交接计划.md)。Apache 的 [Java 兼容说明](https://cwiki.apache.org/confluence/display/HADOOP/Hadoop+Java+Versions)规定 3.5 服务端使用 JDK 17；[发行页面](https://hadoop.apache.org/releases.html)列明该版本于 2026-04-02 发布。
 
 ## 安装与配置
 
-以日常用户执行以下命令；当前机器为 `duscwalk`。不要使用 root 运行守护进程或格式化存储。
+以普通开发用户执行以下命令；不要使用 root 运行守护进程或格式化存储。
 
 ```bash
-conda activate AgentDev
+conda activate movielens-agent
 python scripts/hadoop/install.py
 python scripts/hadoop/local_cluster.py init
 ```
 
-安装器读取[版本与 SHA-512 锁定信息](../../environments/hadoop-linux-x86_64.json)，下载约 555 MiB 的 Apache 二进制包，校验后解压至 `~/.local/opt/hadoop-3.5.0`。已有安装不会被覆盖。依赖系统已有的 JDK 17、curl 和 tar；Python 使用 AgentDev。
+安装器读取[版本与 SHA-512 锁定信息](../../environments/hadoop-linux-x86_64.json)，下载约 555 MiB 的 Apache 二进制包，校验后解压至用户目录下的 `~/.local/opt/hadoop-3.5.0`。已有安装不会被覆盖。依赖系统已有的 JDK 17、curl 和 tar；Python 使用当前已激活的项目环境。
 
-默认本机路径：
+默认配置与可调整路径：
 
 | 内容 | 位置 |
 | --- | --- |
 | Hadoop 二进制 | ~/.local/opt/hadoop-3.5.0 |
 | Java | /usr/lib/jvm/java-17-openjdk-amd64 |
-| Streaming Python | ~/miniconda3/envs/AgentDev/bin/python |
+| Streaming Python | 启动脚本的 Python 解释器，可用 `--python` 显式指定 |
 | Hadoop 配置、存储与日志 | var/hadoop/ |
 | 应用运行配置 | var/hadoop/runtime.json |
 | HDFS 项目空间 | /movielens |
@@ -44,7 +44,7 @@ python scripts/hadoop/local_cluster.py status
 python -m movielens_agent worker
 ```
 
-前台终端 Ctrl-C 会停止该项目的四个 Hadoop 服务。也可在普通持久终端使用 `start` / `stop` 子命令；某些工具执行器会清理命令结束后的子进程，这类环境使用 `serve`。关闭终端或 WSL 后，要重新启动集群。
+前台终端 Ctrl-C 会停止该项目的四个 Hadoop 服务。也可在普通持久终端使用 `start` / `stop` 子命令；某些工具执行器会清理命令结束后的子进程，这类环境使用 `serve`。关闭前台运行终端或重启运行环境后，要重新启动集群。
 
 冷启动会在最多 90 秒内等待 NameNode RPC 可访问及 Safe mode 退出，连接暂未就绪时不会立即判定启动失败；超过期限仍会明确报错并保留日志。
 
@@ -54,13 +54,13 @@ python -m movielens_agent worker
 - ResourceManager 页面：http://127.0.0.1:8088
 - NodeManager 页面：http://127.0.0.1:8042
 
-HDFS RPC、DataNode 和管理界面绑定本机回环地址。本方案是本机单节点开发环境，不提供跨机器身份认证或高可用。
+HDFS RPC、DataNode 和管理界面绑定回环地址。本方案用于单节点开发环境，不提供跨机器身份认证或高可用。
 
 ## 资源配置
 
-本机约 7.6 GiB 内存，YARN 宣告 3072 MiB、4 vcores；Map、Reduce 与 AM 各申请 768 MiB 容器，Java 堆分别 256/256/384 MiB，额外空间供 Python 和 JVM 非堆内存。四个服务默认各用 256 MiB 堆。此为实验资源预算，不是进程峰值统计。
+YARN 宣告 3072 MiB、4 vcores；Map、Reduce 与 AM 各申请 768 MiB 容器，Java 堆分别 256/256/384 MiB，额外空间供 Python 和 JVM 非堆内存。四个服务默认各用 256 MiB 堆。此为实验资源预算，不是进程峰值统计；运行前应确认主机有足够余量。
 
-启用物理内存检查，关闭虚拟地址空间检查以适配 JVM/WSL；禁用推测执行并将单任务尝试设为 1，便于首版排错。评分表分组使用 2 个 reducer，汇总作业使用 1 个。作业输出保留在任务专属 HDFS 路径。
+启用物理内存检查，关闭虚拟地址空间检查，避免将 JVM 预留的虚拟地址空间当成实际内存占用；禁用推测执行并将单任务尝试设为 1，便于首版排错。评分表分组使用 2 个 reducer，汇总作业使用 1 个。作业输出保留在任务专属 HDFS 路径。
 
 ## 验证与日志
 

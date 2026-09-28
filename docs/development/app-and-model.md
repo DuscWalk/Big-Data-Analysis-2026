@@ -1,6 +1,6 @@
 # 本地 Agent、模型与页面
 
-应用使用 AgentDev 中的 FastAPI、httpx 和普通 HTML/JavaScript。模型通过结构化工具调用访问已有工具注册表，Hadoop 工作流仍由独立 worker 执行。依赖版本见 [requirements.lock](../../requirements.lock)，安装步骤见[环境指南](environment.md)。
+应用使用项目 Python 环境中的 FastAPI、httpx 和普通 HTML/JavaScript。模型通过结构化工具调用访问已有工具注册表，Hadoop 工作流仍由独立 worker 执行。依赖版本见 [requirements.lock](../../requirements.lock)，安装步骤见[环境指南](environment.md)。
 
 ## 配置与连通性
 
@@ -11,7 +11,7 @@
 | `MODEL_URL`、`MODEL_NAME`、`MODEL_API_KEY` | 主服务 API 基址、实际模型 ID 与凭据；基址含 `/v1` 时保留该部分 |
 | `MODEL_URL_BACKUP`、`MODEL_NAME_BACKUP`、`MODEL_API_KEY_BACKUP` | 可选备用服务，凭据独立 |
 | `MODEL_PROVIDER` | 默认 `auto`；可固定为 `primary` 或 `backup` |
-| `MODEL_TIMEOUT_SECONDS` | 每个服务单次请求的网络超时，默认 45 秒；当前本机为 90 秒 |
+| `MODEL_TIMEOUT_SECONDS` | 每个服务单次请求的网络超时，默认 45 秒，可按服务延迟调整 |
 | `MODEL_MAX_TOKENS` | 输出上限，默认 4096；过小可能截断解释，不能把截断响应当成完成 |
 | `AGENT_MAX_ROUNDS`、`AGENT_MAX_CALLS` | 默认每条消息最多 6 轮模型调用、12 次工具调用 |
 | `AGENT_MAX_CONTEXT_CHARS` | 默认 100000 字符，包含提示、结构化工具定义与证据；超限明确失败 |
@@ -44,7 +44,7 @@ python -m movielens_agent model-probe
 
 空值保存的修正与验证见[2026-09-27 模型设置空值保存实测](../iterations/01-governance/reports/2026-09-27-模型设置空值保存实测.md)。
 
-配置文件与临时文件已被 Git 忽略。这里仍是面向可信本机的设置入口，不代表增加了账号体系或多用户密钥管理。
+配置文件与临时文件已被 Git 忽略。这里仍是面向可信开发环境的设置入口，不代表增加了账号体系或多用户密钥管理。
 
 ## 启动与使用
 

@@ -4,20 +4,19 @@
 
 ## 环境与依赖
 
-本机以 `duscwalk` 执行，Conda 环境为 `AgentDev`。当前 Python 3.11.16、Pydantic 2.13.5、FastAPI 0.141.1、httpx 0.28.1，实际依赖集合记录在 [requirements.lock](../../requirements.lock)；Conda 环境声明见 [environment.yml](../../environment.yml)。
+使用项目 Conda 环境运行，示例环境名为 `movielens-agent`。当前验证 Python 3.11.16、Pydantic 2.13.5、FastAPI 0.141.1、httpx 0.28.1，实际依赖集合记录在 [requirements.lock](../../requirements.lock)；Conda 环境声明见 [environment.yml](../../environment.yml)。
+
+首次创建环境可执行 `conda env create -f environment.yml`；已有环境按需执行 `conda env update -n movielens-agent -f environment.yml`。环境名可自行选择，以下命令使用项目声明中的名称，不要求修改已有开发环境。
 
 ```bash
-source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
-conda activate AgentDev
+conda activate movielens-agent
 python -c 'import sys; print(sys.executable); print(sys.version)'
 ```
 
-本机解释器应为 `/home/duscwalk/miniconda3/envs/AgentDev/bin/python`。在新的开发环境中，可先执行 `conda env create -f environment.yml`；已存在的环境按需使用 `conda env update -n AgentDev -f environment.yml`，不要直接覆盖或删除他人的环境。
-
-需要复现本次 Linux x86_64 的确切 Conda 包构建时，使用 [平台锁文件](../../environments/conda-linux-64.lock) 在尚不存在的环境中创建：
+需要复现已验证的 Linux x86_64 Conda 包构建时，也可改用[平台锁文件](../../environments/conda-linux-64.lock)创建尚不存在的环境：
 
 ```bash
-conda create -n AgentDev --file environments/conda-linux-64.lock
+conda create -n movielens-agent --file environments/conda-linux-64.lock
 ```
 
 选择好环境后，在仓库根目录安装锁定的 Python 依赖与本地代码：
@@ -56,7 +55,7 @@ Hadoop 安装与启动见 [Hadoop 指南](hadoop-local.md)。任务提交、后�
 
 ## 验证
 
-日常开发使用下方的小样本检查。Hadoop 计算与集成验收统一放到[华为云](../deployment/README.md)，不要求每位成员启动本地集群；本机 WSL 已出现过计算负载导致的失稳。读取[交接数据](../iterations/01-governance/handoff/清洗数据读取.md)也不需要模型或 Hadoop。
+日常开发使用下方的小样本检查。Hadoop 计算与集成验收统一放到[云端环境](../deployment/README.md)，不要求每位成员启动本地集群。读取[交接数据](../iterations/01-governance/handoff/清洗数据读取.md)也不需要模型或 Hadoop。
 
 ```bash
 python -m unittest discover -s tests -v

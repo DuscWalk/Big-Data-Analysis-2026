@@ -78,7 +78,7 @@ def overview():
     d.box("job-tool",115,875,415,100,"计算工具 · governance.run",["固定输入、配置与实现哈希","写入 queued，返回 task_id"],title_size=20,size=17,step=24)
     d.box("query-tools",570,875,855,100,"查询工具",["datasets.describe / tasks.get / artifacts.list / artifacts.get","元数据 / 报告摘要 / 清洗样例 / 异常来源"],title_size=20,size=17,step=24)
 
-    d.group("persistence",60,1120,1020,340,"持久化存储  /  同一个数据库 + 本机文件",fill="#f0f4f0",stroke="#94aba0")
+    d.group("persistence",60,1120,1020,340,"持久化存储  /  同一个数据库 + 本地文件",fill="#f0f4f0",stroke="#94aba0")
     d.box("sqlite",90,1190,500,230,"SQLite · 元数据与调用证据",["var/catalog.sqlite3","DatasetCatalog：原始数据版本与清单","TaskStore：任务 / 阶段 / 产物","ConversationStore：会话 / 消息 / 调用","请求去重 / 配置快照 / 精确版本引用"],stroke="#94aba0",size=17,step=29)
     d.box("raw-data",620,1190,430,90,"只读原始文件",["ml-1m/ · users / movies / ratings"],title_size=20,size=17)
     d.box("run-files",620,1310,430,110,"任务专属文件",["var/runs/{task_id}/","input / results / logs / published"],title_size=20,size=17,step=25)
@@ -94,7 +94,7 @@ def overview():
     d.text(86,1661,"迭代三：知识图谱 / 推荐 / 社区挖掘 / 链接分析",size=21,weight=500)
     d.text(86,1705,["接入新的算法工具、工作流、产物类型与专用视图。","复用上方的会话、注册、任务、证据及版本机制。"],size=18,color=MUTED,step=28)
 
-    d.group("hadoop-runtime",1140,1610,800,275,"Hadoop 运行环境  /  本机单节点 · 真实批处理",fill="#e8efee",stroke="#94aaa6")
+    d.group("hadoop-runtime",1140,1610,800,275,"Hadoop 运行环境  /  单节点 · 真实批处理",fill="#e8efee",stroke="#94aaa6")
     d.box("yarn",1170,1680,215,165,"YARN",["ResourceManager","NodeManager","资源与容器调度"],size=16,step=28)
     d.box("streaming",1415,1680,240,165,"Hadoop Streaming",["Python Mapper / Reducer","分组 / 规则 / 五维评分","七个 MapReduce 作业"],title_size=19,size=15,step=28,stroke="#718c92")
     d.box("hdfs",1685,1680,225,165,"HDFS",["NameNode / DataNode","/movielens/tasks/{id}/","输入 / 输出 / 清洗副本"],size=15,step=28)

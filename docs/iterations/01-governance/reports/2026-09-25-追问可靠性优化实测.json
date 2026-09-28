@@ -79,24 +79,21 @@
       }
     ],
     "services_started": {
-      "api": 1607472,
-      "worker": 1607473,
-      "nodemanager": 1607474
+      "api": true,
+      "worker": true,
+      "nodemanager": true
     }
   },
   "runtime": {
     "api_model_provider": "backup",
     "nodes": [
       {
-        "id": "localhost:45605",
         "state": "RUNNING"
       },
       {
-        "id": "localhost:45129",
         "state": "LOST"
       },
       {
-        "id": "localhost:45859",
         "state": "SHUTDOWN"
       }
     ],
@@ -482,9 +479,6 @@
     "run_stopped_for_fixes": {
       "at": "2026-09-25T06:37:19.120528+00:00",
       "reason": "Stop initial live run to fix missing unsupported enforcement and irrelevant section selection; preserve original content failures and 504.",
-      "stopped_pids": [
-        1602360
-      ],
       "interrupted_requests": [
         {
           "request_uid": "3dc2ca309a654d998f4e522f46b5961b",

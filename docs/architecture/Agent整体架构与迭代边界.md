@@ -4,7 +4,7 @@
 
 来源：[项目总体要求](../course/引言_项目总体要求与汇报安排.md)、[迭代一课程要求](../course/迭代一_Hadoop数据清洗与Agent基础.md)、[需求拆解与验收清单](../iterations/01-governance/需求拆解与验收清单.md)，以及负责人明确的“迭代一为后续轮次搭建 Agent 整体架构”目标。参考资料见第 8 节。
 
-本地开发使用 `duscwalk` 的 Conda 环境 `AgentDev`，Python、Pydantic 和本地包已安装并验证。环境与实际命令统一维护于 [开发环境指南](../development/environment.md)；其余依赖按实现需要安装并记录版本。
+开发使用项目 Conda 环境，Python、Pydantic 和本地包已安装并验证。环境与实际命令统一维护于 [开发环境指南](../development/environment.md)；其余依赖按实现需要安装并记录版本。
 
 实现细节分别维护于 [技术方案与接口约定](../iterations/01-governance/技术方案与接口约定.md)、[数据与评分约定](../iterations/01-governance/数据与评分约定.md)和[开发与交接计划](../iterations/01-governance/开发与交接计划.md)。本文保持三轮共用职责与扩展边界。
 

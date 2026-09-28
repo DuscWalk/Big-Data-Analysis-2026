@@ -47,7 +47,7 @@ task 返回真实状态、当前阶段、错误、所有阶段尝试、外部作
 
 页面每 2 秒读取任务进度，读取失败后间隔 4 秒重试。待执行阶段显示空进度条；运行但尚未上报数值时显示等待动画；失败或待核查时停止动画并保留最后数值；完成的历史阶段显示完成状态并说明缺少处理中的计数。刷新不会收起执行阶段，切换任务或会话会清除旧任务进度。阶段完成数只表示完成了几步，不代表耗时比例。
 
-轻量回归可运行 `python -m unittest discover -s tests -v`，先确保没有设置 `MOVIELENS_HADOOP_RUNTIME`。`test_progress_workflow.py` 使用总计 3 条输入和进程内适配器，检查计数、导出与上传失败，不启动 JVM 或连接集群。真实 Hadoop 测试需要显式设置环境变量；即使只有 22 条输入，也会启动七个作业，不适合 WSL 内存紧张时重复执行。此次验证范围见[阶段进度实测](../iterations/01-governance/reports/2026-09-27-执行阶段进度实测.md)。
+轻量回归可运行 `python -m unittest discover -s tests -v`，先确保没有设置 `MOVIELENS_HADOOP_RUNTIME`。`test_progress_workflow.py` 使用总计 3 条输入和进程内适配器，检查计数、导出与上传失败，不启动 JVM 或连接集群。真实 Hadoop 测试需要显式设置环境变量；即使只有 22 条输入，也会启动七个作业，不适合资源紧张的开发环境反复执行。此次验证范围见[阶段进度实测](../iterations/01-governance/reports/2026-09-27-执行阶段进度实测.md)。
 
 ## 幂等、失败与恢复
 

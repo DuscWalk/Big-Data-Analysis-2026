@@ -1,4 +1,4 @@
-name: AgentDev
+name: movielens-agent
 channels:
   - conda-forge
   - nodefaults
