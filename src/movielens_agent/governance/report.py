@@ -1,15 +1,22 @@
 """Render already-computed Hadoop facts; never calculate substitute scores."""
 from datetime import datetime, timezone
+from .config import GovernanceConfig
 
 
 LIMITATIONS = [
     "Accurate 是值约束代理，不能核验用户人口属性或电影事实的真实性。",
     "前后使用相同公式；分母随隔离和去重而变化，得分改善不等于信息已恢复。",
-    "历史参照固定于 2003-02-28 23:59:59 UTC，时效性不代表相对于今天的新鲜程度。",
+    "时效性采用任务固定的参照与窗口，不自动表示相对于今天的新鲜程度。",
     "保留合法的不同时间评分；冲突组中无可靠依据判断的记录全部隔离。",
     "异常邮编、未附年份的标题和疑似混合编码只记录警告，未猜测补全或改写。",
     "时间分区仅登记过滤条件，尚未物化；训练工具必须按 T1 过滤，不能使用全量评分拟合。",
 ]
+
+
+def limitations(config):
+    result = list(LIMITATIONS)
+    result[4] = config.warning_description()
+    return result
 
 
 def utc(stamp):
@@ -49,14 +56,17 @@ def render_report(result):
         for reason, count in sorted(reasons.items()):
             lines.append(f"| {table} | {reason} | {count} |")
     config = result["configuration"]
+    validated = GovernanceConfig.model_validate(config)
     lines += ["", "## 方法与时间边界", "",
               "Accurate：ratings 每行 1 项值约束、users 每行 3 项、movies 每行 1 项；",
               "Complete：完整必需槽位 / 期望槽位；Unique：不同合法业务键 / 全部行；",
               "Consistent：结构、值域、时间、同键与跨表约束均通过的行 / 全部行。",
-              "四项先分表计算再等权汇总；任一必需表为空时汇总不可评价。",
+              validated.aggregation_description() + "；任一必需表为空时汇总不可评价。",
               "Up-to-date：固定窗口内的评分行 / 全部评分行；其他两表不适用。", "",
               f"- 时效参照：{utc(config['metrics']['reference_time'])}；"
               f"窗口 {config['metrics']['window_seconds']} 秒。",
+              f"- 允许事件范围：{utc(config['rules']['timestamp_min'])} 至 {utc(config['rules']['timestamp_max'])}（闭区间）。",
+              f"- 警告处置：{validated.warning_description()}",
               f"- T1：{utc(config['split']['train_end'])}（训练包含边界）。",
               f"- T2：{utc(config['split']['validation_end'])}（验证包含边界）。",
               f"- 实际评分数：训练 {after['splits']['train']}，验证 {after['splits']['validation']}，"
@@ -68,7 +78,7 @@ def render_report(result):
     for job in result["jobs"]:
         lines.append(f"| {job['stage']} | {', '.join(job['external_ids'])} |")
     lines += ["", "## 局限与未解决事项", ""]
-    lines += [f"- {text}" for text in LIMITATIONS]
+    lines += [f"- {text}" for text in result["limitations"]]
     lines += ["", "完整处置证据存于同任务 dispositions.jsonl；quality.json 含每类最多 3 条"
               "按来源排序的代表样例，样例不代表全部记录。", ""]
     return "\n".join(lines)

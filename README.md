@@ -8,7 +8,7 @@
 
 ## 实验文档
 
-首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；操作见[模型与页面指南](docs/development/app-and-model.md)。
+首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；治理方案既可通过自然语言修改，也可通过前端开关和表单配置，并一键设为默认。操作见[模型与页面指南](docs/development/app-and-model.md)，范围与验证见[治理方案配置实测](docs/iterations/01-governance/reports/2026-09-29-治理方案配置实测.md)。
 
 完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。 自动检查与云端部署见[华为云与 CI/CD](docs/deployment/README.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
 

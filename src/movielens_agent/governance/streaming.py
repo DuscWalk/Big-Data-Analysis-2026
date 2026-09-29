@@ -134,6 +134,13 @@ def evaluate(envelope, config):
         if number is not None and fields[i] != str(number):
             changes.append({"rule": "R11_INTEGER_FORMAT", "field": names[i],
                             "before": fields[i], "after": number})
+    for flag, warning, reason in (
+        ("quarantine_zip_warnings", "UNVERIFIED_ZIP_FORMAT", "R16_ZIP_WARNING_POLICY"),
+        ("quarantine_title_warnings", "UNVERIFIED_TITLE_YEAR", "R17_TITLE_WARNING_POLICY"),
+        ("quarantine_encoding_warnings", "AMBIGUOUS_TEXT_ENCODING", "R18_ENCODING_WARNING_POLICY"),
+    ):
+        if config["rules"].get(flag, False) and warning in warnings:
+            errors.append(reason)
     # For invalid fields keep their literal normalized values in the signature:
     # two different unparseable values must not collapse into the same None.
     signature = []
@@ -331,10 +338,13 @@ def aggregate_reduce(lines, config):
         applicable = ("ratings",) if dimension == "Up-to-date" else tuple(FIELDS)
         values = [tables[table]["metrics"][dimension]["score"] for table in applicable]
         valid = all(score is not None for score in values)
+        weights = (config["metrics"]["table_weights"] if dimension != "Up-to-date"
+                   and config["metrics"]["version"] == "metrics-v2" else {table: 1 for table in applicable})
+        total_weight = sum(weights[table] for table in applicable)
         overall[dimension] = {
             "status": "computed" if valid else "not_evaluable",
-            "score": sum(values) / len(values) if valid else None,
-            "weights": {table: 1 / len(applicable) for table in applicable},
+            "score": sum(value * weights[table] for table, value in zip(applicable, values)) / total_weight if valid else None,
+            "weights": {table: weights[table] / total_weight for table in applicable},
             "reason": None if valid else "A required table has no evaluable rows.",
         }
     emit({"schema_version": "1", "kind": "quality", "tables": tables, "overall": overall,

@@ -12,7 +12,7 @@ python -m movielens_agent worker --once
 python -m movielens_agent task --task-id TASK_ID
 ```
 
-示例数据版本仅适用于当前课程副本，换数据时使用 profile 返回的实际版本。submit 返回 accepted 和 task_id，不返回未计算的分数。`--once` 处理队列中的一个任务；不加该参数则持续处理队列。正常应用将单独运行 worker，提交进程和页面无需等待 Hadoop。
+示例数据版本仅适用于当前课程副本，换数据时使用 profile 返回的实际版本。submit 返回 accepted 和 task_id，不返回未计算的分数。CLI `--config` 明确指定配置文件，省略则使用 `configs/governance/default.json`；这与网页中“默认”跟随持久化共享方案的行为不同。`--once` 处理队列中的一个任务；不加该参数则持续处理队列。正常应用将单独运行 worker，提交进程和页面无需等待 Hadoop。
 
 task 返回真实状态、当前阶段、错误、所有阶段尝试、外部作业标识和发布产物。CLI 默认会话为 local-cli；需要区分上下文可在提交、查询时使用同一个 `--session-id`。这是应用内部范围隔离，尚不是 HTTP 身份认证。
 
@@ -71,14 +71,17 @@ task 返回真实状态、当前阶段、错误、所有阶段尝试、外部作
 | 工具 | 类型 | 主要参数与结果 |
 | --- | --- | --- |
 | datasets.describe | query | 精确 raw dataset_ref，返回原始清单 |
-| governance.run | job | dataset_ref，可选已登记 rule_ref/metric_ref；返回 task_ref |
+| governance.configs | query | offset/limit；已登记方案、配置快照和默认 revision |
+| governance.configure | action | name、可选 base_ref、rules/metrics/split 部分修改；可带 set_default/default_revision，保存方案，不提交计算 |
+| governance.set_default | action | config_ref、default_revision；切换共享默认 |
+| governance.run | job | dataset_ref、可选 config_ref 和匹配该方案的 rule_ref/metric_ref；返回 task_ref |
 | tasks.get | query | task_id；返回当前会话可见的状态与产物引用 |
 | artifacts.list | query | task_id、offset/limit；每页最多 100 项 |
 | artifacts.get | query | artifact_ref、mode、file_name、offset/limit；元数据、评分摘要、报告或有来源的 JSONL 样例 |
 
-通用入口位于 [registry.py](../../src/movielens_agent/tools/registry.py)；保留 QueryTool 这个首版类型名，通过 mode 区分查询与任务受理。输入输出都经 Pydantic 校验，额外参数拒绝。模型只能填写业务参数；会话与 request_id 由应用传入 ToolContext。
+通用入口位于 [registry.py](../../src/movielens_agent/tools/registry.py)；保留 QueryTool 这个首版类型名，mode 区分 query 查询、action 即时修改和 job 任务受理。报告解释模式只允许 query。输入输出都经 Pydantic 校验，额外参数拒绝。模型只能填写业务参数；会话、request_id 和本轮选择约束由应用传入 ToolContext。
 
-配置默认从 [default.json](../../configs/governance/default.json)读取，配置内容哈希是实际版本。传入未登记的规则/评分引用会拒绝，不执行任意路径、脚本或 Shell 命令。
+首次启动以 [default.json](../../configs/governance/default.json)初始化治理方案，之后使用 catalog 中的持久默认。完整内容哈希是方案版本，分项另有 rules/metrics/split 引用。模型未传引用时补入本轮选定方案，显式选择冲突或未知引用拒绝；受理后将名称、完整配置、方案及分项引用保存在 task payload。默认变更不影响历史任务。配置失败后须修正成功才能在同一轮提交清洗，不执行任意路径、脚本或 Shell 命令。详见[配置计划](../iterations/01-governance/plans/治理方案配置.md)。
 
 ## 读取证据
 

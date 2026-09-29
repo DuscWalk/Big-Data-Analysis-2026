@@ -8,6 +8,8 @@ from ..governance.config import canonical, digest
 from ..tools.datasets import register_dataset_tools
 from ..tools.governance import register_governance_tools
 from ..tools.registry import ToolRegistry
+from ..tools.configuration import register_configuration_tools
+from ..storage.governance_configs import GovernanceConfigurations
 from .model import RoutedModel, ModelError, tool_schemas
 from .explanation import POLICY, ReportAnswer, InvalidPlan, prompt_json
 from ..governance.questions import AnswerRequirements, ClarificationNeeded
@@ -21,7 +23,14 @@ INSTRUCTIONS = """你是 MovieLens 大数据分析实验助手，用中文回答
 先回答用户本轮真正提出的问题。选中任务只是可用上下文，不代表每句话都要求解释报告。
 问候、感谢、能力介绍、使用帮助和一般概念问题直接自然回答，不主动复述历史任务或质量报告。
 需要操作或查询具体事实时，自主选择已注册工具；不能编造状态、分数或样例。
-用户要求清洗和评估时，调用 governance_run，使用已登记的数据与默认规则。
+用户要求清洗和评估时，调用 governance_run，使用已登记的数据与本轮选定方案；未选时使用本轮开始时的默认方案。
+用户可用自然语言描述配置。先用 governance_configs 查询已登记方案、参数及默认修订号。
+用户明确要求修改规则、时效窗口、表权重或 T1/T2 时，调用 governance_configure 保存合法方案；不自行修改未要求的参数。
+支持开关：隔离非典型邮编、缺少年份标题、疑似混合编码；默认关闭，仅警告。其他字段/值域/冲突规则固定。
+时间按 UTC；日期时间参数填写含 Z 或时区偏移的 ISO 格式，窗口可填写 window_days，三表权重为 1—1000 的正整数。
+用户明确说设为默认时才使用 set_default=true 或 governance_set_default，并传刚查询的 default.revision。
+只要求配置时不提交清洗。用户同时要求清洗时，用保存返回的精确方案引用执行，不能回退到原默认方案。
+页面显式选择的方案约束本轮任务；如需修改，先保存新方案。未知或非法配置明确反馈，不能声称已应用。
 工具返回 accepted 仅表示任务受理；无需等待 Hadoop，说明真实状态即可。
 用户只问进度或状态时，调用 tasks_get，不展开质量报告。
 用户询问已完成治理的结果、指标或样例（包括“再给一个”）时，优先调用
@@ -41,10 +50,12 @@ class AgentService:
     def __init__(self, settings, conversations, tasks, catalog, configuration, model=None):
         self.settings, self.conversations, self.tasks = settings, conversations, tasks
         self.catalog, self.configuration = catalog, configuration
+        self.configurations = GovernanceConfigurations(tasks.path, configuration)
         self.model = model or RoutedModel(settings)
         self.registry = ToolRegistry()
         register_dataset_tools(self.registry, catalog)
-        register_governance_tools(self.registry, catalog, tasks, configuration)
+        register_governance_tools(self.registry, catalog, tasks, configuration, self.configurations)
+        register_configuration_tools(self.registry, self.configurations)
         self.aliases, self.definitions = tool_schemas(self.registry.describe())
 
     def datasets(self):
@@ -63,7 +74,10 @@ class AgentService:
         return {"registered": [ref.model_dump() for ref in refs],
                 "default": default.model_dump() if default else None}
 
-    def _invoke_tool(self, uid, session_id, name, arguments, *, application=False, read_only=False):
+    def _invoke_tool(self, uid, session_id, name, arguments, *, application=False, read_only=False,
+                     configuration_ref=None, default_configuration_ref=None, configuration_unresolved=False):
+        if name == "governance.run" and isinstance(arguments, dict) and not arguments.get("config_ref") and default_configuration_ref:
+            arguments = arguments | {"config_ref": default_configuration_ref}
         normalized = arguments
         if arguments is not None:
             try:
@@ -73,12 +87,18 @@ class AgentService:
         prefix = "evidence:" if application else "chat:"
         request_key = prefix + uid + ":" + digest({"name": name, "arguments": normalized})
         call_id = self.conversations.start_tool(uid, name, request_key, arguments)
-        if arguments is None:
+        if name == "governance.run" and configuration_unresolved:
+            result = QueryResult(call_id=call_id, status="rejected",
+                error=ToolError(code="CONFIGURATION_UNRESOLVED",
+                    message="本轮配置修改尚未成功，请先修正并保存配置；不能改用旧方案提交清洗。"))
+        elif arguments is None:
             result = QueryResult(call_id=call_id, status="rejected",
                 error=ToolError(code="INVALID_ARGUMENTS", message="工具参数不是有效 JSON 对象。"))
         else:
             result = self.registry.call(name, arguments, ToolContext(
-                session_id=session_id, message_id=uid, call_id=call_id, request_id=request_key), allow_jobs=not read_only)
+                session_id=session_id, message_id=uid, call_id=call_id, request_id=request_key,
+                configuration_ref=(configuration_ref or default_configuration_ref)
+                    if name == "governance.configure" else configuration_ref), allow_jobs=not read_only)
         value = self.settings.redact(result.model_dump(mode="json"))
         self.conversations.finish_tool(call_id, value)
         return call_id, result, value
@@ -140,18 +160,26 @@ class AgentService:
                             retry_of=message_id, requirements=frozen, expected_quality=validation.get("quality_ref"))
 
     def respond(self, session_id, request_id, content, task_id=None, require_quality=False,
-                *, retry_of=None, requirements=None, expected_quality=None):
+                *, retry_of=None, requirements=None, expected_quality=None, configuration_ref=None):
         if not content.strip():
             raise ValueError("消息不能为空。")
         content = self.settings.redact(content)
-        request, created = self.conversations.begin(session_id, request_id, content, task_id, require_quality, retry_of)
+        configuration_ref = ArtifactRef.model_validate(configuration_ref).model_dump() if configuration_ref else None
+        default = self.configurations.default()
+        selected = self.configurations.get(ArtifactRef.model_validate(configuration_ref or default["ref"]))
+        active_configuration_ref = selected["ref"]
+        configuration_unresolved = False
+        request, created = self.conversations.begin(session_id, request_id, content, task_id, require_quality, retry_of,
+                                                    configuration_ref=configuration_ref)
         if not created:
             return json.loads(request["response"])
         uid = request["request_uid"]
         report_answer = None
         needs_task_evidence = bool(require_quality or retry_of or requirements is not None)
         try:
-            context = {"datasets": self.datasets(), "configuration_refs": self.configuration.refs(),
+            context = {"datasets": self.datasets(), "configuration_refs": selected["config_refs"],
+                       "selected_configuration": selected, "configuration_explicitly_selected": bool(configuration_ref),
+                       "default_configuration": default,
                        "selected_task_id": request["task_id"]}
             if request["task_id"]:
                 task = self.tasks.get(request["task_id"], session_id)
@@ -271,7 +299,13 @@ class AgentService:
                         report_answer = self._report_for_read(session_id, request["task_id"], arguments, content)
                         entered_report = report_answer is not None
                     needs_task_evidence |= name in {"tasks.get", "artifacts.get", "artifacts.list"}
-                    internal_id, result, value = self._invoke_tool(uid, session_id, name, arguments, read_only=bool(report_answer))
+                    internal_id, result, value = self._invoke_tool(uid, session_id, name, arguments, read_only=bool(report_answer),
+                        configuration_ref=configuration_ref, default_configuration_ref=active_configuration_ref,
+                        configuration_unresolved=configuration_unresolved)
+                    if name in {"governance.configure", "governance.set_default"}:
+                        configuration_unresolved = result.status != "completed"
+                        if not configuration_unresolved:
+                            configuration_ref = active_configuration_ref = value["data"]["value"]["ref"]
                     if report_answer and result.status != "completed" and name == "artifacts.get" and (
                         arguments and arguments.get("artifact_ref") == report_answer.ref
                         and (value.get("error") or {}).get("code") == "ARTIFACT_INVALID"

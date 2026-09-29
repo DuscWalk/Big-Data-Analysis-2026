@@ -370,6 +370,23 @@ footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 2
 .history-preview { display: block; font-size: 12px; margin: 6px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
 .history-meta { display: block; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .history-footer { display: flex; justify-content: center; margin-top: 18px; }
+.governance-selection { padding: 0 20px 12px; }
+.governance-selection > label { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; }
+.governance-selection .field-help { margin-top: 5px; font-size: 10px; }
+.governance-card { padding: 18px; margin-top: 18px; background: var(--canvas); border: 1px solid var(--line); border-radius: var(--radius); }
+.governance-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+.switch-field { display: flex; align-items: flex-start; gap: 12px; margin: 15px 0; cursor: pointer; font-size: 12px; }
+.switch-field small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 3px; }
+.switch-field input { appearance: none; flex: 0 0 36px; width: 36px; height: 21px; margin: 2px 0 0; border: 1px solid var(--line); border-radius: 14px; background: var(--before); cursor: pointer; }
+.switch-field input::before { content: ""; display: block; width: 15px; height: 15px; margin: 2px; border-radius: 50%; background: var(--surface); transition: transform .15s; }
+.switch-field input:checked { background: var(--accent); border-color: var(--accent); }
+.switch-field input:checked::before { transform: translateX(15px); }
+.switch-field input:disabled { opacity: .55; cursor: wait; }
+.governance-card .settings-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 14px 0 0; }
+.governance-card .governance-times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.field input:disabled { opacity: .6; }
+.governance-actions { display: flex; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+#task-configuration-summary { margin: 10px 0; }
 @media (max-width: 680px) {
   .app-header { flex-wrap: wrap; gap: 14px; }
   .header-actions { gap: 8px; }
@@ -380,4 +397,9 @@ footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 2
   .settings-grid > :first-child { grid-column: 1 / -1; }
   .dialog-footer { flex-direction: column; align-items: stretch; gap: 12px; }
   .provider-card { padding: 14px; }
+  .governance-selection { padding-left: 16px; padding-right: 16px; }
+  .governance-card { padding: 14px; }
+  .governance-card .settings-grid { grid-template-columns: minmax(0, 1fr); }
+  .governance-card .settings-grid > :first-child { grid-column: auto; }
+  .governance-actions { display: grid; grid-template-columns: 1fr 1fr; }
 }

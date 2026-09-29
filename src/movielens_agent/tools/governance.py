@@ -11,12 +11,15 @@ from ..contracts import ArtifactRef, Contract
 from ..governance.config import GovernanceConfig
 from ..governance.explanation import explanation_sections
 from ..storage.tasks import RequestConflict, file_digest
+from ..storage.governance_configs import GovernanceConfigurations
 from ..workflows.governance import implementation_digest
 from .registry import QueryTool, ToolRejected
 
 
 class RunInput(Contract):
     dataset_ref: ArtifactRef
+    config_ref: ArtifactRef | None = Field(default=None,
+        description="Exact registered governance scheme from governance.configs; omit to use the selected/default scheme.")
     rule_ref: ArtifactRef | None = None
     metric_ref: ArtifactRef | None = None
 
@@ -32,6 +35,11 @@ class TaskInput(Contract):
 
 class ObjectResult(Contract):
     value: dict[str, Any]
+
+
+class ConfigListInput(Contract):
+    offset: int = Field(default=0, ge=0, le=100000)
+    limit: int = Field(default=20, ge=1, le=100)
 
 
 class ListInput(TaskInput):
@@ -66,12 +74,21 @@ def interpretation_facts(report):
     }
 
 
-def register_governance_tools(registry, catalog, store, config: GovernanceConfig):
-    refs = config.refs()
+def register_governance_tools(registry, catalog, store, config: GovernanceConfig, configurations=None):
+    configurations = configurations or GovernanceConfigurations(store.path, config)
 
     def submit(arguments, context):
         if not context.request_id:
             raise ToolRejected("REQUEST_ID_REQUIRED", "Job calls require an application request identifier.")
+        if context.configuration_ref and arguments.config_ref and context.configuration_ref != arguments.config_ref:
+            raise ToolRejected("CONFIG_SELECTION_CONFLICT", "工具方案与用户本轮选定的方案不同，请先确认选择。")
+        selected_ref = context.configuration_ref or arguments.config_ref or ArtifactRef.model_validate(configurations.default_ref)
+        try:
+            selected = configurations.get(selected_ref)
+        except KeyError:
+            raise ToolRejected("CONFIG_NOT_FOUND", "治理方案未登记，请查询已保存的方案，不会回退到默认配置。") from None
+        selected_config = GovernanceConfig.model_validate(selected["configuration"])
+        refs = selected_config.refs()
         for supplied, name in ((arguments.rule_ref, "rules"), (arguments.metric_ref, "metrics")):
             if supplied and supplied.model_dump() != refs[name]:
                 raise ToolRejected("CONFIG_NOT_FOUND", "Only exact registered configurations may be used.")
@@ -80,7 +97,8 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
             raise ToolRejected("INVALID_STORAGE", "Task metadata must be outside the source dataset.")
         payload = {
             "source_manifest": manifest.model_dump(mode="json"),
-            "configuration": config.model_dump(mode="json"), "config_refs": refs,
+            "configuration": selected_config.model_dump(mode="json"), "config_refs": refs,
+            "configuration_ref": selected["ref"], "configuration_name": selected["name"],
             "implementation_sha256": implementation_digest(),
         }
         try:
@@ -89,11 +107,16 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
             raise ToolRejected("REQUEST_CONFLICT", str(error)) from error
         return Receipt(task_id=task_id, created=created), [manifest.ref]
 
+    def config_list(arguments, context):
+        return ObjectResult(value=configurations.list(arguments.offset, arguments.limit)), []
+
     def task_get(arguments, context):
         value = store.get(arguments.task_id, context.session_id)
         # Execution paths and the full input manifest are available in the local
         # administration CLI, not needed in normal model context.
         view = {key: value[key] for key in ("task_id", "status", "stage", "error", "created_at", "updated_at")}
+        view.update({key: value["payload"].get(key) for key in
+                     ("configuration", "config_refs", "configuration_ref", "configuration_name")})
         view["attempts"] = [{key: attempt[key] for key in ("stage", "status", "external_ids", "error", "progress")}
                             for attempt in value["attempts"]]
         view["artifacts"] = [{"ref": item["ref"], "kind": item["kind"],
@@ -170,6 +193,8 @@ def register_governance_tools(registry, catalog, store, config: GovernanceConfig
         return ObjectResult(value=value), [arguments.artifact_ref]
 
     for spec in (
+        QueryTool("governance.configs", "1", "List registered cleaning/scoring schemes and their exact references; read only.",
+                  ConfigListInput, ObjectResult, config_list),
         QueryTool("governance.run", "1", "Queue Hadoop before scoring, cleaning and after scoring.",
                   RunInput, Receipt, submit, mode="job"),
         QueryTool("tasks.get", "1", "Read a task visible in this conversation.",

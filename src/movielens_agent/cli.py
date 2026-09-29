@@ -170,13 +170,14 @@ def main(argv=None) -> int:
         register_dataset_tools(registry, DatasetCatalog(args.catalog))
 
         if args.command in ("submit", "evidence"):
+            configuration = GovernanceConfig.read(args.config)
             register_governance_tools(registry, DatasetCatalog(args.catalog), TaskStore(args.catalog),
-                                      GovernanceConfig.read(args.config))
+                                      configuration)
             context = ToolContext(session_id=args.session_id, call_id=uuid4().hex,
                                   request_id=args.request_id if args.command == "submit" else None)
             if args.command == "submit":
                 result = registry.call("governance.run", {"dataset_ref": {
-                    "artifact_id": args.artifact_id, "version": args.version}}, context)
+                    "artifact_id": args.artifact_id, "version": args.version}, "config_ref": configuration.ref()}, context)
             else:
                 result = registry.call("artifacts.get", {"artifact_ref": {
                     "artifact_id": args.artifact_id, "version": args.version},

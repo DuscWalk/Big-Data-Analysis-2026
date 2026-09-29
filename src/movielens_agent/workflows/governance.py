@@ -11,7 +11,7 @@ import time
 from ..adapters.hadoop import Hadoop
 from ..contracts import DatasetManifest
 from ..governance.config import GovernanceConfig, canonical, digest
-from ..governance.report import render_report, LIMITATIONS
+from ..governance.report import render_report, limitations
 from ..jobs.worker import ExternalStateUnknown
 from ..jobs.progress import metric
 from ..storage.tasks import file_digest
@@ -284,6 +284,7 @@ class GovernanceWorkflow:
                 raise ValueError("Time split conservation failed.")
             dataset_summary = {
                 "input_ref": manifest.ref.model_dump(), "config_refs": config.refs(),
+                "configuration_ref": config.ref(),
                 "configuration": config.model_dump(mode="json"), "encoding": "utf-8",
                 "format": "jsonl", "rows": dict(counts), "splits": after["splits"],
                 "split_materialization": "filter-by-timestamp", "hdfs_directory": remote + "/dataset",
@@ -296,8 +297,9 @@ class GovernanceWorkflow:
                 "schema_version": "1", "task_id": task_id,
                 "input_ref": manifest.ref.model_dump(), "cleaned_ref": cleaned["ref"],
                 "config_refs": config.refs(), "configuration": config.model_dump(mode="json"),
+                "configuration_ref": config.ref(),
                 "implementation_sha256": code_version, "before": before, "after": after,
-                "jobs": jobs, "limitations": LIMITATIONS,
+                "jobs": jobs, "limitations": limitations(config),
             }
             write_json(published / "quality.json", result)
             write_json(published / "dataset-manifest.json", cleaned)
