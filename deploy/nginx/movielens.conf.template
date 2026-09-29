@@ -1,0 +1,35 @@
+# Render the placeholders locally; secrets and host-specific values stay off Git.
+# The certificate must cover PUBLIC_HOST and be renewed with nginx reload.
+server {
+    listen __HTTPS_PORT__ ssl;
+    server_name __PUBLIC_HOST__;
+    server_tokens off;
+
+    ssl_certificate __CERTIFICATE_FILE__;
+    ssl_certificate_key __CERTIFICATE_KEY_FILE__;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:MovieLensTLS:10m;
+    ssl_session_timeout 1d;
+
+    # All routes, including APIs, model settings and downloads, require login.
+    auth_basic "MovieLens lab";
+    auth_basic_user_file __PASSWORD_FILE__;
+    client_max_body_size 1m;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    location / {
+        proxy_pass http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        # Edge authentication is not a model-service credential.
+        proxy_set_header Authorization "";
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 1800s;
+        proxy_send_timeout 1800s;
+        proxy_buffering off;
+    }
+}
