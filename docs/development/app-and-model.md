@@ -17,6 +17,7 @@
 | `AGENT_MAX_CONTEXT_CHARS` | 默认 100000 字符，包含提示、结构化工具定义与证据；超限明确失败 |
 | `DEFAULT_DATASET_ID`、`DEFAULT_DATASET_VERSION` | 默认数据 ID 为 `ml-1m.raw`；存在多个版本时必须显式选择精确版本 |
 | `TOOL_CALL_PARSER` | 服务端解析器提示，仅作记录，不发送为聊天请求参数 |
+| `PUBLIC_ORIGIN` | 可选精确 HTTPS 公网来源，允许该主机并校验写请求同源；需配合有认证的反向代理，见[公网指南](../deployment/public-access.md) |
 
 ```bash
 python -m movielens_agent model-probe --provider backup --list-models

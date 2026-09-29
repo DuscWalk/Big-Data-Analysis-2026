@@ -91,13 +91,17 @@ def create_app(settings=None, model=None):
     app = FastAPI(title="MovieLens 数据治理", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.agent, app.state.conversations, app.state.tasks = agent, conversations, tasks
     app.state.model_preferences = preferences
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]", "testserver"])
+    allowed_hosts = ["127.0.0.1", "localhost", "[::1]", "testserver"]
+    if settings.public_origin:
+        allowed_hosts.append(urlsplit(settings.public_origin).hostname)
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
     @app.middleware("http")
     async def local_origin(request: Request, call_next):
         origin = request.headers.get("origin")
         if request.method not in ("GET", "HEAD", "OPTIONS") and origin:
-            if urlsplit(origin).netloc != request.headers.get("host"):
+            expected_origin = request.url.scheme + "://" + request.headers.get("host", "")
+            if origin != expected_origin:
                 return JSONResponse({"detail": "只接受同一页面来源的请求。"}, status_code=403)
         response = await call_next(request)
         response.headers["Content-Security-Policy"] = (

@@ -28,6 +28,21 @@ class Settings(Contract):
     default_dataset_id: str = "ml-1m.raw"
     default_dataset_version: str | None = None
     tool_call_parser: str | None = None
+    public_origin: str = ""
+
+    @field_validator("public_origin")
+    @classmethod
+    def valid_public_origin(cls, value):
+        if not value:
+            return value
+        parsed = urlsplit(value)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+                or parsed.path or parsed.query or parsed.fragment or "*" in parsed.hostname
+                or any(char.isspace() for char in value)):
+            raise ValueError("PUBLIC_ORIGIN must be an exact HTTPS origin without a path or credentials.")
+        if parsed.port is not None and not 1 <= parsed.port <= 65535:
+            raise ValueError("PUBLIC_ORIGIN has an invalid port.")
+        return "https://" + parsed.netloc.lower()
 
     @field_validator("model_url", "backup_url")
     @classmethod
@@ -73,6 +88,7 @@ class Settings(Contract):
             "AGENT_MAX_CALLS": "max_calls", "AGENT_MAX_CONTEXT_CHARS": "max_context_chars",
             "MODEL_MAX_TOKENS": "max_tokens", "DEFAULT_DATASET_VERSION": "default_dataset_version",
             "DEFAULT_DATASET_ID": "default_dataset_id", "TOOL_CALL_PARSER": "tool_call_parser",
+            "PUBLIC_ORIGIN": "public_origin",
         }
         arguments = {field: values[key] for key, field in mapping.items() if values.get(key)}
         return cls.model_validate(arguments | overrides)
