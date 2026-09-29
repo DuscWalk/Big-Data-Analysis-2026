@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = { session: null, task: null, detail: null, qualityTask: null, sending: false, timer: null, messageTimer: null, epoch: 0, navigation: 0, messageLoad: 0, explained: new Set(), inflight: new Set(), drafts: new Map() };
+const state = { session: null, task: null, detail: null, qualityTask: null, sending: false, timer: null, messageTimer: null, epoch: 0, navigation: 0, messageLoad: 0, configurationRef: null, configurationSelection: 0, explained: new Set(), inflight: new Set(), drafts: new Map() };
 const statuses = { queued: "排队中", running: "执行中", succeeded: "已完成", failed: "失败", unknown: "状态待核查" };
 const stages = { "prepare-inputs": "核对与封装输入", "before-parents": "检查原始主表", "before-ratings": "检查原始评分", "before-metrics": "汇总清洗前指标", "clean-parents": "清洗用户与电影", "clean-ratings": "清洗评分与关联", "after-groups": "检查清洗结果", "after-metrics": "汇总清洗后指标", "verify-and-export": "核对并导出产物", published: "结果已发布" };
 const labels = { users: "用户", movies: "电影", ratings: "评分" };
@@ -62,6 +62,7 @@ function resetResult(clearTask = false) {
     $("task-status").replaceChildren(node("span", state.task ? "读取中" : "等待请求", "badge"), node("span", state.task ? "正在读取所选任务" : "任务受理后会自动刷新进展"));
     $("task-error").classList.add("hidden"); $("attempts-panel").classList.add("hidden");
     $("attempts").replaceChildren(); $("attempts").dataset.task = "";
+    $("task-configuration-panel").classList.add("hidden"); $("task-configuration").textContent = "";
   }
   $("quality").classList.add("hidden"); $("quality-empty").classList.remove("hidden");
   sampleDisclosure.reset(); exampleDisclosure.reset();
@@ -80,6 +81,12 @@ async function openSession(session) {
   if (state.session) state.drafts.set(state.session, $("prompt").value);
   clearTimeout(state.timer); clearTimeout(state.messageTimer);
   state.epoch++; state.session = session; state.task = value.active_task_id; state.explained.clear(); resetResult(true);
+  state.configurationRef = null; state.configurationSelection++;
+  try {
+    const ref = JSON.parse(localStorage.getItem("movielens-governance-" + session));
+    if (ref?.artifact_id === "governance.configuration" && typeof ref.version === "string") state.configurationRef = ref;
+  } catch {}
+  document.dispatchEvent(new Event("movielens-session"));
   $("task-select").replaceChildren(new Option("正在读取任务…", ""));
   $("messages").replaceChildren(node("p", "正在读取会话…", "empty"));
   $("prompt").value = state.drafts.get(session) || "";
@@ -116,6 +123,7 @@ async function loadMessages() {
     container.append(node("div", item.role === "user" ? "你" : "实验助手", "role"));
     container.append(node("div", item.content, "body"));
     const meta = item.metadata || {};
+    if (meta.configuration_change) container.append(node("div", "已保存治理方案：" + meta.configuration_change.name + (meta.configuration_change.default_changed ? " · 已设为默认" : ""), "trace"));
     container.dataset.messageId = item.message_id;
     if (meta.response_origin === "application_clarification") container.append(node("div", "需要明确问题范围", "trace"));
     const reportAnswer = item.role === "assistant" && item.task_id && meta.validation?.policy?.startsWith("quality-facts-");
@@ -208,19 +216,21 @@ function clearSubmittedDraft(session, content) {
 async function send(content) {
   if (state.sending || !content.trim()) return;
   sending(true); notice("");
-  const session = state.session, selectedTask = state.task;
+  const session = state.session, selectedTask = state.task, configurationRef = state.configurationRef, selection = state.configurationSelection;
   state.inflight.add(session);
   const key = "movielens-pending-" + session;
   let previous = null; try { previous = JSON.parse(localStorage.getItem(key)); } catch {}
-  const payload = previous?.content === content && previous?.task_id === selectedTask ? previous : {
-    request_id: crypto.randomUUID(), content, task_id: selectedTask
+  const payload = previous?.content === content && previous?.task_id === selectedTask && JSON.stringify(previous?.configuration_ref || null) === JSON.stringify(configurationRef) ? previous : {
+    request_id: crypto.randomUUID(), content, task_id: selectedTask, configuration_ref: configurationRef
   };
   localStorage.setItem(key, JSON.stringify(payload));
   try {
-    await api(route() + "/messages", { method: "POST", body: JSON.stringify(payload) });
+    const result = await api(route() + "/messages", { method: "POST", body: JSON.stringify(payload) });
     localStorage.removeItem(key); clearSubmittedDraft(session, content);
+    window.governanceSettings?.acceptChange(result.configuration_change, session, selection).catch(error => notice(error.message));
   } catch (error) {
     if (error.body?.request_id === payload.request_id) { localStorage.removeItem(key); clearSubmittedDraft(session, content); }
+    if (error.body?.configuration_change) window.governanceSettings?.acceptChange(error.body.configuration_change, session, selection).catch(() => {});
     if (session === state.session) notice(error.message);
   } finally {
     state.inflight.delete(session);
@@ -343,6 +353,12 @@ async function loadTask(autoExplain = true) {
   const task = await api(route() + "/tasks/" + taskId);
   if (epoch !== state.epoch || taskId !== state.task) return;
   state.detail = task;
+  $("task-configuration-panel").classList.toggle("hidden", !task.configuration);
+  if (task.configuration) {
+    const c = task.configuration;
+    $("task-configuration-summary").textContent = "时效参照：" + utc(c.metrics.reference_time) + "；窗口 " + number(c.metrics.window_seconds / 86400) + " 天。以下为受理时固定的参数。";
+    $("task-configuration").textContent = JSON.stringify({ name: task.configuration_name, ref: task.configuration_ref, configuration: c, config_refs: task.config_refs }, null, 2);
+  }
   $("task-status").replaceChildren(node("span", statuses[task.status], "badge " + task.status), node("span", stages[task.stage] || "等待后台 worker 认领"));
   $("task-error").textContent = task.error || ""; $("task-error").classList.toggle("hidden", !task.error);
   renderStages(task);
@@ -379,7 +395,9 @@ function renderQuality(value, task) {
   }
   $("method").replaceChildren();
   const reference = value.configuration.metrics;
-  $("method").append(node("p", "Accurate / Complete / Unique / Consistent 按三表等权汇总；空表不可评价。时效性只评价评分，以 " +
+  const weights = reference.table_weights;
+  const aggregation = weights ? "按用户:电影:评分 = " + weights.users + ":" + weights.movies + ":" + weights.ratings + " 汇总" : "按三表等权汇总";
+  $("method").append(node("p", "Accurate / Complete / Unique / Consistent " + aggregation + "；空表不可评价。时效性只评价评分，以 " +
     utc(reference.reference_time) + " 为参照，回看 " + reference.window_seconds / 86400 + " 天。", "method-line"));
   for (const table of ["users", "movies", "ratings"]) {
     for (const dimension of Object.keys(dimensions)) {
@@ -401,7 +419,7 @@ function renderQuality(value, task) {
     link.href = "/api/v1" + artifactRoute(artifact.ref) + "/download?file_name=" + encodeURIComponent(file.name);
     link.setAttribute("download", file.name); $("downloads").append(link);
   }
-  $("versions").textContent = JSON.stringify({ task_id: task.task_id, input: value.input_ref, cleaned: value.cleaned_ref, configuration: value.config_refs }, null, 2);
+  $("versions").textContent = JSON.stringify({ task_id: task.task_id, input: value.input_ref, cleaned: value.cleaned_ref, config_refs: value.config_refs, configuration: value.configuration }, null, 2);
   $("issue-rule").replaceChildren();
   for (const table of ["users", "movies", "ratings"]) for (const reason of Object.keys(value.after.reasons[table])) {
     $("issue-rule").append(new Option(labels[table] + " · " + reason, table + "/" + reason));
@@ -495,7 +513,7 @@ sectionLinks.forEach(link => link.addEventListener("click", () => {
 }));
 $("chat-form").addEventListener("submit", event => { event.preventDefault(); send($("prompt").value).catch(error => notice(error.message)); });
 $("prompt").addEventListener("keydown", event => { if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); $("chat-form").requestSubmit(); } });
-$("suggest-run").addEventListener("click", () => { $("prompt").value = "请使用默认规则清洗 MovieLens 1M，评估前后五维质量，并说明处理的问题与局限。"; $("prompt").focus(); });
+$("suggest-run").addEventListener("click", () => { $("prompt").value = "请使用当前选择的治理方案清洗 MovieLens 1M，评估前后五维质量，并说明处理的问题与局限。"; $("prompt").focus(); });
 $("suggest-explain").addEventListener("click", () => { $("prompt").value = "请读取当前任务的实际指标，解释分数变化和数据处置，并说明哪些问题仍无法核实。"; $("prompt").focus(); });
 $("new-session").addEventListener("click", () => newSession().catch(error => notice(error.message)));
 $("refresh").addEventListener("click", () => { state.qualityTask = null; refreshTasks(false); loadMessages().catch(error => notice(error.message)); });

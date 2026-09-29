@@ -1,6 +1,6 @@
 # 本地 Agent、模型与页面
 
-应用使用 AgentDev 中的 FastAPI、httpx 和普通 HTML/JavaScript。模型通过结构化工具调用访问已有工具注册表，Hadoop 工作流仍由独立 worker 执行。依赖版本见 [requirements.lock](../../requirements.lock)，安装步骤见[环境指南](environment.md)。
+应用使用项目 Python 环境中的 FastAPI、httpx 和普通 HTML/JavaScript。模型通过结构化工具调用访问已有工具注册表，Hadoop 工作流仍由独立 worker 执行。依赖版本见 [requirements.lock](../../requirements.lock)，安装步骤见[环境指南](environment.md)。
 
 ## 配置与连通性
 
@@ -11,7 +11,7 @@
 | `MODEL_URL`、`MODEL_NAME`、`MODEL_API_KEY` | 主服务 API 基址、实际模型 ID 与凭据；基址含 `/v1` 时保留该部分 |
 | `MODEL_URL_BACKUP`、`MODEL_NAME_BACKUP`、`MODEL_API_KEY_BACKUP` | 可选备用服务，凭据独立 |
 | `MODEL_PROVIDER` | 默认 `auto`；可固定为 `primary` 或 `backup` |
-| `MODEL_TIMEOUT_SECONDS` | 每个服务单次请求的网络超时，默认 45 秒；当前本机为 90 秒 |
+| `MODEL_TIMEOUT_SECONDS` | 每个服务单次请求的网络超时，默认 45 秒，可按服务延迟调整 |
 | `MODEL_MAX_TOKENS` | 输出上限，默认 4096；过小可能截断解释，不能把截断响应当成完成 |
 | `AGENT_MAX_ROUNDS`、`AGENT_MAX_CALLS` | 默认每条消息最多 6 轮模型调用、12 次工具调用 |
 | `AGENT_MAX_CONTEXT_CHARS` | 默认 100000 字符，包含提示、结构化工具定义与证据；超限明确失败 |
@@ -44,7 +44,25 @@ python -m movielens_agent model-probe
 
 空值保存的修正与验证见[2026-09-27 模型设置空值保存实测](../iterations/01-governance/reports/2026-09-27-模型设置空值保存实测.md)。
 
-配置文件与临时文件已被 Git 忽略。这里仍是面向可信本机的设置入口，不代表增加了账号体系或多用户密钥管理。
+配置文件与临时文件已被 Git 忽略。这里仍是面向可信开发环境的设置入口，不代表增加了账号体系或多用户密钥管理。
+
+## 清洗规则与评分配置
+
+页头“治理配置”与助手自然语言共用同一个方案登记库。可设置非典型邮编、标题缺少年份和疑似混合编码的隔离开关，评分事件时间上下界、独立时效参照与窗口、三表相对权重及 T1/T2。开关默认关闭，仅警告；开启后会实际隔离，主表移除还可能影响关联评分。结构、值域、外键、冲突和去重的基础约束保持固定，具体含义见[数据与评分约定](../iterations/01-governance/数据与评分约定.md)。
+
+“保存并选用”保存为不可变版本并选择用于当前会话的新任务，不提交计算。“一键设为默认”直接保存当前草稿并切换共享默认，不需要先保存。默认持久化到 catalog，重启继续保留，对所有未显式选择方案的新请求生效。助手旁“新任务方案”可选择已保存版本，也可选择“默认”跟随共享设置；当前浏览器按会话保留显式选择。
+
+自然语言示例：
+
+> 把时效窗口改为 180 天，用户、电影、评分表权重设为 1:1:3，打开非典型邮编隔离。保存为“180 天方案”并设为默认，不要运行清洗。
+
+> 在当前方案基础上只把窗口改为 90 天，保存并清洗已登记数据，不改变默认方案。
+
+Agent 查询已保存方案后，通过校验过的配置工具实施修改，成功后页面同步选择；也可以只查询当前规则或把已保存方案设为默认。时间使用 UTC，工具接受整数 Unix 秒或带时区的 ISO 日期时间。模型只理解受支持的参数；未提供任意公式或自定义脚本执行。
+
+每轮消息开始固定当前方案；明确的前端选择优先。配置失败时不允许悄悄用旧方案提交清洗；未知引用和选择冲突明确拒绝。默认 revision 冲突不覆盖其他页面的修改，刷新列表后保留草稿供用户检查。已受理任务保存实际配置快照，可在“本任务使用的配置”中展开；更改默认不会修改历史报告或正在执行的任务。原默认文件用于首次初始化，CLI `submit --config` 仍明确使用指定文件。
+
+实现与验证入口见[配置计划](../iterations/01-governance/plans/治理方案配置.md)、[配置实测](../iterations/01-governance/reports/2026-09-29-治理方案配置实测.md)。
 
 ## 启动与使用
 
@@ -90,12 +108,15 @@ python -m movielens_agent session --session-id local-cli --title '课程治理�
 | 接口 | 作用 |
 | --- | --- |
 | `GET /status` | 配置状态、登记数据版本与规则；不返回模型 URL 或密钥 |
+| `GET /governance-configs` | `offset/limit` 分页方案、配置快照、当前默认引用及 revision |
+| `POST /governance-configs` | `name`、`configuration`；可带 `set_default=true` 和当前 `revision`，原子保存并设默认 |
+| `PUT /governance-configs/default` | `config_ref` 与当前 `revision`，把已登记方案设为默认 |
 | `GET /model-settings`、`PUT /model-settings` | 读取脱敏设置或携修订标识保存；读取返回地址与名称，但不返回密钥 |
 | `POST /model-settings/models`、`POST /model-settings/probe` | 提交当前表单与所选 `primary/backup`，列举模型或检测原生工具调用；不保存表单 |
 | `GET /sessions` | `q` 搜索、`offset/limit` 分页，返回最近活动、用户提问摘要、消息与任务数 |
 | `POST /sessions`、`GET /sessions/{sid}` | 新建和查询本地会话 |
 | `GET /sessions/{sid}/messages` | `offset` / `limit` 分页读取消息和调用摘要 |
-| `POST /sessions/{sid}/messages` | `request_id`、`content`、可选 `task_id`；返回持久化回答或失败 |
+| `POST /sessions/{sid}/messages` | `request_id`、`content`、可选 `task_id` 和 `configuration_ref`；返回持久化回答、配置变更或失败 |
 | `POST /sessions/{sid}/messages/{mid}/retry` | 仅传新 `request_id`；重新解释失败回答的原问题、原任务与原样例位置 |
 | `GET /sessions/{sid}/messages/{mid}/calls` | 本轮工具参数、结果，以及已脱敏的模型请求、回复和切换记录 |
 | `GET /sessions/{sid}/tasks`、`GET /sessions/{sid}/tasks/{tid}` | 本会话任务列表与真实执行状态 |
@@ -106,13 +127,14 @@ python -m movielens_agent session --session-id local-cli --title '课程治理�
 
 `404` 表示不可见或不存在，`409` 表示会话忙、请求冲突或产物失效，`422` 表示参数错误，`503` 表示本轮回答失败。`GET task` 返回 HTTP 200 并不意味着任务成功，必须查看其 `status`。
 
-同一会话只允许一条消息处理中。请求去重绑定文本、显式任务和解释要求；已完成请求返回原记录，修改请求内容却复用 ID 会冲突。参数经 Pydantic 规范化后构建稳定的工具请求键，模型更换 call ID 或显式补全默认值不会重复受理同一任务。
+同一会话只允许一条消息处理中。请求去重绑定文本、显式任务、解释要求和显式方案；已完成请求返回原记录，修改请求内容却复用 ID 会冲突。参数经 Pydantic 规范化后构建稳定的工具请求键，模型更换 call ID 或显式补全默认值不会重复受理同一任务。
 
 API 重启将未完成回答标为中断；若工具受理后尚未来得及记录返回值，通过稳定键找回已受理任务。API 不更改 worker 状态，不自动重发任务。后台任务的中断恢复由 worker 独立处理。
 
 ## 代码与扩展位置
 
 - `agent/preferences.py` 管理页面配置修订、原子保存和不回显密钥的读取；`web/manage.js` 管理模型设置与历史会话对话框。
+- `storage/governance_configs.py` 管理不可变治理方案和默认 revision；`tools/configuration.py` 提供自然语言配置动作；`web/governance.js` 管理表单、新任务选择与对话变更同步。
 - `agent/settings.py` 读取和脱敏配置；`agent/model.py` 适配原生 `tool_calls` 和备用切换。文本中的伪工具指令不会被执行。
 - `governance/explanation.py` 生成治理事实要点，`agent/explanation.py` 校验模型解释计划与本轮证据。
 - `agent/service.py` 组织有界调用循环；工具名称从注册表生成，对外把点映射成下划线，如 `governance.run` → `governance_run`。

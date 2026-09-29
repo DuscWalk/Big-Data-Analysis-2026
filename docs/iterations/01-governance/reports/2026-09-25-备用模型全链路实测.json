@@ -27,7 +27,6 @@
     "provider": "backup",
     "model": "deepseek-v4-flash",
     "python": "Python 3.11.16",
-    "system_user": "duscwalk",
     "unit_tests": {
       "command": "python -m unittest discover -s tests -q",
       "discovered": 81,
@@ -37,11 +36,9 @@
     },
     "nodes": [
       {
-        "id": "localhost:45129",
         "state": "RUNNING"
       },
       {
-        "id": "localhost:45859",
         "state": "SHUTDOWN"
       }
     ],
@@ -1089,8 +1086,6 @@
   "api_restart": {
     "before_at": "2026-09-25T03:18:08.765288+00:00",
     "after_at": "2026-09-25T03:19:02.759156+00:00",
-    "old_api_pid": 1562600,
-    "new_api_pid": 1574158,
     "snapshot": {
       "model_provider": "backup",
       "task_count": 3,

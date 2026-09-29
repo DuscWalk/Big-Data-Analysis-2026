@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/static/app.css">
   <script src="/static/app.js" defer></script>
   <script src="/static/manage.js" defer></script>
+  <script src="/static/governance.js" defer></script>
 </head>
 <body class="notebook">
   <a class="skip-link" href="#results">跳到实验结果</a>
@@ -19,6 +20,7 @@
     <nav class="header-actions" aria-label="工作台管理">
       <button id="open-history" class="secondary" type="button" aria-haspopup="dialog">历史会话</button>
       <button id="open-model-settings" class="secondary" type="button" aria-haspopup="dialog">模型设置</button>
+      <button id="open-governance-settings" class="secondary" type="button" aria-haspopup="dialog">治理配置</button>
       <a class="header-assistant-link" href="#assistant">前往实验助手 <span aria-hidden="true">↗</span></a>
     </nav>
   </header>
@@ -46,6 +48,7 @@
           <div class="task-controls"><label for="task-select">当前任务</label><select id="task-select"><option value="">尚无任务</option></select><button id="refresh" class="secondary"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16 7A6 6 0 1 0 16 13M16 3v4h-4"/></svg>刷新</button></div>
           <div id="task-status" class="task-status"><span class="badge">等待请求</span><span>任务受理后会自动刷新进展</span></div>
           <div id="task-error" class="notice hidden"></div>
+          <details id="task-configuration-panel" class="hidden"><summary>本任务使用的配置</summary><div id="task-configuration-summary" class="field-help"></div><pre id="task-configuration"></pre></details>
           <details id="attempts-panel" class="hidden"><summary id="attempts-summary">查看执行阶段</summary><p id="attempts-note" class="footnote"></p><ol id="attempts" class="attempts"></ol></details>
         </section>
         <div id="quality-empty" class="empty-result panel">
@@ -80,6 +83,7 @@
         <div id="messages" class="messages" role="log" aria-label="实验对话" aria-live="polite" tabindex="0"><p class="empty">输入需求，开始这次实验。</p></div>
         <div id="request-progress" class="request-progress hidden" role="status"><span class="pending-dot" aria-hidden="true"></span><span id="request-progress-text">正在读取模型与工具…</span></div>
         <div class="suggestions"><button id="suggest-run" type="button"><span aria-hidden="true">＋</span>清洗并评估</button><button id="suggest-explain" type="button"><span aria-hidden="true">↳</span>解释当前结果</button></div>
+        <div class="governance-selection"><label for="governance-select">新任务方案</label><select id="governance-select" disabled><option value="">使用默认方案</option></select><p id="governance-selection-note" class="field-help">也可以直接描述希望采用的规则和评分配置。</p></div>
         <form id="chat-form"><label class="sr-only" for="prompt">输入实验需求</label><textarea id="prompt" rows="3" maxlength="6000" placeholder="提出一个问题，或发起一次清洗…"></textarea><div class="compose-footer"><span id="send-state">Ctrl / ⌘ + Enter 发送</span><button id="send" type="submit">发送<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 6-6 6 6M10 4v12"/></svg></button></div></form>
         <div class="model-caption"><span id="model-state">读取模型配置…</span><button id="open-model-settings-inline" class="text-button" type="button" aria-haspopup="dialog">配置与检测</button></div>
       </aside>
@@ -132,6 +136,53 @@
     <p id="history-feedback" class="panel-feedback" role="status" aria-live="polite"></p>
     <div id="history-list" class="history-list" aria-label="历史会话列表"></div>
     <div class="history-footer"><button id="history-more" class="secondary hidden" type="button">加载更多</button></div>
+  </dialog>
+  <dialog id="governance-dialog" class="management-dialog" aria-labelledby="governance-dialog-title">
+    <div class="dialog-heading"><div><p class="eyebrow">实验方案</p><h2 id="governance-dialog-title">清洗规则与评分</h2></div><button id="close-governance-settings" type="button" class="secondary" aria-label="关闭治理配置">关闭</button></div>
+    <p class="dialog-description">通过开关与参数制定方案，也可在对话中描述需求。保存不运行清洗；已提交的任务继续使用原配置。</p>
+    <form id="governance-form">
+      <fieldset id="governance-fields" disabled>
+        <label class="field">已保存方案<select id="governance-saved"></select></label>
+        <p id="governance-default-caption" class="field-help"></p>
+        <label class="field">方案名称<input id="governance-name" type="text" maxlength="80" required></label>
+        <section class="governance-card" aria-labelledby="governance-rules-title">
+          <h3 id="governance-rules-title">清洗规则</h3>
+          <p class="field-help">以下开关默认关闭，仅记录警告。开启后隔离命中记录；用户或电影被隔离时，关联评分也可能被隔离。</p>
+          <label class="switch-field"><input id="governance-zip" type="checkbox" role="switch"><span>隔离非典型邮编<small>仅接受 5 位数字，或 5 位数字加连字符与 4 位数字；格式差异不一定代表事实错误。</small></span></label>
+          <label class="switch-field"><input id="governance-title" type="checkbox" role="switch"><span>隔离缺少年份的电影标题<small>标题末尾需有四位年份括号，例如 (1995)。</small></span></label>
+          <label class="switch-field"><input id="governance-encoding" type="checkbox" role="switch"><span>隔离疑似混合编码的电影记录<small>不猜测转码；疑似记录仍保留原文与处置依据。</small></span></label>
+          <div class="settings-grid governance-times">
+            <label class="field">允许事件下界（UTC，包含）<input id="governance-min" type="datetime-local" step="1" min="1970-01-01T00:00:00" max="9999-12-31T23:59:59" required></label>
+            <label class="field">允许事件上界（UTC，包含）<input id="governance-max" type="datetime-local" step="1" min="1970-01-01T00:00:00" max="9999-12-31T23:59:59" required></label>
+          </div>
+          <details><summary>固定的数据约束</summary><p class="field-help">字段数量、必填值、ID、评分 1—5、类别值域与外键仍需合法；先排除非法候选，合法同键冲突全部隔离，同键同值保留一条。邮编保持字符串，不填补未知事实。</p></details>
+        </section>
+        <section class="governance-card" aria-labelledby="governance-metrics-title">
+          <h3 id="governance-metrics-title">评分口径</h3>
+          <label class="switch-field"><input id="governance-reference-linked" type="checkbox" role="switch"><span>时效参照与允许事件上界一致<small>关闭后可单独选择观察时点，不改变允许的事件范围。</small></span></label>
+          <div class="settings-grid governance-times">
+            <label class="field">时效参照（UTC）<input id="governance-reference" type="datetime-local" step="1" min="1970-01-01T00:00:00" max="9999-12-31T23:59:59" required></label>
+            <label class="field">时效窗口（天）<input id="governance-window" type="number" min="0.000011574" step="any" required></label>
+          </div>
+          <label class="switch-field"><input id="governance-equal-weights" type="checkbox" role="switch"><span>三表等权汇总<small>关闭后指定相对权重，例如 1:1:3；时效性始终只评价评分表。</small></span></label>
+          <div class="settings-grid">
+            <label class="field">用户表权重<input id="governance-weight-users" type="number" min="1" max="1000" step="1" required></label>
+            <label class="field">电影表权重<input id="governance-weight-movies" type="number" min="1" max="1000" step="1" required></label>
+            <label class="field">评分表权重<input id="governance-weight-ratings" type="number" min="1" max="1000" step="1" required></label>
+          </div>
+          <p class="field-help">分表公式固定。前后使用相同窗口和权重，任一必需表为空时不重新分配权重。参照时间与窗口是业务约定，不能从高分推断真实性。</p>
+        </section>
+        <section class="governance-card" aria-labelledby="governance-split-title">
+          <h3 id="governance-split-title">训练、验证与测试</h3>
+          <div class="settings-grid governance-times">
+            <label class="field">T1 · 训练截止（UTC，包含）<input id="governance-train" type="datetime-local" step="1" min="1970-01-01T00:00:00" max="9999-12-31T23:59:59" required></label>
+            <label class="field">T2 · 验证截止（UTC，包含）<input id="governance-validation" type="datetime-local" step="1" min="1970-01-01T00:00:00" max="9999-12-31T23:59:59" required></label>
+          </div>
+          <p class="field-help">须满足允许下界 ≤ T1 &lt; T2 &lt; 允许上界。时间分区随方案保存，更改后应使用新的数据版本。</p>
+        </section>
+        <div class="dialog-footer governance-footer"><div><p class="field-help">“设为默认”会保存当前内容，影响所有后续未指定方案的新请求。修改会产生新版本，旧方案可继续选择。</p><p id="governance-feedback" class="panel-feedback" role="status" aria-live="polite"></p></div><div class="governance-actions"><button id="governance-save" type="submit" class="secondary">保存并选用</button><button id="governance-set-default" type="button">一键设为默认</button></div></div>
+      </fieldset>
+    </form>
   </dialog>
   <nav class="mobile-nav" aria-label="手机快捷导航"><a href="#overview">查看结果</a><a href="#assistant">使用助手</a></nav>
 </body>

@@ -56,7 +56,7 @@
     "validation": 100814,
     "test": 88401
   },
-  "remote_directory": "/srv/movielens/shared/handoff/iteration-01",
+  "remote_directory": "$APP_ROOT/shared/handoff/iteration-01",
   "catalog_imported": false,
   "hadoop_rerun": false
 }

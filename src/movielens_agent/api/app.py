@@ -22,6 +22,7 @@ from ..governance.config import GovernanceConfig
 from ..storage.catalog import DatasetCatalog
 from ..storage.conversations import ConversationBusy, ConversationConflict, ConversationStore
 from ..storage.tasks import TaskStore, file_digest, now
+from ..storage.governance_configs import ConfigurationConflict
 
 
 class SessionInput(Contract):
@@ -32,6 +33,19 @@ class MessageInput(Contract):
     request_id: str = Field(min_length=1, max_length=128)
     content: str = Field(min_length=1, max_length=6000)
     task_id: str | None = Field(default=None, min_length=1, max_length=128)
+    configuration_ref: ArtifactRef | None = None
+
+
+class ConfigurationInput(Contract):
+    name: str = Field(min_length=1, max_length=80)
+    configuration: GovernanceConfig
+    set_default: bool = False
+    revision: str | None = Field(default=None, max_length=64)
+
+
+class DefaultConfigurationInput(Contract):
+    config_ref: ArtifactRef
+    revision: str = Field(min_length=1, max_length=64)
 
 
 class RetryInput(Contract):
@@ -40,6 +54,8 @@ class RetryInput(Contract):
 
 def public_task(task):
     result = {key: task[key] for key in ("task_id", "workflow", "status", "stage", "error", "created_at", "updated_at")}
+    result.update({key: task["payload"].get(key) for key in
+                   ("configuration", "config_refs", "configuration_ref", "configuration_name")})
     result["attempts"] = [{key: item[key] for key in
                           ("sequence", "stage", "status", "external_ids", "error", "started_at", "ended_at", "progress")}
                          for item in task["attempts"]]
@@ -93,7 +109,7 @@ def create_app(settings=None, model=None):
 
     @app.exception_handler(KeyError)
     async def unavailable(request, error):
-        return JSONResponse({"detail": "会话、任务或产物不存在，或在当前会话不可见。"}, status_code=404)
+        return JSONResponse({"detail": "会话、任务、产物或治理方案不存在，或在当前会话不可见。"}, status_code=404)
 
     @app.exception_handler(ConversationBusy)
     @app.exception_handler(ConversationConflict)
@@ -106,8 +122,28 @@ def create_app(settings=None, model=None):
         return JSONResponse({"detail": "请求参数无效，请检查字段格式和数值范围。"}, status_code=422)
 
     @app.exception_handler(SettingsConflict)
+    @app.exception_handler(ConfigurationConflict)
     async def settings_conflict(request, error):
         return JSONResponse({"detail": str(error)}, status_code=409)
+
+    @app.get("/api/v1/governance-configs")
+    def governance_configs(offset: int = Query(0, ge=0, le=100000), limit: int = Query(20, ge=1, le=100)):
+        return agent.configurations.list(offset, limit)
+
+    @app.post("/api/v1/governance-configs", status_code=201)
+    def save_governance_config(body: ConfigurationInput):
+        try:
+            item = agent.configurations.register(body.name, body.configuration, make_default=body.set_default, revision=body.revision)
+            return item | {"default": agent.configurations.default()}
+        except ConfigurationConflict:
+            raise
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+
+    @app.put("/api/v1/governance-configs/default")
+    def default_governance_config(body: DefaultConfigurationInput):
+        item = agent.configurations.set_default(body.config_ref, body.revision)
+        return item | {"default": agent.configurations.default()}
 
     @app.get("/api/v1/model-settings")
     def model_settings():
@@ -159,12 +195,14 @@ def create_app(settings=None, model=None):
     def status():
         current = app.state.agent
         active = current.settings
+        default = current.configurations.default()
+        scheme = current.configurations.get(ArtifactRef.model_validate(default["ref"]))
         return {"model_configured": active.configured,
                 "model_name": active.model_name if active.model_provider != "backup" else active.backup_name,
                 "model_provider": active.model_provider,
                 "backup_model_name": active.backup_name if active.provider_configured("backup") else None,
-                "datasets": current.datasets(), "configuration": configuration.model_dump(mode="json"),
-                "configuration_refs": configuration.refs()}
+                "datasets": current.datasets(), "configuration": scheme["configuration"],
+                "configuration_refs": scheme["config_refs"], "default_configuration": default}
 
     @app.get("/api/v1/sessions")
     def list_sessions(q: str = Query("", max_length=100), offset: int = Query(0, ge=0, le=100000),
@@ -189,7 +227,8 @@ def create_app(settings=None, model=None):
     def message(session_id: str, body: MessageInput):
         if not body.content.strip():
             raise HTTPException(422, "消息不能为空。")
-        result = agent.respond(session_id, body.request_id, body.content, body.task_id)
+        result = agent.respond(session_id, body.request_id, body.content, body.task_id,
+                               configuration_ref=body.configuration_ref.model_dump() if body.configuration_ref else None)
         return JSONResponse(result, status_code=503 if result["status"] == "failed" else 200)
 
     @app.post("/api/v1/sessions/{session_id}/messages/{message_id}/retry")

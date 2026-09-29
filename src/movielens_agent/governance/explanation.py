@@ -24,7 +24,7 @@ def percentage(numerator, denominator):
 
 
 def explanation_sections(report):
-    """Only v1 semantics are supported; never apply current rules to old scores."""
+    """Explain the report's versioned configuration, never the current default."""
     config = GovernanceConfig.model_validate(report["configuration"])
     if report.get("schema_version") != "1" or config.refs() != report["config_refs"]:
         raise ValueError("Unsupported report or configuration reference mismatch.")
@@ -95,7 +95,7 @@ def explanation_sections(report):
     sections["metric_method"] = (
         "Accurate 是值约束通过数 / 应检查约束数；Complete 是完整必需槽位 / 期望槽位；"
         "Unique 是不同合法业务键 / 全部行；Consistent 是结构、值域、时间、同键及跨表约束全部通过的行 / 全部行。"
-        "四项先分表计算再等权汇总，任一必需表为空则汇总不可评价。"
+        f"{config.aggregation_description()}，任一必需表为空则汇总不可评价。"
         "前后使用同一配置；隔离无效或无法判定的记录、去掉重复和规范化可修复值，会改变被评价的数据及分母。"
         "满分只表明保留数据通过已实现约束，不证明人口属性、标题等事实真实，也不证明没有选择偏差。")
     sections["reasons"] = "\n".join([
@@ -105,10 +105,10 @@ def explanation_sections(report):
         "R14 是合法同键候选之间仍存在冲突，无法判定者隔离；R15 是规范化后完全相同记录的去重。",
     ])
     sections["warnings"] = "\n".join([
-        "未自动判定的警告（不等同于隔离原因）：",
+        "警告记录（是否隔离以本任务规则与处置为准）：",
         *[f"{table} / {key}：{number(count)} 次。" for table in TABLES
           for key, count in sorted(after["warnings"][table].items())],
-        "邮编格式、标题年份、疑似混合编码只记录警告；没有猜测补全原始事实。",
+        config.warning_description(),
     ])
     if "changes" in after:
         sections["repairs"] = "\n".join([
@@ -126,6 +126,7 @@ def explanation_sections(report):
 def answer_sections(report, *, brief=False, dimensions=()):
     """Project verified facts for a question; never replace stored metrics."""
     sections = explanation_sections(report)
+    config = GovernanceConfig.model_validate(report["configuration"])
     if dimensions:
         selected = set(dimensions)
         lines = ["所问维度评分（0—100 分）："]
@@ -143,7 +144,7 @@ def answer_sections(report, *, brief=False, dimensions=()):
         }
         methods = [f"{d} = {formulas[d]} × 100" for d in DIMENSIONS if d in selected and d in formulas]
         if methods:
-            sections["metric_method"] = "；".join(methods) + "。先分表计算再等权汇总，空必需表不可评价；前后口径一致，隔离/去重改变分母。"
+            sections["metric_method"] = "；".join(methods) + "。" + config.aggregation_description() + "，空必需表不可评价；前后口径一致，隔离/去重改变分母。"
     if not brief:
         return sections
     if not dimensions:

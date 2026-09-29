@@ -1,6 +1,6 @@
 # Git 协作与提交约定
 
-本机 WSL 的日常开发、文件写入、Git 和 SSH 使用系统用户 `duscwalk`，提交身份为 `duscwalk <241276007@smail.nju.edu.cn>`。提交前通过 `git var GIT_AUTHOR_IDENT` 和 `git var GIT_COMMITTER_IDENT` 核对。其他成员在自己的电脑使用各自真实的 Git 身份和 SSH 密钥。
+日常开发、文件写入、Git 和 SSH 使用各自的普通开发用户；提交身份由每位成员自行配置。提交前通过 `git var GIT_AUTHOR_IDENT` 和 `git var GIT_COMMITTER_IDENT` 核对，其他成员在自己的电脑使用各自的 Git 身份和 SSH 密钥。
 
 ## 分支与同步
 
@@ -17,7 +17,7 @@ git switch -c feat/iteration-02-tools
 
 独立功能完成后推送自己的分支，创建目标为 `main` 的 PR。描述问题、最终行为、验证结果，以及是否改变公共接口或数据版本。由另一位成员评审，CI 通过后由当前迭代负责人合并；共享分支不强制推送，不重写已发布历史。
 
-截至本轮收尾，公开 GitHub 接口返回 `main.protected=false`；上述评审流程是团队约定，尚未通过分支保护强制执行。成员协作者邀请仍需其 GitHub 用户名；不要把尚未设置的权限或保护写成已启用。
+截至本轮收尾，公开 GitHub 接口返回 `main.protected=false`；上述评审流程是团队约定，尚未通过分支保护强制执行。负责人随后已确认添加另外两位 GitHub 协作者，可以使用各自账号推送功能分支。GitHub 协作权限与云端 SSH 访问权限分别管理。
 
 ## 自动检查与云端版本
 
@@ -25,7 +25,7 @@ push 和 pull request 会触发 GitHub CI，顺序检查 Python 3.11/3.12、小�
 
 个人分支 push → CI → PR 评审 → 合入 `main` → 合并提交的 push CI 成功 → 云端空闲时部署。PR 的 CI 成功不能代替合并提交的 CI。交付器每三分钟检查 `main` 的精确 SHA；有排队、运行任务或正在生成回答时延后发布。
 
-云端是共享集成环境，没有为各功能分支自动创建预览环境。成员在本地开发并跑小样本检查，重计算验收统一协调时间。运行目录 `/srv/movielens/current` 由发布器管理，不是成员的工作区。控制脚本和 systemd 定义变更需要管理员另行安装，不能仅靠应用自动更新。具体操作见[华为云与 CI/CD](../deployment/README.md)。
+云端是共享集成环境，没有为各功能分支自动创建预览环境。成员在本地开发并跑小样本检查，重计算验收统一协调时间。运行目录 `$APP_ROOT/current` 由发布器管理，不是成员的工作区。控制脚本和 systemd 定义变更需要管理员另行安装，不能仅靠应用自动更新。具体操作见[华为云与 CI/CD](../deployment/README.md)。
 
 ## 提交范围
 
@@ -34,6 +34,8 @@ push 和 pull request 会触发 GitHub CI，顺序检查 Python 3.11/3.12、小�
 提交前检查 `git status --short`、`git diff` 和 `git diff --check`；按明确路径暂存，再通过 `git diff --cached` 核对范围。代码变更附带相应验证与使用文档。
 
 原始数据、课件、运行目录、缓存、环境文件和凭据由 `.gitignore` 排除。可复现的源码、依赖声明和脱离数据明细也可阅读的报告进入仓库；大型产物按固定引用与校验值交接。
+
+共享文档使用项目相对路径和参数化命令，不记录个人系统用户名、邮箱、机器地址、SSH 别名或安装目录。具体值保存在各自的本地配置中。实测报告保留软件版本、任务引用和验证结果，公开前省略主机身份、进程号等环境信息；仓库地址和项目默认配置仍按实际内容维护。
 
 ## 里程碑与交接
 
@@ -45,7 +47,7 @@ git show --no-patch iteration-01-v1.0
 git rev-parse 'iteration-01-v1.0^{commit}'
 ```
 
-需要运行旧版本时可 `git switch --detach iteration-01-v1.0`；继续开发应切回自己的功能分支。云端实际版本以 `/srv/movielens/deployed.json` 为准，包含提交、上一版本和通过的 CI 地址。
+需要运行旧版本时可 `git switch --detach iteration-01-v1.0`；继续开发应切回自己的功能分支。云端实际版本以 `$APP_ROOT/deployed.json` 为准，包含提交、上一版本和通过的 CI 地址。
 
 每次交接给出代码基线、精确数据版本、运行证据、已知限制和后续接口；本轮入口见[交接说明](../iterations/01-governance/handoff/交接说明.md)。
 

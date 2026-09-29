@@ -8,9 +8,11 @@
 
 ## 实验文档
 
-首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；操作见[模型与页面指南](docs/development/app-and-model.md)。
+首页支持主备模型配置、模型列表与连通性检测，以及历史会话搜索和切换；治理方案既可通过自然语言修改，也可通过前端开关和表单配置，并一键设为默认。操作见[模型与页面指南](docs/development/app-and-model.md)，范围与验证见[治理方案配置实测](docs/iterations/01-governance/reports/2026-09-29-治理方案配置实测.md)。
 
 完整入口见 [文档导航](docs/README.md)，协作约定见 [Git 工作流](docs/development/git-workflow.md)。 自动检查与云端部署见[华为云与 CI/CD](docs/deployment/README.md)。现场操作见[迭代一演示说明](docs/iterations/01-governance/demo/演示说明.md)。
+
+作业二、三负责人可从[迭代一作业素材](docs/homework/README.md)查阅实际问题、技术现状与证据；问题、决策和技术比较由两位同学衔接完成。
 
 - [项目总体要求与汇报安排](docs/course/引言_项目总体要求与汇报安排.md)：系统目标、三轮迭代要求、提交内容与汇报安排。
 - [迭代一：Hadoop 数据清洗与 Agent 基础](docs/course/迭代一_Hadoop数据清洗与Agent基础.md)：数据检查方向、五维质量评分、Agent 工具与前端要求。
@@ -55,7 +57,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 ├── README.md
 ├── .gitignore
 ├── pyproject.toml                 # 包定义与依赖声明
-├── environment.yml                # AgentDev 环境声明
+├── environment.yml                # 项目 Conda 环境声明
 ├── requirements.lock              # 已验证的 Python 库版本
 ├── environments/                  # 平台环境锁文件
 ├── src/movielens_agent/            # Agent、API、页面、工具与 Hadoop 工作流
@@ -77,7 +79,7 @@ README 提供项目入口与准备说明。课程要求以总体与各轮实验�
 
 ## 获取仓库与准备数据
 
-以下命令适用于 Linux / WSL，需要 Git 和 `unzip`。使用 SSH 克隆前需配置 GitHub SSH 认证；已有本地仓库可跳过克隆步骤。
+以下命令适用于 Linux 开发环境，需要 Git 和 `unzip`。使用 SSH 克隆前需配置 GitHub SSH 认证；已有本地仓库可跳过克隆步骤。
 
 ```bash
 git clone git@github.com:DuscWalk/Big-Data-Analysis-2026.git
@@ -105,11 +107,10 @@ wc -l ml-1m/movies.dat ml-1m/ratings.dat ml-1m/users.dat
 
 ## 本地开发与已实现命令
 
-使用 `duscwalk` 用户的 Conda 环境 **`AgentDev`**，当前已验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
+在已激活的项目 Python 环境中运行，示例环境名为 **`movielens-agent`**；当前验证 Python 3.11.16。依赖与完整复现步骤见 [开发环境与本地运行](docs/development/environment.md)。
 
 ```bash
-source /home/duscwalk/miniconda3/etc/profile.d/conda.sh
-conda activate AgentDev
+conda activate movielens-agent
 python -m pip install -r requirements.lock
 python -m pip install --no-deps --no-build-isolation -e .
 python -m movielens_agent profile --data-dir ml-1m
@@ -118,7 +119,7 @@ python -m unittest discover -s tests -v
 
 核查命令自动建立新的本地输出目录并返回数据版本，可通过 `describe` 子命令查询登记清单。首次全量结果见 [2026-09-24 原始数据核查](docs/iterations/01-governance/reports/2026-09-24-原始数据核查.md)。核查仅提供数据证据，不替代 Hadoop 的正式清洗和五维评分。
 
-日常开发使用小样本检查，Hadoop 计算和集成验收集中在[华为云环境](docs/deployment/README.md)。本机 WSL 曾因计算负载失稳，不把完整 Hadoop 作为开发前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
+日常开发使用小样本检查，Hadoop 计算和集成验收集中在[云端环境](docs/deployment/README.md)。不把完整 Hadoop 作为每个开发环境的前提。以下命令仅供资源足够的独立环境使用：先按 [Hadoop 指南](docs/development/hadoop-local.md)安装，并在独立终端运行 `python scripts/hadoop/local_cluster.py serve`，再提交任务并启动 worker：
 
 ```bash
 python -m movielens_agent submit --version sha256-46bfa0020d750da32d409f93c6cb305a1347019f8a703f7f6b943458ee0fa578 --request-id governance-001

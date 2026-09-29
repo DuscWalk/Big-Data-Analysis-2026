@@ -19,7 +19,7 @@ SVG 适合放大阅读和矢量编辑；PNG 可直接放入幻灯片；PDF 保�
 python scripts/docs/render_architecture.py
 ```
 
-图源采用原生 SVG 矩形、路径和文字，不引用外部图片、模型服务或应用接口。首选字体为 `Noto Sans CJK SC`；本机导出使用该字体，其他环境应准备同款中文字体以保持排版一致。
+图源采用原生 SVG 矩形、路径和文字，不引用外部图片、模型服务或应用接口。首选字体为 `Noto Sans CJK SC`；导出环境应准备该字体以保持排版一致。
 
 ## PNG / PDF 导出
 

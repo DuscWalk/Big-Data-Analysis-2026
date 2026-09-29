@@ -24,7 +24,7 @@ class QueryTool:
     input_model: type[BaseModel]
     output_model: type[BaseModel]
     handler: Callable[[BaseModel, ToolContext], tuple[BaseModel, list[ArtifactRef]]]
-    mode: Literal["query", "job"] = "query"
+    mode: Literal["query", "job", "action"] = "query"
 
 
 class ToolRegistry:
@@ -55,8 +55,8 @@ class ToolRegistry:
         if name not in self._tools:
             return error("rejected", "TOOL_NOT_FOUND", "Tool is not registered.")
         tool = self._tools[name]
-        if tool.mode == "job" and not allow_jobs:
-            return error("rejected", "READ_ONLY_EXPLANATION", "结果解释只能查询证据，不能提交新任务。")
+        if tool.mode != "query" and not allow_jobs:
+            return error("rejected", "READ_ONLY_EXPLANATION", "结果解释只能查询证据，不能提交新任务或修改配置。")
         try:
             parsed = tool.input_model.model_validate(arguments)
         except ValidationError:

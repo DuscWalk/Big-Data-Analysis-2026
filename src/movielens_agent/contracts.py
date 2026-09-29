@@ -38,6 +38,7 @@ class ToolContext(Contract):
     call_id: str = Field(min_length=1)
     message_id: str | None = Field(default=None, min_length=1)
     request_id: str | None = Field(default=None, min_length=1)
+    configuration_ref: ArtifactRef | None = None
 
 
 class ToolError(Contract):

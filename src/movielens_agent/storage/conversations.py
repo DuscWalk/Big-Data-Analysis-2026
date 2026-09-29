@@ -80,9 +80,10 @@ class ConversationStore(TaskStore):
         return {"items": [dict(row) for row in rows[:limit]], "has_more": len(rows) > limit,
                 "offset": offset}
 
-    def begin(self, session_id, request_id, content, task_id=None, require_quality=False, retry_of=None):
+    def begin(self, session_id, request_id, content, task_id=None, require_quality=False, retry_of=None, *, configuration_ref=None):
         payload = canonical({"content": content, "task_id": task_id, "require_quality": require_quality,
-                             **({"retry_of": retry_of} if retry_of else {})})
+                             **({"retry_of": retry_of} if retry_of else {}),
+                             **({"configuration_ref": configuration_ref} if configuration_ref else {})})
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             session = conn.execute("SELECT * FROM chat_sessions WHERE session_id=?", (session_id,)).fetchone()
@@ -224,6 +225,12 @@ class ConversationStore(TaskStore):
                 response["retryable"] = True
             if validation is not None:
                 response["validation"] = validation
+            for call in calls:
+                result = json.loads(call["result"]) if call["result"] else {}
+                if call["tool_name"] in {"governance.configure", "governance.set_default"} and result.get("status") == "completed":
+                    scheme = result["data"]["value"]
+                    response["configuration_change"] = {"ref": scheme["ref"], "name": scheme["name"],
+                                                         "default_changed": scheme["default_changed"]}
             conn.execute("INSERT INTO chat_messages VALUES (?,?,?,'assistant',?,?)",
                          (reply_id, request_uid, request["session_id"], content, stamp))
             conn.execute("UPDATE chat_requests SET status=?,response=?,updated_at=? WHERE request_uid=?",

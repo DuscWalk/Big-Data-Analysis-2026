@@ -46,6 +46,7 @@ jobs:
         run: |
           node --check src/movielens_agent/web/app.js
           node --check src/movielens_agent/web/manage.js
+          node --check src/movielens_agent/web/governance.js
           git show --format= --check HEAD
       - name: Run small fixture tests without Hadoop or model credentials
         run: |

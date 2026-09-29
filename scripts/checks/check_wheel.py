@@ -9,7 +9,7 @@ def check(path):
         names = set(archive.namelist())
     required = {"movielens_agent/__init__.py", "movielens_agent/cli.py",
                 "movielens_agent/web/index.html", "movielens_agent/web/app.js",
-                "movielens_agent/web/manage.js", "movielens_agent/web/app.css"}
+                "movielens_agent/web/manage.js", "movielens_agent/web/governance.js", "movielens_agent/web/app.css"}
     missing = required - names
     forbidden = [name for name in names if Path(name).name.startswith(".env")
                  or name.endswith((".sqlite3", ".models.json"))

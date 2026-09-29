@@ -1,5 +1,5 @@
-# Conda package builds for the validated WSL/Linux x86_64 environment.
-# Create AgentDev with conda create -n AgentDev --file environments/conda-linux-64.lock
+# Conda package builds for the validated Linux x86_64 environment.
+# Create the project environment with conda create -n movielens-agent --file environments/conda-linux-64.lock
 @EXPLICIT
 https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda#a9f577daf3de00bca7c3c76c0ecbd1de
 https://conda.anaconda.org/conda-forge/linux-64/bzip2-1.0.8-hda65f42_10.conda#e675fabcf81499adc7edf58124fb1e01
