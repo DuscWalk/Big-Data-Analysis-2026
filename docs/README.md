@@ -15,4 +15,6 @@
 
 第一次接触项目可先阅读[系统架构详解](architecture/系统架构详解.md)，从总览图进入任务执行、报告追问和 Hadoop 七作业流程。进一步查阅时，建议依次阅读课程要求、整体架构、当前迭代的需求和技术方案。核查或运行报告放在该迭代的 `reports/` 中，代码、模型和大规模运行产物通过报告中的版本与位置引用。
 
+需要核对业务规则与公式时，可直接阅读[具体清洗规则](iterations/01-governance/rules/清洗规则.md)和[质量评分计算规则](iterations/01-governance/rules/质量评分计算规则.md)。
+
 后续迭代按 `iterations/02-analysis/`、`iterations/03-knowledge-graph/` 扩展，实际开始时再创建。共用接口变化同步更新整体架构和受影响的迭代文档。
